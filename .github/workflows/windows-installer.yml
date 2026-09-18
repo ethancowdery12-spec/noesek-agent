@@ -14,6 +14,7 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
           $root = Join-Path $env:RUNNER_TEMP 'Noesek Test With Spaces'
           $bin = Join-Path $root 'Command Bin'
           & ([scriptblock]::Create((Invoke-WebRequest -UseBasicParsing 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v1.11.1/install.ps1').Content)) -InstallRoot $root -BinDir $bin -NoPathUpdate
