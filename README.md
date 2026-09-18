@@ -20,7 +20,7 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorAction
 
 The exact commands above passed on GitHub's `windows-latest` runner. The same run covered a clean install, `noesek` and `hermes`, reinstall/idempotency, configuration preservation, checksum failure without changing the active install, and install paths containing spaces.
 
-Windows test: https://github.com/ethancowdery12-spec/noesek-agent/actions (v1.11.3 run pending)
+Windows test: https://github.com/ethancowdery12-spec/noesek-agent/actions/runs/35404952906
 
 Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v1.11.3
 
