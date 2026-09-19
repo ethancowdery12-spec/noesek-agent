@@ -8,14 +8,14 @@
   },
   "one_tool": {
     "llm_turns": 2,
-    "wall_ms": 2.5,
+    "wall_ms": 2.6,
     "result_bytes": 74,
     "content": "tool done",
     "steps": 2
   },
   "unknown_tool_recovery": {
     "llm_turns": 2,
-    "wall_ms": 0.9,
+    "wall_ms": 0.8,
     "result_bytes": 91,
     "content": "recovered after tool error",
     "steps": 2

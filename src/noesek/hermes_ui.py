@@ -581,11 +581,24 @@ class SlashDispatcher:
                 if rows else "(no skills installed)")
         elif name == "sessions":
             from . import cli_ops
+            if arg.strip().isdigit():
+                st = await cli_ops.session_stats(int(arg.strip()))
+                out(f"session {st['id']}: {st['turns']} turns, "
+                    f"{sum(st['messages'].values())} messages {st['messages']}")
+                out(f"  tokens: {st['input_tokens']} in / {st['output_tokens']} out"
+                    f"  policy-blocked: {st['policy_blocked']}")
+                if st["tools"]:
+                    out("  tools: " + ", ".join(f"{k} x{v}" for k, v in st["tools"].items()))
+                if st["active_seconds"] is not None:
+                    out(f"  active span: {_fmt_duration(st['active_seconds'])}")
+                return True
             rows = await cli_ops.sessions_list(20)
             for r in rows:
-                out(f"  {r.get('id')}: {r.get('title') or r.get('updated_at', '')}")
+                out(f"  {r.get('id')}: {r.get('title') or r.get('updated_at', '')}"
+                    f"  ({r.get('messages', 0)} messages)")
             if not rows:
                 out("(no sessions)")
+            out(paint("Tip: /sessions <id> for turn/tool/token analysis of one session.", DIM))
         elif name == "undo":
             if s.history:
                 s.history.pop()
