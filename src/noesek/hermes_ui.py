@@ -87,6 +87,14 @@ HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████�
 [#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
 [#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
 
+
+NOESEK_LOGO = """[bold #FFD700]███╗   ██╗ ██████╗ ███████╗███████╗███████╗██╗  ██╗[/]
+[bold #FFD700]████╗  ██║██╔═══██╗██╔════╝██╔════╝██╔════╝██║ ██╔╝[/]
+[#FFBF00]██╔██╗ ██║██║   ██║███████╗█████╗  █████╗  █████╔╝[/]
+[#FFBF00]██║╚██╗██║██║   ██║╚════██║██╔══╝  ██╔══╝  ██╔═██╗[/]
+[#CD7F32]██║ ╚████║╚██████╔╝███████║███████╗███████╗██║  ██╗[/]
+[#CD7F32]╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝[/]"""
+
 HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
 [#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
 [#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
@@ -290,7 +298,7 @@ def banner_lines(model: str, cwd: str, tools: list[str], skills: dict[str, list[
     if model and model.lower() != "unknown":
         left.append(p(_short_model(model), ACCENT)
                     + (p(" · ", DIM) + p(f"{_fmt_context_length(context_length)} context", DIM) if context_length else "")
-                    + p(" · ", DIM) + p("Nous Research CLI layout", DIM))
+                    + p(" · ", DIM) + p("Hermes-compatible", DIM))
     else:
         left.append(p("no model configured", "#FF4500", bold=True) + p(" - run /model or noesek config", DIM))
     left.append(p(cwd, DIM))
@@ -334,7 +342,7 @@ def print_banner(model: str, cwd: str, tools: list[str], skills: dict[str, list[
     p = (lambda t, c=None, **kw: t) if no_color else paint
     cols = shutil.get_terminal_size().columns
     if cols >= 95:
-        out(render_markup(HERMES_AGENT_LOGO) if not no_color else "HERMES AGENT (Noesek)")
+        out(render_markup(NOESEK_LOGO) if not no_color else "NOESEK AGENT")
         out("")
     left_w = max((visible_len(l) for l in left), default=0)
     body = []
@@ -343,7 +351,7 @@ def print_banner(model: str, cwd: str, tools: list[str], skills: dict[str, list[
         r = right[i] if i < len(right) else ""
         pad = " " * (left_w - visible_len(l) + 2)
         body.append(f"  {l}{pad}{r}")
-    title = f" Hermes Agent (Noesek) v{__version__} "
+    title = f" Noesek Agent v{__version__} - Hermes-compatible CLI "
     width = min(max((visible_len(b) for b in body), default=40) + 2, max(cols - 2, 44))
     out(p("╭" + "─" * 2 + title + "─" * max(0, width - visible_len(title) - 2) + "╮", BORDER))
     for b in body:
@@ -625,7 +633,7 @@ class SlashDispatcher:
             result = await s.controller.decide_approval(s.conversation_id, approval_id, name == "approve")
             out(result.text)
         elif name == "version":
-            out(f"hermes (Noesek compatibility) {__version__}")
+            out(f"noesek {__version__} (Hermes-compatible)")
         elif row is not None:
             out(paint(f"/{name} is recognized from the Hermes registry but has no safe Noesek "
                       f"execution yet - nothing ran. See docs/HERMES_CLI_COMPATIBILITY.md.", "#FF8C00"))

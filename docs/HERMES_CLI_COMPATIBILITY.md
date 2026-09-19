@@ -1,6 +1,6 @@
 # Hermes CLI compatibility
 
-Noesek 2.0 provides a `hermes` entry point generated from canonical Hermes
+Noesek 2.0 provides a `hermes` compatibility alias generated from canonical Hermes
 Agent commit `d7b836ab1c0cddaafc109ed24c9a83b6191cdc88` (MIT). The machine-readable
 source of truth is `compat/hermes-cli-manifest.json`; it includes per-file
 SHA-256 hashes, command paths, options, aliases, help metadata, and the slash
@@ -94,8 +94,9 @@ operator process ownership, external services, or formats Noesek does not own.
 
 ## Interactive UI (v2.1)
 
-`hermes` with no arguments, `hermes chat`, and `noesek chat` (interactive) now
-open a Hermes-look terminal UI (`noesek.hermes_ui`) instead of the plain loop:
+`noesek` with no arguments, `noesek chat`, `hermes` with no arguments, and
+`hermes chat` open the Noesek-branded Hermes-look terminal UI
+(`noesek.hermes_ui`) instead of the plain loop:
 
 - Welcome banner in the upstream layout: caduceus + logo art (verbatim from
   upstream `hermes_cli/banner.py`, MIT), model/context line, cwd, session id,

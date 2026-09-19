@@ -5,7 +5,7 @@ from .config import settings
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="noesek", description="Noesek Agent runtime")
+    p = argparse.ArgumentParser(prog="noesek", description="Noesek Agent - primary CLI. Bare `noesek` opens the interactive terminal UI (Hermes-compatible); `hermes` remains as a compatibility alias with the same surface.")
     p.add_argument("--version", action="version", version=f"noesek {__version__}")
     p.add_argument("--json", action="store_true", help="Emit machine-readable JSON where supported")
     sub = p.add_subparsers(dest="command")
@@ -193,6 +193,9 @@ def main(argv=None):
                     print(text, end="")
         elif args.command == "backup": _emit({"output":str(args.output),"files":cli_ops.backup(args.output)}, args.json)
         elif args.command == "completion": print(_completion(args.shell))
+        elif args.command is None:
+            from .hermes_ui import run_interactive
+            asyncio.run(run_interactive("cli-user"))
         else: build_parser().print_help()
         return 0
     except (KeyError, LookupError, ValueError) as e:

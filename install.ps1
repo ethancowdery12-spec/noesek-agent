@@ -90,6 +90,7 @@ try {
     & (Join-Path $BinDir 'hermes.cmd') --help *> $null
     if ($LASTEXITCODE -ne 0) { Fail 'activated hermes command failed' }
     Write-Host "Installed Noesek $Version without administrator access. Existing configuration in $configDir was preserved."
+    Write-Host "Run 'noesek' to start (the 'hermes' compatibility alias works identically)."
 } finally {
     if ($newVenv -and (Test-Path -LiteralPath $newVenv)) { Remove-Item -LiteralPath $newVenv -Recurse -Force -ErrorAction SilentlyContinue }
     if (Test-Path -LiteralPath $tempDir) { Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue }
