@@ -6,6 +6,7 @@ from sqlalchemy import select
 from .approval_engine import assess_tool_arguments
 from .context import assemble
 from .loop_guard import LoopGuard, classify_exception
+from .memory_v2 import wrap_untrusted
 from .policy import evaluate_policy, parse_rules
 from .llm import configured_llm, provider_name
 from .metrics import inc
@@ -22,8 +23,8 @@ from ..db import Approval, Message, Session, Task, now, record_trace
 from ..tools.research import SearchInput, search_web
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.state import (
-    CancelTaskInput, CreateTaskInput, ForgetInput, ListTasksInput, RecallInput, RememberInput,
-    cancel_task_handler, forget_handler, list_tasks_handler, memory_handler, recall_handler, task_handler,
+    CancelTaskInput, CreateTaskInput, ForgetInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput,
+    cancel_task_handler, forget_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, task_handler,
 )
 from ..tools.web import FetchInput, fetch_url
 
@@ -50,6 +51,7 @@ class Controller:
         r.register(ToolSpec("remember","Store a durable user-approved fact or preference.",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("recall","Search durable memory for facts relevant to a query.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("supersede_memory","Replace one durable memory with a corrected version (old one is kept, marked superseded).",SupersedeInput,Risk.WRITE,supersede_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("create_task","Create a durable background task.",CreateTaskInput,Risk.WRITE,task_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("list_tasks","List this conversation's background tasks and their status.",ListTasksInput,Risk.READ,list_tasks_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("cancel_task","Cancel a pending background task by id.",CancelTaskInput,Risk.WRITE,cancel_task_handler(conversation_id),timeout_seconds=t))
@@ -85,9 +87,9 @@ class Controller:
             if external_id and (await s.execute(select(Message).where(Message.external_id==external_id))).scalar_one_or_none():
                 return TurnResult(text="")
             s.add(Message(conversation_id=conversation_id, role="user", content=text, external_id=external_id)); await s.commit()
-            messages = await assemble(s, conversation_id, query=text)
-        spine = TurnSpine(conversation_id)
-        await spine.emit(TURN_STARTED, {"chars": len(text)})
+            spine = TurnSpine(conversation_id)
+            await spine.emit(TURN_STARTED, {"chars": len(text)})
+            messages = await assemble(s, conversation_id, query=text, spine=spine)
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
         registry = self.registry(conversation_id); citations = []
@@ -171,7 +173,7 @@ class Controller:
                     for item in result.get("results",[]) if isinstance(result,dict) else []:
                         if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
                     if isinstance(result, dict) and result.get("url"): citations.append(result["url"])
-                    messages.append({"role":"tool","tool_call_id":call.id,"content":json.dumps(result,ensure_ascii=False)})
+                    messages.append({"role":"tool","tool_call_id":call.id,"content":wrap_untrusted(json.dumps(result,ensure_ascii=False), call.name)})
         except Exception as e:
             await spine.emit(TURN_FAILED, {"error": type(e).__name__}, strict=False)
             raise

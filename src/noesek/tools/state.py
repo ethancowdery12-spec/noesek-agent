@@ -1,9 +1,16 @@
 from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
 from sqlalchemy import select
+from ..core.memory_v2 import MEMORY_KINDS, deindex_memory, fts_search_ids, index_memory
 from ..db import Session, Memory, Task
 
-class RememberInput(BaseModel): content: str = Field(min_length=1, max_length=2000)
+class RememberInput(BaseModel):
+    content: str = Field(min_length=1, max_length=2000)
+    kind: str = Field(default="note", description="note, fact, preference, or episode")
+class SupersedeInput(BaseModel):
+    memory_id: int = Field(ge=1)
+    content: str = Field(min_length=1, max_length=2000)
+    kind: str | None = Field(default=None, description="defaults to the superseded memory's kind")
 class RecallInput(BaseModel): query: str = Field(min_length=1, max_length=500); limit: int = Field(default=5, ge=1, le=20)
 class ForgetInput(BaseModel): memory_id: int = Field(ge=1)
 class CreateTaskInput(BaseModel):
@@ -15,18 +22,38 @@ class CancelTaskInput(BaseModel): task_id: int = Field(ge=1)
 
 def memory_handler(conversation_id: int):
     async def f(inp: RememberInput):
+        if inp.kind not in MEMORY_KINDS:
+            return {"error": f"kind must be one of {', '.join(MEMORY_KINDS)}"}
         async with Session() as s:
-            m = Memory(conversation_id=conversation_id, content=inp.content); s.add(m); await s.commit()
-            return {"stored": True, "memory_id": m.id}
+            m = Memory(conversation_id=conversation_id, content=inp.content, kind=inp.kind, source="conversation")
+            s.add(m); await s.commit()
+        await index_memory(m.id, m.content)
+        return {"stored": True, "memory_id": m.id, "kind": m.kind}
+    return f
+
+def supersede_handler(conversation_id: int):
+    async def f(inp: SupersedeInput):
+        async with Session() as s:
+            old = (await s.execute(select(Memory).where(Memory.id==inp.memory_id, Memory.conversation_id==conversation_id, Memory.active==True))).scalar_one_or_none()
+            if not old: return {"error": f"Memory #{inp.memory_id} not found in this conversation"}
+            kind = inp.kind or old.kind
+            if kind not in MEMORY_KINDS:
+                return {"error": f"kind must be one of {', '.join(MEMORY_KINDS)}"}
+            new = Memory(conversation_id=conversation_id, content=inp.content, kind=kind,
+                         source=old.source)
+            s.add(new); await s.flush()
+            old.active = False; old.superseded_by = new.id; await s.commit()
+        await deindex_memory(old.id); await index_memory(new.id, new.content)
+        return {"superseded": True, "old_memory_id": old.id, "memory_id": new.id, "kind": new.kind}
     return f
 
 def recall_handler(conversation_id: int):
     async def f(inp: RecallInput):
-        from ..core.context import rank_memories
+        from ..core.context import rank_memories_async
         async with Session() as s:
             rows = (await s.execute(select(Memory).where(Memory.conversation_id==conversation_id, Memory.active==True))).scalars().all()
-        picked = rank_memories(inp.query, list(rows), inp.limit)
-        return {"memories": [{"id": m.id, "content": m.content} for m in picked]}
+        picked = await rank_memories_async(conversation_id, inp.query, list(rows), inp.limit)
+        return {"memories": [{"id": m.id, "kind": m.kind, "content": m.content} for m in picked]}
     return f
 
 def forget_handler(conversation_id: int):
@@ -35,7 +62,8 @@ def forget_handler(conversation_id: int):
             m = (await s.execute(select(Memory).where(Memory.id==inp.memory_id, Memory.conversation_id==conversation_id, Memory.active==True))).scalar_one_or_none()
             if not m: return {"error": f"Memory #{inp.memory_id} not found in this conversation"}
             m.active = False; await s.commit()
-            return {"forgotten": True, "memory_id": m.id}
+        await deindex_memory(inp.memory_id)
+        return {"forgotten": True, "memory_id": inp.memory_id}
     return f
 
 def task_handler(conversation_id: int):

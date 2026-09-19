@@ -28,15 +28,37 @@ def trim_to_budget(messages: list[dict], budget: int) -> tuple[list[dict], int]:
         out.pop(1); removed += 1
     return out, removed
 
-async def assemble(session, conversation_id: int, query: str = "", limit: int | None = None, char_budget: int | None = None) -> list[dict]:
+async def rank_memories_async(conversation_id: int, query: str, memories: list[Memory], limit: int) -> list[Memory]:
+    """FTS5-ranked memories first (stage D), keyword ranker fills the rest."""
+    from .memory_v2 import fts_search_ids
+    ids = await fts_search_ids(conversation_id, query, limit) if query.strip() else []
+    if not ids: return rank_memories(query, memories, limit)
+    pos = {mid: i for i, mid in enumerate(ids)}
+    hits = sorted([m for m in memories if m.id in pos], key=lambda m: pos[m.id])
+    rest = rank_memories(query, [m for m in memories if m.id not in pos], limit)
+    return (hits + rest)[:limit]
+
+async def assemble(session, conversation_id: int, query: str = "", limit: int | None = None,
+                   char_budget: int | None = None, spine=None) -> list[dict]:
     limit = limit or settings.history_limit
     char_budget = char_budget or settings.max_context_chars
     memories = (await session.execute(select(Memory).where(Memory.conversation_id==conversation_id, Memory.active==True).order_by(Memory.created_at.desc()).limit(settings.memory_limit * 4))).scalars().all()
     history = (await session.execute(select(Message).where(Message.conversation_id==conversation_id).order_by(Message.created_at.desc()).limit(limit))).scalars().all()[::-1]
-    picked = rank_memories(query, list(memories), settings.memory_limit)
-    mem = "\n".join(f"- {m.content}" for m in picked)
+    picked = await rank_memories_async(conversation_id, query, list(memories), settings.memory_limit)
+    mem = "\n".join(f"- [{m.kind}#{m.id}] {m.content}" for m in picked)
     system = SYSTEM + (f"\nRelevant durable memory:\n{mem}" if mem else "")
     out = [{"role":"system","content":system}] + [{"role":m.role,"content":m.content} for m in history]
     out, removed = trim_to_budget(out, char_budget)
-    if removed: out[0]["content"] += f"\n[{removed} older messages omitted to fit the context budget]"
+    if removed:
+        # Compaction is a persisted, visible transition (stage D).
+        from .memory_v2 import record_compaction
+        dropped = history[:removed]
+        cid = await record_compaction(conversation_id, removed, char_budget,
+                                      dropped[0].id if dropped else None,
+                                      dropped[-1].id if dropped else None,
+                                      turn_id=spine.turn_id if spine else None)
+        note = f"\n[{removed} older messages omitted to fit the context budget"
+        note += f"; compaction #{cid}]" if cid else "]"
+        out[0]["content"] += note
+        if spine: await spine.emit("compaction", {"removed": removed, "budget": char_budget, "compaction_id": cid})
     return out
