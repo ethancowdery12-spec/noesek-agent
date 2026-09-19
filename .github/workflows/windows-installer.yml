@@ -32,7 +32,7 @@ jobs:
           $failure = (& (Join-Path $bin 'noesek.cmd') chat --oneshot -q 'hello' 2>&1 | Out-String)
           $ErrorActionPreference = $savedErrorActionPreference
           if ($failure -match 'Traceback' -or $failure -notmatch 'provider=' -or $failure -notmatch 'base_url=' -or $failure -notmatch 'model=deepseek-flash' -or $failure -notmatch 'status=unavailable') { throw "provider failure was not clean/actionable: $failure" }
-          & (Join-Path $bin 'hermes.cmd') --help | Out-Null
+          & (Join-Path $bin 'noesek.cmd') --help | Out-Null
           New-Item -ItemType Directory -Path (Join-Path $root 'config') -Force | Out-Null
           Set-Content -LiteralPath (Join-Path $root 'config\sentinel.txt') -Value 'keep-me'
           $before = Get-Content -Raw (Join-Path $bin 'active.txt')

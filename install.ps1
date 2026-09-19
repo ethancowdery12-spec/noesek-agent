@@ -56,14 +56,11 @@ try {
     & $venvPython -m pip install --disable-pip-version-check $archive
     if ($LASTEXITCODE -ne 0) { Fail 'package installation failed; active installation was not changed' }
     $noesekExe = Join-Path $newVenv 'Scripts\noesek.exe'
-    $hermesExe = Join-Path $newVenv 'Scripts\hermes.exe'
-    if (-not (Test-Path -LiteralPath $noesekExe) -or -not (Test-Path -LiteralPath $hermesExe)) { Fail 'installed entry points were not created' }
+    if (-not (Test-Path -LiteralPath $noesekExe)) { Fail 'installed entry point was not created' }
     & $noesekExe --version
     if ($LASTEXITCODE -ne 0) { Fail 'noesek entry point validation failed' }
-    & $hermesExe --help *> $null
-    if ($LASTEXITCODE -ne 0) { Fail 'hermes entry point validation failed' }
 
-    foreach ($name in @('noesek','hermes')) {
+    foreach ($name in @('noesek')) {
         $wrapper = Join-Path $BinDir "$name.cmd"
         if (-not (Test-Path -LiteralPath $wrapper)) {
             $body = "@echo off`r`nset /p NOESEK_VENV=<`"%~dp0active.txt`"`r`n`"%NOESEK_VENV%\Scripts\$name.exe`" %*`r`n"
@@ -81,16 +78,14 @@ try {
         if ($parts -notcontains $BinDir) {
             $updated = (($parts + $BinDir) -join ';')
             [Environment]::SetEnvironmentVariable('Path',$updated,'User')
-            Write-Host "Added $BinDir to your user PATH. Open a new Command Prompt or PowerShell window before running noesek or hermes."
+            Write-Host "Added $BinDir to your user PATH. Open a new Command Prompt or PowerShell window before running noesek."
         }
         if (($env:Path -split ';') -notcontains $BinDir) { $env:Path += ";$BinDir" }
     }
     & (Join-Path $BinDir 'noesek.cmd') --version
     if ($LASTEXITCODE -ne 0) { Fail 'activated noesek command failed' }
-    & (Join-Path $BinDir 'hermes.cmd') --help *> $null
-    if ($LASTEXITCODE -ne 0) { Fail 'activated hermes command failed' }
     Write-Host "Installed Noesek $Version without administrator access. Existing configuration in $configDir was preserved."
-    Write-Host "Run 'noesek' to start (the 'hermes' compatibility alias works identically)."
+    Write-Host "Run 'noesek' to start."
 } finally {
     if ($newVenv -and (Test-Path -LiteralPath $newVenv)) { Remove-Item -LiteralPath $newVenv -Recurse -Force -ErrorAction SilentlyContinue }
     if (Test-Path -LiteralPath $tempDir) { Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue }

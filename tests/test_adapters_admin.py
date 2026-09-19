@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from noesek import cli_ops, hermes_cli
+from noesek import cli_ops, cli_surface
 from noesek.compat import worktree_audit
 
 
@@ -24,10 +24,10 @@ def test_pause_resume_roundtrip(home):
     cli_ops.set_paused(False)
     assert cli_ops.is_paused() == {"paused": False}
 
-def test_hermes_pause_resume_cli(home, capsys):
-    assert hermes_cli.main(["pause", "--reason", "deploy"]) == 0
+def test_pause_resume_cli(home, capsys):
+    assert cli_surface.main(["pause", "--reason", "deploy"]) == 0
     assert json.loads(capsys.readouterr().out)["paused"] is True
-    assert hermes_cli.main(["resume"]) == 0
+    assert cli_surface.main(["resume"]) == 0
     assert json.loads(capsys.readouterr().out)["paused"] is False
 
 @pytest.mark.asyncio
@@ -83,8 +83,8 @@ async def test_rename_prune_stats(home):
         await cli_ops.session_export(cid, home / "gone.json")
 
 
-def test_hermes_sessions_stats_cli(home, capsys):
-    assert hermes_cli.main(["sessions", "stats"]) == 0
+def test_sessions_stats_cli(home, capsys):
+    assert cli_surface.main(["sessions", "stats"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert "sessions" in payload and "messages" in payload
 
@@ -110,14 +110,14 @@ def test_dump_report_redacted(home):
     assert "sk-" not in json.dumps(report)
 
 def test_logs_empty_and_tail(home, capsys):
-    assert hermes_cli.main(["logs"]) == 0
+    assert cli_surface.main(["logs"]) == 0
     assert "no log files" in capsys.readouterr().out
     logs = home / "logs"
     logs.mkdir()
     (logs / "agent.log").write_text("\n".join(f"line {i}" for i in range(100)))
-    assert hermes_cli.main(["logs", "agent.log", "-n", "5"]) == 0
+    assert cli_surface.main(["logs", "agent.log", "-n", "5"]) == 0
     assert "line 99" in capsys.readouterr().out
-    assert hermes_cli.main(["logs", "../secrets"]) == 2
+    assert cli_surface.main(["logs", "../secrets"]) == 2
 
 
 # --- worktree audit ------------------------------------------------------------
@@ -161,5 +161,5 @@ def test_worktree_list_and_prune(repo, tmp_path):
 
 
 def test_hermes_worktree_list_cli(repo, capsys):
-    assert hermes_cli.main(["worktree", "list", "--repo", str(repo)]) == 0
+    assert cli_surface.main(["worktree", "list", "--repo", str(repo)]) == 0
     assert "repo" in capsys.readouterr().out

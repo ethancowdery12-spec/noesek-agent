@@ -1,4 +1,4 @@
-"""Real skills backend: the vendored Hermes skill system behind Noesek's home policy.
+"""Real skills backend: the vendored upstream skill system behind Noesek's home policy.
 
 The vendored tools/skills_tool stack (MIT, Nous Research) provides discovery,
 viewing, linting, provenance, usage tracking, and safety scanning. Noesek's
@@ -13,7 +13,7 @@ from ..core.cron_store import CronLedger
 
 
 class SkillStore:
-    """Hermes-backed skill registry rooted at the Noesek home's skills/ dir."""
+    """Upstream-backed skill registry rooted at the Noesek home's skills/ dir."""
 
     def __init__(self, home: str | Path | None = None):
         self.ledger = CronLedger(home)

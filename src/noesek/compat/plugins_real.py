@@ -1,4 +1,4 @@
-"""Real plugin registry over the vendored Hermes plugin loader.
+"""Real plugin registry over the vendored upstream plugin loader.
 
 Discovery is rooted at the Noesek home's plugins/ dir (via the vendored home
 override). Loading executes plugin code, so this adapter exposes discovery and

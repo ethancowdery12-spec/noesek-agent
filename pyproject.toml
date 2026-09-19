@@ -9,7 +9,7 @@ description = "Self-hostable WhatsApp-first hybrid AI agent runtime"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.11"
-# Exact pins, following Hermes Agent's post-Shai-Hulud supply-chain policy:
+# Exact pins, following the upstream supply-chain pinning policy (see THIRD_PARTY_NOTICES.md):
 # no ranges; bump deliberately after review. Full transitive lock: requirements-lock.txt
 dependencies = [
   "fastapi==0.141.1",
@@ -37,8 +37,7 @@ postgres = ["asyncpg==0.30.0"]
 test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1"]
 
 [project.scripts]
-noesek = "noesek.cli:main"
-hermes = "noesek.hermes_cli:main"
+noesek = "noesek.cli_surface:main"
 noesek-tui = "noesek.tui:main"
 
 [tool.pytest.ini_options]

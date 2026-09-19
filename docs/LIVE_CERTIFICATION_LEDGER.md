@@ -4,7 +4,7 @@ The following cannot be truthfully marked complete without separately authorized
 
 - Provider OAuth/device approval, streaming, failover, quotas and billing for OpenAI, Anthropic, Gemini, Bedrock and compatible hosts.
 - WhatsApp send/webhook production verification; Slack, Telegram and other channel authentication and sends.
-- MCP/ACP and Hermes gateway handshakes against representative live servers.
+- MCP/ACP and vendored gateway handshakes against representative live servers.
 - Container/PTY command execution on target hosts and production plugin isolation.
 - Signed catalog publisher key distribution and remote package download.
 - Gmail/calendar/message-style subscription adapters and distributed cron behavior.

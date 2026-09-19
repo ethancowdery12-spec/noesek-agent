@@ -19,5 +19,5 @@ jobs:
         run: python -m pytest tests -q
       - name: Injection suite
         run: python -m evals.injection_suite
-      - name: Hermes adapter evals
+      - name: Adapter evals
         run: python evals/run_adapters.py

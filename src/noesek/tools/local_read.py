@@ -1,6 +1,6 @@
 """read_file tool: UTF-8 text reads confined to an allowlisted root.
 
-Uses the vendored Hermes path-security helpers (MIT, Nous Research) for
+Uses the vendored upstream path-security helpers (MIT, Nous Research) for
 traversal checks and root confinement. Default root: NOESEK_HOME/workspace.
 Files over 200KB are refused (workers should not flood context).
 """

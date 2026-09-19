@@ -1,7 +1,7 @@
 """Run every Noesek adapter for the Hermes needs-adapter probes.
 
 Executes each adapter in its own subprocess (isolated homes, no shared state),
-collects the JSON verdict line, and writes evals/hermes-adapter-results.json
+collects the JSON verdict line, and writes evals/adapter-results.json
 mapping each upstream probe (by content SHA-256 from the compat manifest) to
 its Noesek adapter and result.
 """
@@ -16,7 +16,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 ADAPTERS = REPO / "evals" / "adapters"
 RESULTS_DIR = REPO / "evals" / "adapter-results"
-OUT = REPO / "evals" / "hermes-adapter-results.json"
+OUT = REPO / "evals" / "adapter-results.json"
 
 # upstream probe name -> adapter file
 ADAPTER_MAP = {
@@ -40,7 +40,7 @@ ADAPTER_MAP = {
 
 def main() -> int:
     only = set(sys.argv[1].split(",")) if len(sys.argv) > 1 else None
-    manifest = json.loads((REPO / "evals" / "hermes-compat-manifest.json").read_text())
+    manifest = json.loads((REPO / "evals" / "compat-manifest.json").read_text())
     hashes = {p["probe"]: p["sources_sha256"] for p in manifest["probes"]}
     results = {}
     for probe, adapter in sorted(ADAPTER_MAP.items()):

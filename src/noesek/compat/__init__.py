@@ -1,1 +1,1 @@
-"""Hermes compatibility surfaces implemented with Noesek security defaults."""
+"""Command-surface compatibility implemented with Noesek security defaults."""

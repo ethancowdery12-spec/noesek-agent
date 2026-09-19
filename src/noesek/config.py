@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     # Background worker
     worker_poll_seconds: float = 2.0
     task_max_attempts: int = 3
-    # Channel authorization (Hermes gateway authz chain; deny-by-default)
+    # Channel authorization (vendored gateway authz chain; deny-by-default)
     whatsapp_allowed_users: str = ""  # comma-separated numbers/JIDs; empty = allowlist off
     gateway_allow_all_users: bool = False
     unauthorized_dm_behavior: str = "pair"  # pair | ignore | decline

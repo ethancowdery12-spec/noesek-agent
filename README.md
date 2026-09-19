@@ -18,7 +18,7 @@ uvicorn noesek.main:app --reload
 curl localhost:8000/healthz
 ```
 
-The primary command is `noesek`; `hermes` is a compatibility alias with the same command surface (see `docs/HERMES_CLI_COMPATIBILITY.md`).
+`noesek` is the product's single CLI: bare `noesek` opens the interactive terminal UI, and the full command surface is documented in `docs/CLI_SURFACE.md`.
 
 For Docker: `docker compose up --build`. For multi-instance Postgres, install `.[postgres]` and set `NOESEK_DATABASE_URL` (see `.env.example`). Upgrading a v0.1 database: `noesek migrate` adds the new columns in place.
 
@@ -89,8 +89,8 @@ CI and deployment must use Python 3.11 or 3.12, matching `requires-python`; Pyth
 
 ## v0.3 operational CLI
 
-v0.3 adds a focused operational command set inspired by the public Hermes
-Agent CLI while keeping Noesek small and WhatsApp-first:
+v0.3 adds a focused operational command set while keeping Noesek small and
+WhatsApp-first:
 
 ```bash
 noesek chat --oneshot -q "Summarize this" --format json
@@ -107,14 +107,14 @@ noesek completion bash
 
 Machine formats keep scripted use stable. Configuration output redacts secrets;
 session deletion needs an explicit `--yes`; backup remains local and never
-uploads data. See `docs/HERMES_CLI_PROVENANCE.md` for the exact source, commit,
-license review, reused ideas, and deliberately excluded features.
+uploads data. See `THIRD_PARTY_NOTICES.md` and `VENDORING.md` for the
+upstream attribution and license review.
 
 ---
 
 ## Windows install - v2.1.1
 
-Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes `noesek` as the primary command and `hermes` as a compatibility alias. Open a new terminal after installation, then run `noesek`.
+Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes the `noesek` command. Open a new terminal after installation, then run `noesek`.
 
 ### PowerShell
 

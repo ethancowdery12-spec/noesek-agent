@@ -6,8 +6,9 @@ from noesek import cli, cli_ops
 
 
 def test_completion_all_shells():
+    from noesek import cli_surface
     for shell in ("bash", "zsh", "fish"):
-        text=cli._completion(shell); assert "noesek" in text and "doctor" in text
+        text=cli_surface._completion(shell); assert "noesek" in text and "doctor" in text
 
 
 def test_config_redacts_secrets(monkeypatch):
@@ -41,8 +42,11 @@ def test_json_emit(capsys):
 
 
 def test_parser_chat_machine_formats():
-    a=cli.build_parser().parse_args(["chat","--oneshot","-q","hi","--format","stream-json","--user","ci"])
-    assert (a.oneshot,a.query,a.format,a.user)==(True,"hi","stream-json","ci")
+    from noesek import cli_surface
+    a=cli_surface.build_parser().parse_args(["chat","-q","hi","-m","claude-sonnet-4-20250514"])
+    assert (a.query,a.model)==("hi","claude-sonnet-4-20250514")
+    a=cli_surface.build_parser().parse_args(["--oneshot","hi","--output-format","stream-json"])
+    assert (a.oneshot,a.output_format)==("hi","stream-json")
 
 
 def test_sessions_delete_needs_yes(capsys):
@@ -51,6 +55,6 @@ def test_sessions_delete_needs_yes(capsys):
 
 
 def test_version_is_030(capsys):
-    with pytest.raises(SystemExit): cli.main(["--version"])
+    assert cli.main(["--version"]) == 0
     from noesek import __version__
     assert __version__ in capsys.readouterr().out

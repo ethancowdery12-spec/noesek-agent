@@ -54,7 +54,7 @@ async def test_pending_approval_stays_textual_without_permission_ui(db):
 
 # --- Behavioral scenarios ported from upstream tests/acp_adapter (test_server.py,
 # test_permissions.py): Noesek-owned shim, so behaviors are re-expressed against
-# Noesek's Controller rather than adopting Hermes' implementation fixtures. ---
+# Noesek's Controller rather than adopting the upstream implementation fixtures. ---
 
 
 async def test_initialize_clamps_protocol_version(db):

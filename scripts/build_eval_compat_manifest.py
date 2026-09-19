@@ -1,4 +1,4 @@
-"""Build evals/hermes-compat-manifest.json: per-probe compatibility verdicts.
+"""Build evals/compat-manifest.json: per-probe compatibility verdicts.
 
 Scans the pinned Hermes eval suite (commit c712f06d...) and classifies each
 probe by whether it can run against Noesek as an external harness:
@@ -21,14 +21,14 @@ import sys
 from pathlib import Path
 
 HERMES_EVALS = Path(sys.argv[1] if len(sys.argv) > 1 else "../hermes-src/evals")
-OUT = Path(__file__).resolve().parents[1] / "evals" / "hermes-compat-manifest.json"
+OUT = Path(__file__).resolve().parents[1] / "evals" / "compat-manifest.json"
 
 HERMES_INTERNAL_ROOTS = {
     "agent", "cli", "cron", "gateway", "hermes_cli", "hermes_state", "plugins",
     "providers", "run_agent", "tools", "tui_gateway", "acp_adapter",
 }
 # Probes with a Noesek-targeted adapter (evals/adapters/) preserving the
-# upstream behavioral intent; results land in evals/hermes-adapter-results.json.
+# upstream behavioral intent; results land in evals/adapter-results.json.
 ADAPTED = {
     "acp_empty_session_wire.py": "acp_wire.py",
     "auth_pool_controls.py": "auth_controls.py",

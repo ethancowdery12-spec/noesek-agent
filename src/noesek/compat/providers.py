@@ -1,4 +1,4 @@
-"""Provider catalog and auth metadata, inspired by Hermes' provider surface.
+"""Provider catalog and auth metadata, inspired by the upstream provider surface.
 
 No provider SDK is imported. OpenAI-compatible endpoints use Noesek's HTTP adapter;
 other protocols are described honestly as unavailable until their adapter is installed.

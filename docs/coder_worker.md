@@ -13,7 +13,7 @@ protocol instead of free-form shell access:
   verification (command + observed result), limitations.
 
 All file access is confined to the allowlisted workspace root (same
-confinement as `read_file`, vendored Hermes path-security helpers).
+confinement as `read_file`, vendored upstream path-security helpers).
 Delegation to the coder is approval-gated at the controller
 (`delegate_task` is a WRITE tool); these tools never leave the workspace.
 

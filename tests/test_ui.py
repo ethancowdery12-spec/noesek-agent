@@ -3,7 +3,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from noesek import hermes_ui as ui
+from noesek import ui
 
 
 # --- markdown stripping -----------------------------------------------------
@@ -29,7 +29,7 @@ def snap(**kw):
 
 def test_status_bar_full_layout():
     line = ui.format_status_bar(snap(title="My Session", yolo=True), width=100, color=False)
-    assert "☤ claude-sonnet-4" in line
+    assert "◆ claude-sonnet-4" in line
     assert "12.4K/200K" in line
     assert "[█░░░░░░░░░] ~6%" in line
     assert "$" not in line and "n/a" in line
@@ -39,7 +39,7 @@ def test_status_bar_full_layout():
 
 def test_status_bar_minimal_under_52():
     line = ui.format_status_bar(snap(), width=40, color=False)
-    assert "12.4K" not in line and "☤ claude-sonnet-4" in line and "15m" in line
+    assert "12.4K" not in line and "◆ claude-sonnet-4" in line and "15m" in line
 
 def test_status_bar_compact_52_to_75_has_no_title():
     line = ui.format_status_bar(snap(title="x" * 60), width=70, color=False)

@@ -1,4 +1,4 @@
-"""Permission-safe local stores for Hermes-compatible administrative CLI groups."""
+"""Permission-safe local stores for the administrative CLI groups."""
 from __future__ import annotations
 import hashlib,json,os,re,shutil,sqlite3,time
 from pathlib import Path

@@ -8,7 +8,7 @@ from noesek.db import Message, Session
 
 @pytest.fixture(autouse=True)
 def _authorize_test_senders(monkeypatch, tmp_path):
-    # The WhatsApp ingress is gated by the vendored Hermes authz chain; tests
+    # The WhatsApp ingress is gated by the vendored upstream authz chain; tests
     # authorize their senders through the WHATSAPP_ALLOWED_USERS projection.
     monkeypatch.setenv("WHATSAPP_ALLOWED_USERS", "15550001111,15550009999")
     yield

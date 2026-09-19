@@ -145,7 +145,7 @@ async def task_worker(stop: asyncio.Event, deliver=None, poll_seconds: float | N
         from .core.heartbeat import beat
         beat("task-worker")
         from .cli_ops import is_paused
-        if is_paused()["paused"]:  # global emergency stop (`hermes pause`): no new work starts
+        if is_paused()["paused"]:  # global emergency stop (`noesek pause`): no new work starts
             try: await asyncio.wait_for(stop.wait(), timeout=poll)
             except TimeoutError: pass
             continue

@@ -1,4 +1,4 @@
-"""The vendored Hermes skill system backs Noesek's skill registry."""
+"""The vendored upstream skill system backs Noesek's skill registry."""
 from noesek.compat.skills_real import SkillStore
 
 

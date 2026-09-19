@@ -1,13 +1,14 @@
-"""Hermes-compatible command parser over Noesek's thin-controller runtime.
+"""Noesek Agent command surface over the thin-controller runtime.
 
-The command grammar is generated from the pinned upstream manifest. Execution
-stays in Noesek: this module never imports Hermes' agent loop.
+The command grammar is generated from the pinned upstream manifest (see
+THIRD_PARTY_NOTICES.md for attribution). Execution stays in Noesek: this
+module never imports the upstream agent loop.
 """
 from __future__ import annotations
 import argparse, asyncio, json, os, sys
 from pathlib import Path
 from . import __version__
-MANIFEST=Path(__file__).resolve().parent/"data/hermes-cli-manifest.json"
+MANIFEST=Path(__file__).resolve().parent/"data/cli-manifest.json"
 UNSUPPORTED=3
 
 def _manifest(): return json.loads(MANIFEST.read_text())
@@ -29,12 +30,12 @@ def _add(p,row):
     try:p.add_argument(*flags,**kw)
     except (argparse.ArgumentError,TypeError,ValueError):
         # Upstream sometimes repeats an inherited option. First declaration wins, like
-        # the effective namespace in Hermes.
+        # the effective namespace in the upstream CLI.
         pass
 
 def build_parser():
-    m=_manifest(); root=argparse.ArgumentParser(prog='hermes',description='Noesek Hermes-compatible CLI. `noesek` is the primary command; `hermes` is a compatibility alias with the same surface.',formatter_class=argparse.RawDescriptionHelpFormatter)
-    root.add_argument('--noesek-compat-report',action='store_true',help='Print compatibility manifest summary and exit')
+    m=_manifest(); root=argparse.ArgumentParser(prog='noesek',description='Noesek Agent CLI - interactive terminal UI and full command surface.',formatter_class=argparse.RawDescriptionHelpFormatter)
+    root.add_argument('--compat-report',action='store_true',help='Print command-surface manifest summary and exit')
     by={tuple(x['path']):x for x in m['commands']}
     for o in by.get((),{}).get('options',[]):_add(root,o)
     subs={():root.add_subparsers(dest='command',metavar='<command>')}; parsers={():root}
@@ -50,19 +51,70 @@ def build_parser():
         except argparse.ArgumentError:continue
         parsers[path]=p
         for o in row.get('options',[]):_add(p,o)
-        p.set_defaults(_hermes_path=path)
+        p.set_defaults(_cmd_path=path)
         if any(x[:-1]==path for x in by):subs[path]=p.add_subparsers(dest='command_'+'_'.join(path))
+    root.add_argument('--output-format',choices=['text','json','stream-json'],default='text',
+                      help='Machine output format for one-shot (-z) and chat queries')
+    if ('chat',) in parsers:
+        parsers[('chat',)].add_argument('--oneshot',action='store_true',help='Run one query and exit (requires --query)')
+    if ('sessions','delete') in parsers:
+        parsers[('sessions','delete')].add_argument('--yes',action='store_true',help='Confirm deletion')
+    if ('pairing',) in subs:
+        pp=subs[('pairing',)].add_parser('pending',help='List pending pairing requests')
+        pp.add_argument('--platform',default=None)
+        pp.set_defaults(_cmd_path=('pairing','pending'))
+    ex=subs[()]
+    def _extra(name,**kw):
+        ep=ex.add_parser(name,**kw);ep.set_defaults(_noesek_extra=name);return ep
+    _extra('worker',help='Run only the background task worker')
+    _extra('acp-serve',help='Serve the Noesek ACP agent over stdio')
+    _extra('providers',help='List provider protocols and availability')
+    mem=_extra('memories',help='Local memory operations (offline)')
+    ms=mem.add_subparsers(dest='memories_command')
+    mse=ms.add_parser('search');mse.add_argument('query');mse.add_argument('--limit',type=int,default=20)
+    inc=_extra('incidents',help='Cron incident review (offline)')
+    incs=inc.add_subparsers(dest='incidents_command')
+    incs.add_parser('list')
+    ipm=incs.add_parser('postmortem');ipm.add_argument('incident_id');ipm.add_argument('--output',type=Path,default=None)
     return root
+
+def _extras(args):
+    cmd=getattr(args,'_noesek_extra',None)
+    if cmd is None:return None
+    as_json=bool(getattr(args,'json',False))
+    from . import cli_ops
+    if cmd=='worker':
+        from .cli import _worker;asyncio.run(_worker());return 0
+    if cmd=='acp-serve':
+        from .compat.acp_server import main as f;f();return 0
+    if cmd=='providers':
+        from .compat.providers import list_providers;_emit(list_providers(),as_json);return 0
+    if cmd=='memories':
+        if getattr(args,'memories_command',None)=='search':
+            from .core.memory_search import search_memories
+            _emit(asyncio.run(search_memories(args.query,args.limit)),as_json);return 0
+    if cmd=='incidents':
+        sub=getattr(args,'incidents_command',None)
+        from .vendor.hermes.cron import incidents as _inc
+        if sub=='list' or sub is None:_emit(_inc.list_incidents(),as_json);return 0
+        if sub=='postmortem':
+            row=_inc.get_incident(args.incident_id)
+            if row is None:return 2
+            text=json.dumps(row,indent=2,sort_keys=True)
+            if args.output:args.output.write_text(text);_emit({'output':str(args.output)},as_json)
+            else:print(text)
+            return 0
+    return 2
 
 def _emit(v,as_json=False):
     if as_json:print(json.dumps(v,sort_keys=True,ensure_ascii=False))
     elif isinstance(v,(dict,list)):print(json.dumps(v,indent=2,sort_keys=True,ensure_ascii=False))
     else:print(v)
 def _compat_report(m):
-    return {'upstream':m['upstream'],'command_paths':len(m['commands'])-1,'options':sum(len(x['options']) for x in m['commands']),'slash_commands':len(m['slash_commands']),'execution':'Noesek adapters; Hermes agent core is not imported'}
+    return {'upstream':m['upstream'],'command_paths':len(m['commands'])-1,'options':sum(len(x['options']) for x in m['commands']),'slash_commands':len(m['slash_commands']),'execution':'Noesek adapters; the upstream agent core is not imported'}
 def _unsupported(path):
-    print(f"hermes compatibility: {' '.join(path)} is parsed exactly but has no safe Noesek execution adapter",file=sys.stderr)
-    print("This command did not run. See docs/HERMES_CLI_COMPATIBILITY.md.",file=sys.stderr);return UNSUPPORTED
+    print(f"noesek: {' '.join(path)} is parsed exactly but has no safe execution adapter yet",file=sys.stderr)
+    print("This command did not run. See docs/CLI_SURFACE.md.",file=sys.stderr);return UNSUPPORTED
 
 def _roots(kind):
     home=Path(os.environ.get('NOESEK_HOME','~/.noesek')).expanduser()
@@ -100,7 +152,7 @@ def _cron(args,path,as_json):
     return _unsupported(path)
 
 def _run(args):
-    path=tuple(getattr(args,'_hermes_path',()) or ())
+    path=tuple(getattr(args,'_cmd_path',()) or ())
     as_json=bool(getattr(args,'json',False)); from . import cli_ops
     if path==('status',):_emit(asyncio.run(cli_ops.status_report()),as_json);return 0
     if path==('doctor',):
@@ -113,6 +165,8 @@ def _run(args):
         sid=getattr(args,'session_id',None);out=Path(getattr(args,'output',None) or f'noesek-session-{sid}.json')
         _emit({'messages':asyncio.run(cli_ops.session_export(int(sid),out)),'output':str(out)},as_json);return 0
     if path==('sessions','delete'):
+        if not getattr(args,'yes',False):
+            print('noesek: sessions delete requires --yes',file=sys.stderr);return 2
         sid=int(getattr(args,'session_id'));asyncio.run(cli_ops.session_delete(sid));_emit({'deleted':sid},as_json);return 0
     if path==('config','get'):_emit(cli_ops.config_get(getattr(args,'key')),as_json);return 0
     if path and path[0]=='cron':return _cron(args,path,as_json)
@@ -204,9 +258,16 @@ def _run(args):
     if path in {('update',),('uninstall',)} or (path and path[0]=='gateway' and path[1] in {'install','uninstall','start','stop','restart','migrate','migrate-legacy'}):
         from .compat.local_admin import save_plan
         approved=bool(getattr(args,'yes',False));_emit(save_plan('-'.join(path),{'argv_path':list(path),'options':{k:v for k,v in vars(args).items() if not k.startswith('_') and k!='func'}},approved),as_json);return 0
-    if path==('pairing','list'):
+    if path and path[0]=='pairing':
         from .channels.authorization import NoesekAuthorizationGate
-        _emit(NoesekAuthorizationGate().list_approved(getattr(args,'platform',None)),as_json);return 0
+        gate=NoesekAuthorizationGate()
+        act=path[1] if len(path)>1 else 'list'
+        if act=='approve':_emit(gate.approve_code(getattr(args,'platform'),getattr(args,'code')) or {'approved':False},as_json);return 0
+        if act=='revoke':_emit({'revoked':gate.revoke(getattr(args,'platform'),getattr(args,'user_id'))},as_json);return 0
+        if act=='list':_emit(gate.list_approved(getattr(args,'platform',None)),as_json);return 0
+        if act=='pending':_emit(gate.pairing_store.list_pending(getattr(args,'platform',None)),as_json);return 0
+        if act=='clear-pending':_emit({'cleared':gate.pairing_store.clear_pending(getattr(args,'platform',None))},as_json);return 0
+        return _unsupported(path)
     if path==('cron','incidents'):
         from .vendor.hermes.cron import incidents
         _emit(incidents.list_incidents(),as_json);return 0
@@ -225,7 +286,7 @@ def _run(args):
         name=getattr(args,'log_name',None)
         try:_emit(cli_ops.logs_tail(None if name in {None,'agent'} else name,int(getattr(args,'lines',50) or 50)),as_json);return 0
         except LookupError:
-            print(f"hermes compatibility: log '{name}' not found under ~/.noesek/logs",file=sys.stderr);return 2
+            print(f"noesek: log '{name}' not found under ~/.noesek/logs",file=sys.stderr);return 2
     if path==('pause',):
         _emit(cli_ops.set_paused(True,getattr(args,'reason',None)),as_json);return 0
     if path==('resume',):
@@ -243,22 +304,27 @@ def _run(args):
     if path==('completion',):
         shell=getattr(args,'shell',None) or 'bash';print(_completion(shell));return 0
     if path==('chat',) or not path:
-        # Preserve Hermes one-shot spellings while delegating work to Noesek's controller.
-        query=getattr(args,'query',None) or getattr(args,'oneshot',None)
-        if not query and getattr(args,'output_format','text')!='stream-json':
-            from .hermes_ui import main as uimain
+        # Preserve the upstream one-shot spellings while delegating work to Noesek's controller.
+        oz=getattr(args,'oneshot',None)
+        query=getattr(args,'query',None) or (oz if isinstance(oz,str) else None)
+        if oz is True and not query:
+            print('noesek: --oneshot requires --query',file=sys.stderr);return 2
+        fmt=getattr(args,'output_format','text') or 'text'
+        if not query and fmt=='text':
+            from .ui import main as uimain
             return uimain(model=getattr(args,'model',None))
-        from .cli import main as nmain
-        av=['chat'];
-        if query:av+=['--oneshot','--query',query]
-        if getattr(args,'output_format','text')=='stream-json':av+=['--format','stream-json']
-        return nmain(av)
+        from types import SimpleNamespace
+        from .cli import _chat
+        from .core.llm import LLMError
+        ns=SimpleNamespace(user='cli-user',oneshot=True,format=fmt,query=query)
+        try: asyncio.run(_chat(ns));return 0
+        except LLMError as e: print(f'noesek: {e}',file=sys.stderr);return 1
     return _unsupported(path)
 def _console():
     import shlex
-    print('hermes console (Noesek). Type hermes commands without the `hermes` prefix; exit to leave.')
+    print(f'noesek {__version__} console. Type commands without the `noesek` prefix; exit to leave.')
     while True:
-        try: line=input('console> ').strip()
+        try: line=input('noesek> ').strip()
         except (EOFError,KeyboardInterrupt): print(); return 0
         if not line: continue
         if line in {'exit','quit'}: return 0
@@ -266,12 +332,14 @@ def _console():
         except SystemExit: pass
 def _completion(shell):
     names=sorted({x['path'][0] for x in _manifest()['commands'] if x['path']}) ; words=' '.join(names)
-    if shell=='fish':return f"complete -c hermes -f -a '{words}'"
-    if shell=='zsh':return f"#compdef hermes\n_arguments '1:command:({words})'"
-    return f"_hermes() {{ COMPREPLY=($(compgen -W '{words}' -- \"${{COMP_WORDS[1]}}\")); }}\ncomplete -F _hermes hermes"
+    if shell=='fish':return f"complete -c noesek -f -a '{words}'"
+    if shell=='zsh':return f"#compdef noesek\n_arguments '1:command:({words})'"
+    return f"_noesek() {{ COMPREPLY=($(compgen -W '{words}' -- \"${{COMP_WORDS[1]}}\")); }}\ncomplete -F _noesek noesek"
 def main(argv=None):
     parser=build_parser();args=parser.parse_args(argv);m=_manifest()
-    if getattr(args,'noesek_compat_report',False):_emit(_compat_report(m),True);return 0
-    if getattr(args,'version',False):print(f'hermes (Noesek compatibility) {__version__}');return 0
+    if getattr(args,'compat_report',False):_emit(_compat_report(m),True);return 0
+    if getattr(args,'version',False):print(f'noesek {__version__}');return 0
+    r=_extras(args)
+    if r is not None:return r
     return _run(args)
 if __name__=='__main__':raise SystemExit(main())

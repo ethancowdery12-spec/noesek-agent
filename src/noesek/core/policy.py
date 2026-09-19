@@ -1,7 +1,7 @@
 """Ordered allow/ask/deny policy engine (v2, stage B).
 
 Rules evaluate in order; first match wins. The hardline content gate
-(vendored Hermes detection tables, MIT) always runs first and cannot be
+(vendored upstream detection tables, MIT) always runs first and cannot be
 overridden: no configured rule, approval, or mode may execute a hardline
 or sudo-stdin match. Noesek's approval flow stays authoritative for "ask".
 

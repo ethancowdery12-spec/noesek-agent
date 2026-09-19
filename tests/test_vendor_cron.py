@@ -1,4 +1,4 @@
-"""The vendored Hermes cron persistence core backs Noesek's execution ledger."""
+"""The vendored upstream cron persistence core backs Noesek's execution ledger."""
 from datetime import datetime, timezone
 from sqlalchemy import select
 from noesek.core.cron_store import CronLedger

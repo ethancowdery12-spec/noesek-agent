@@ -2,7 +2,7 @@ import pytest
 from noesek.channels.live import LiveChannelEngine
 from noesek.core.backends import LocalTextMedia,RecordingBrowser
 from noesek.core.computer_use import ComputerPlan
-from noesek.compat.hermes_gateway import GatewayHello,envelope
+from noesek.compat.gateway_envelope import GatewayHello,envelope
 from noesek.core.otel import OTLPExporter
 from noesek.core.telemetry import Span
 from noesek.core.peer import PeerOutcome,MoARun,PeerError
@@ -17,7 +17,7 @@ async def test_concrete_safe_backends():
  assert await LocalTextMedia().transcribe(b"hi","text/plain")=="hi"
  p=ComputerPlan("https://x",({"type":"click"},)); b=RecordingBrowser(); assert (await b.execute(p))["recorded"]
 def test_gateway_handshake_and_envelope():
- h=GatewayHello(capabilities=("messages","events")); assert h.negotiate({"protocol":"hermes-gateway","version":1,"capabilities":["events"]})==["events"]
+ h=GatewayHello(capabilities=("messages","events")); assert h.negotiate({"protocol":"noesek-gateway","version":1,"capabilities":["events"]})==["events"]
  assert envelope("message",{},"1")["version"]==1
 async def test_otlp_https_and_redaction():
  t=Transport(); x=OTLPExporter("https://otel.test/v1/traces",t); await x.export([Span("x",{"token":"bad"})]); assert "bad" not in str(t.headers)

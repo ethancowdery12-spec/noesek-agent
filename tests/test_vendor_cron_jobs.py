@@ -1,4 +1,4 @@
-"""The vendored Hermes cron job store backs Noesek's durable schedules."""
+"""The vendored upstream cron job store backs Noesek's durable schedules."""
 from noesek.core.cron_store import CronJobStore
 
 

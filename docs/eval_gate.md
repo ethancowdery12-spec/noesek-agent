@@ -11,7 +11,7 @@
   logged, content stays wrapped as untrusted data yet still reaches the
   model as data.
 - **CI gate** (`.github/workflows/eval-gate.yml`): on every PR and push to
-  main - full pytest suite, injection suite, and the Hermes adapter evals.
+  main - full pytest suite, injection suite, and the adapter evals.
 
 ## Provenance
 

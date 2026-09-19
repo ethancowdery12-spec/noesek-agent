@@ -1,7 +1,7 @@
-"""Noesek's cron tick: the vendored Hermes job store owns schedule state; Noesek's
+"""Noesek's cron tick: the vendored upstream job store owns schedule state; Noesek's
 own task queue and controller execute the work.
 
-Boundary: Hermes's scheduler tick runs jobs through Hermes's agent loop. Noesek
+Boundary: the upstream scheduler tick runs jobs through the upstream agent loop. Noesek
 keeps its own orchestrator (per the reuse matrix), so a tick claims due jobs
 from the vendored store - with the vendored fire fencing and occurrence dedup
 intact - and enqueues them as durable Noesek tasks. Settlement (mark_job_run,
