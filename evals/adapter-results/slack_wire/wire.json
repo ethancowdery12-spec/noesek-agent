@@ -1,0 +1,18 @@
+{
+  "challenge_status": 200,
+  "challenge_echo": "{\"challenge\":\"ch-1\"}",
+  "event_status": 200,
+  "outbound_calls": [
+    {
+      "path": "/chat.postMessage",
+      "auth": "Bearer xoxb-adapter",
+      "body": "{\"channel\": \"C123\", \"text\": \"wire contract hello\"}"
+    },
+    {
+      "path": "/chat.postMessage",
+      "auth": "Bearer xoxb-adapter",
+      "body": "{\"channel\": \"C123\", \"text\": \"echo\"}"
+    }
+  ],
+  "send_result_ok": true
+}

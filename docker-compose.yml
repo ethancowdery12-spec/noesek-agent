@@ -1,0 +1,25 @@
+services:
+  agent:
+    build: .
+    env_file: .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - noesek-data:/data
+    environment:
+      NOESEK_DATABASE_URL: sqlite+aiosqlite:////data/noesek.db
+
+  # Optional production database. Uncomment and set NOESEK_DATABASE_URL to:
+  # postgresql+asyncpg://noesek:change-me@postgres/noesek
+  # postgres:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: noesek
+  #     POSTGRES_PASSWORD: change-me
+  #     POSTGRES_DB: noesek
+  #   volumes:
+  #     - pg-data:/var/lib/postgresql/data
+
+volumes:
+  noesek-data:
+  pg-data:

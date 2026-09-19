@@ -1,0 +1,51 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "noesek-agent"
+version = "1.11.3"
+description = "Self-hostable WhatsApp-first hybrid AI agent runtime"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+# Exact pins, following Hermes Agent's post-Shai-Hulud supply-chain policy:
+# no ranges; bump deliberately after review. Full transitive lock: requirements-lock.txt
+dependencies = [
+  "fastapi==0.141.1",
+  "uvicorn[standard]==0.53.0",
+  "httpx==0.28.1",
+  "pydantic==2.13.5",
+  "pydantic-settings==2.15.0",
+  "sqlalchemy[asyncio]==2.0.54",
+  "aiosqlite==0.22.1",
+  "pyyaml==6.0.3",
+  "opentelemetry-sdk==1.44.0",
+  "mcp==2.2.0",
+  "croniter==6.2.4",
+  "agent-client-protocol==0.12.1",
+  "playwright==1.56.0",
+  "docker==7.1.0",
+  "e2b==2.9.0",
+  "slack-sdk==3.39.0",
+  "aiohttp==3.13.5",
+]
+
+[project.optional-dependencies]
+postgres = ["asyncpg==0.30.0"]
+test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1"]
+
+[project.scripts]
+noesek = "noesek.cli:main"
+hermes = "noesek.hermes_cli:main"
+noesek-tui = "noesek.tui:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/noesek"]
+
+[tool.setuptools.package-data]
+noesek = ["data/*.json", "data/*.txt"]

@@ -1,0 +1,209 @@
+{
+ "label": "noesek",
+ "tree": "/home/sandbox/work/noesek-agent",
+ "source": {
+  "files": 191,
+  "lines": 27086,
+  "code": 17748,
+  "comment": 1959,
+  "docstring": 3426,
+  "bytes": 1313137,
+  "functions": 1678,
+  "classes": 178,
+  "parse_all_s": 1.05,
+  "files_gt_1000": 4,
+  "files_gt_2000": 1,
+  "files_gt_5000": 0,
+  "largest_files": [
+   [
+    3451,
+    "src/noesek/vendor/hermes/cron/jobs.py"
+   ],
+   [
+    1488,
+    "src/noesek/vendor/hermes/tools/approval_detection.py"
+   ],
+   [
+    1342,
+    "src/noesek/vendor/hermes/tools/approval.py"
+   ],
+   [
+    1332,
+    "src/noesek/vendor/hermes/hermes_constants.py"
+   ],
+   [
+    983,
+    "src/noesek/vendor/hermes/tools/registry.py"
+   ],
+   [
+    843,
+    "src/noesek/vendor/hermes/gateway/config.py"
+   ],
+   [
+    817,
+    "src/noesek/vendor/hermes/tools/skills_guard.py"
+   ],
+   [
+    817,
+    "src/noesek/vendor/hermes/agent/skill_utils.py"
+   ],
+   [
+    769,
+    "src/noesek/vendor/hermes/tools/skill_usage.py"
+   ],
+   [
+    749,
+    "src/noesek/vendor/hermes/tools/skills_tool.py"
+   ]
+  ],
+  "median_file_lines": 36,
+  "funcs_gt_100": 2,
+  "funcs_gt_300": 0,
+  "func_len_p50": 7,
+  "func_len_p95": 37,
+  "func_len_max": 139,
+  "elif_chains_ge4": 22,
+  "elif_chains_ge8": 11,
+  "longest_elif_chain": 18,
+  "nesting_ge5": 28,
+  "nesting_max": 20,
+  "modules": 191,
+  "import_edges": 0,
+  "fan_out_avg": 0.0,
+  "fan_out_max": 0,
+  "fan_in_max": 0,
+  "fan_in_top": [],
+  "import_cycles": 0,
+  "largest_cycle": 0,
+  "modules_in_cycles": 0,
+  "radon_cc_blocks": 1784,
+  "radon_cc_avg": 3.95,
+  "radon_cc_p95": 12,
+  "radon_cc_max": 39,
+  "radon_cc_gt_15": 49,
+  "radon_cc_gt_30": 3,
+  "radon_cc_gt_50": 0,
+  "radon_cc_worst": [
+   [
+    39,
+    "src/noesek/cli.py",
+    "main"
+   ],
+   [
+    36,
+    "src/noesek/vendor/hermes/tools/approval_detection.py",
+    "_quoted_grep_pattern_spans"
+   ],
+   [
+    33,
+    "src/noesek/vendor/hermes/gateway/authz_mixin.py",
+    "_principal_authorized"
+   ],
+   [
+    30,
+    "src/noesek/vendor/hermes/tools/approval_detection.py",
+    "_scan_shell"
+   ],
+   [
+    30,
+    "src/noesek/vendor/hermes/tools/approval.py",
+    "_human_decision"
+   ],
+   [
+    30,
+    "src/noesek/vendor/hermes/cron/jobs.py",
+    "create_job"
+   ],
+   [
+    28,
+    "src/noesek/vendor/hermes/tools/skills_tool_setup.py",
+    "_get_required_environment_variables"
+   ],
+   [
+    28,
+    "src/noesek/vendor/hermes/tools/skills_tool.py",
+    "skill_view"
+   ]
+  ],
+  "radon_mi_files": 191,
+  "radon_mi_avg": 66.68,
+  "radon_mi_lt_20": 10,
+  "radon_mi_lt_10": 4
+ },
+ "tests": {
+  "files": 70,
+  "lines": 7516,
+  "code": 5324,
+  "comment": 276,
+  "docstring": 527,
+  "bytes": 311528,
+  "functions": 666,
+  "classes": 146,
+  "parse_all_s": 0.28,
+  "files_gt_1000": 2,
+  "files_gt_2000": 1,
+  "files_gt_5000": 0,
+  "largest_files": [
+   [
+    2168,
+    "tests/upstream/tools/test_approval.py"
+   ],
+   [
+    1151,
+    "tests/upstream/tools/test_skills_tool.py"
+   ],
+   [
+    724,
+    "tests/upstream/gateway/test_pairing.py"
+   ],
+   [
+    407,
+    "tests/upstream/cron/test_claim_job_for_fire.py"
+   ],
+   [
+    153,
+    "tests/test_orchestration.py"
+   ],
+   [
+    139,
+    "tests/upstream/plugins/test_plugin_utils.py"
+   ],
+   [
+    123,
+    "tests/test_acp_real.py"
+   ],
+   [
+    112,
+    "tests/test_tranche10_foundations.py"
+   ],
+   [
+    98,
+    "tests/test_golden_evals.py"
+   ],
+   [
+    95,
+    "tests/test_sandbox_backends.py"
+   ]
+  ],
+  "median_file_lines": 35,
+  "funcs_gt_100": 0,
+  "funcs_gt_300": 0,
+  "func_len_p50": 6,
+  "func_len_p95": 27,
+  "func_len_max": 57,
+  "elif_chains_ge4": 0,
+  "elif_chains_ge8": 0,
+  "longest_elif_chain": 0,
+  "nesting_ge5": 0,
+  "nesting_max": 4,
+  "modules": 70,
+  "import_edges": 0,
+  "fan_out_avg": 0.0,
+  "fan_out_max": 0,
+  "fan_in_max": 0,
+  "fan_in_top": [],
+  "import_cycles": 0,
+  "largest_cycle": 0,
+  "modules_in_cycles": 0
+ }
+}

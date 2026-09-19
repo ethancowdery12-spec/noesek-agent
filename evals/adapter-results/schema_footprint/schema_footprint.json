@@ -1,0 +1,34 @@
+{
+  "groups": {
+    "coder": {
+      "tools": [
+        "run_python",
+        "fetch_url"
+      ],
+      "schema_bytes": 810
+    },
+    "evaluator": {
+      "tools": [
+        "run_python",
+        "fetch_url"
+      ],
+      "schema_bytes": 810
+    },
+    "operator": {
+      "tools": [
+        "fetch_url",
+        "run_python"
+      ],
+      "schema_bytes": 810
+    },
+    "researcher": {
+      "tools": [
+        "search_web",
+        "fetch_url"
+      ],
+      "schema_bytes": 793
+    }
+  },
+  "total_schema_bytes": 3223,
+  "deviation": "byte counts instead of tiktoken tokens (no tokenizer pinned)"
+}
