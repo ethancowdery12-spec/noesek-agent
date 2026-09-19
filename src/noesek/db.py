@@ -90,6 +90,16 @@ class Compaction(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
 
+class SteeringNote(Base):
+    """Live steering: a user note injected into an in-flight turn (v2 stage H)."""
+    __tablename__ = "steering_notes"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), index=True)
+    text: Mapped[str] = mapped_column(Text)
+    consumed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+
+
 class TurnEvent(Base):
     """Durable turn spine: one typed, ordered event in one agent turn.
 
