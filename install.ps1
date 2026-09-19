@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
-    [string]$ReleaseUrl = $(if ($env:NOESEK_RELEASE_URL) { $env:NOESEK_RELEASE_URL } else { 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.0/8-noesek-agent-v2.1.0.tar.gz' }),
-    [string]$ExpectedSha256 = $(if ($env:NOESEK_RELEASE_SHA256) { $env:NOESEK_RELEASE_SHA256 } else { 'a599f36dc89d1cea7b02d4934844c1f93247ccea7e093c00e41e03309a8d26af' }),
+    [string]$ReleaseUrl = $(if ($env:NOESEK_RELEASE_URL) { $env:NOESEK_RELEASE_URL } else { 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.1/8-noesek-agent-v2.1.1.tar.gz' }),
+    [string]$ExpectedSha256 = $(if ($env:NOESEK_RELEASE_SHA256) { $env:NOESEK_RELEASE_SHA256 } else { 'ec5baf0c3ae4a7d28f5c7ad601273ac3373a0495eca071ed9edcef8fda53d9b0' }),
     [string]$InstallRoot = $(if ($env:NOESEK_INSTALL_ROOT) { $env:NOESEK_INSTALL_ROOT } else { Join-Path $env:LOCALAPPDATA 'Noesek' }),
     [string]$BinDir = $(if ($env:NOESEK_BIN_DIR) { $env:NOESEK_BIN_DIR } else { Join-Path $env:LOCALAPPDATA 'Noesek\bin' }),
     [switch]$NoPathUpdate
@@ -10,7 +10,7 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
-$Version = '2.1.0'
+$Version = '2.1.1'
 
 function Fail([string]$Message) { throw "noesek installer: $Message" }
 function Test-Python([string]$Exe, [string[]]$Prefix) {
