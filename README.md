@@ -12,11 +12,13 @@ This repository does **not** contain credentials, deploy anything, connect a Wha
 cp .env.example .env
 python -m venv .venv && . .venv/bin/activate
 pip install -e '.[test]'
-pytest                 # 63 tests
-noesek chat            # try the agent locally with no WhatsApp setup
+pytest                 # 605 tests
+noesek                 # interactive terminal UI - try the agent locally with no WhatsApp setup
 uvicorn noesek.main:app --reload
 curl localhost:8000/healthz
 ```
+
+The primary command is `noesek`; `hermes` is a compatibility alias with the same command surface (see `docs/HERMES_CLI_COMPATIBILITY.md`).
 
 For Docker: `docker compose up --build`. For multi-instance Postgres, install `.[postgres]` and set `NOESEK_DATABASE_URL` (see `.env.example`). Upgrading a v0.1 database: `noesek migrate` adds the new columns in place.
 
@@ -68,7 +70,7 @@ Where others remain ahead: LangGraph's graph orchestration and LangSmith observa
 
 ## Evaluation
 
-`pytest` runs 63 tests in about 3 seconds on Python 3.12, including these named golden scenarios (`tests/test_golden_evals.py`):
+`pytest` runs 605 tests in about 3 seconds on Python 3.12, including these named golden scenarios (`tests/test_golden_evals.py`):
 
 1. Research turns must carry source URLs into citations.
 2. Consequential tools never execute without approval - handler call count stays zero.

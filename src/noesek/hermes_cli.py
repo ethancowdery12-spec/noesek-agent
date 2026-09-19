@@ -33,7 +33,7 @@ def _add(p,row):
         pass
 
 def build_parser():
-    m=_manifest(); root=argparse.ArgumentParser(prog='hermes',description='Hermes CLI compatibility provided by Noesek',formatter_class=argparse.RawDescriptionHelpFormatter)
+    m=_manifest(); root=argparse.ArgumentParser(prog='hermes',description='Noesek Hermes-compatible CLI. `noesek` is the primary command; `hermes` is a compatibility alias with the same surface.',formatter_class=argparse.RawDescriptionHelpFormatter)
     root.add_argument('--noesek-compat-report',action='store_true',help='Print compatibility manifest summary and exit')
     by={tuple(x['path']):x for x in m['commands']}
     for o in by.get((),{}).get('options',[]):_add(root,o)
