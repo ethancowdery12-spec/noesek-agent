@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from .approval_engine import assess_tool_arguments
 from .context import assemble
+from .loop_guard import LoopGuard, classify_exception
 from .policy import evaluate_policy, parse_rules
 from .llm import configured_llm, provider_name
 from .metrics import inc
@@ -12,7 +13,7 @@ from .tools import ToolRegistry, ToolSpec
 from .turn_spine import (
     TurnSpine, canonical,
     APPROVAL_DECIDED, APPROVAL_REQUIRED, MODEL_REQUEST, MODEL_RESPONSE,
-    POLICY_BLOCKED, TOOL_CALL_REQUESTED, TOOL_CALL_RESULT,
+    LOOP_GUARD, POLICY_BLOCKED, TOOL_CALL_REQUESTED, TOOL_CALL_RESULT,
     TURN_COMPLETED, TURN_FAILED, TURN_STARTED, TURN_STOPPED,
 )
 from .types import Risk, TurnResult
@@ -90,6 +91,7 @@ class Controller:
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
         registry = self.registry(conversation_id); citations = []
+        guard = LoopGuard(settings.loop_max_identical, settings.loop_max_errors, settings.loop_cycle_window)
         try:
             for _ in range(self.max_steps):
                 await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
@@ -107,6 +109,7 @@ class Controller:
                     inc("noesek_tool_calls_total")
                     try: spec = registry.get(call.name)
                     except KeyError:
+                        guard.before_call(call.name, call.arguments); guard.record_outcome(False)
                         await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "unknown": True}, strict=False)
                         result = {"error": "unknown tool"}
                         await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id, "ok": False, "error": "unknown_tool"})
@@ -137,13 +140,33 @@ class Controller:
                             await spine.emit(APPROVAL_REQUIRED, {"approval_id": a.id, "tool": call.name, "call_id": call.id,
                                                                  "arguments_json": canonical(call.arguments)})
                             return TurnResult(text=prompt, pending_approval_id=a.id, turn_id=spine.turn_id)
+                        intervention = guard.before_call(call.name, call.arguments)
+                        if intervention and intervention[0] == "warn":
+                            await spine.emit(LOOP_GUARD, {"tool": call.name, "call_id": call.id, "action": "warn", "reason": intervention[1]})
+                            result = {"error": "loop_guard", "detail": f"Loop guard: {intervention[1]}."}
+                            messages.append({"role":"tool","tool_call_id":call.id,"content":json.dumps(result,ensure_ascii=False)})
+                            continue
+                        if intervention and intervention[0] == "stop":
+                            await spine.emit(LOOP_GUARD, {"tool": call.name, "call_id": call.id, "action": "stop", "reason": intervention[1]})
+                            await spine.emit(TURN_STOPPED, {"reason": "loop_guard", "detail": intervention[1]})
+                            stop_text = f"I stopped: {intervention[1]}. Please narrow or rephrase the request."
+                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
+                            return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
                         await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "risk": spec.risk.value,
                                                                "arguments_json": canonical(call.arguments)}, strict=True)
                         try: result = await registry.invoke(call.name, call.arguments)
-                        except Exception as e: result = {"error": type(e).__name__, "detail": str(e)[:500]}
+                        except Exception as e: result = {"error": classify_exception(e), "detail": str(e)[:500]}
+                        ok = not (isinstance(result, dict) and "error" in result)
+                        guard.record_outcome(ok)
                         await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id,
-                                                            "ok": not (isinstance(result, dict) and "error" in result),
+                                                            "ok": ok,
                                                             "error": result.get("error") if isinstance(result, dict) else None})
+                        if guard.error_streak_tripped():
+                            detail = f"{guard.error_streak} tool calls failed in a row (latest: {result.get('error')} on {call.name})"
+                            await spine.emit(TURN_STOPPED, {"reason": "error_streak", "detail": detail})
+                            stop_text = f"I stopped: {detail}. Please rephrase or narrow the request."
+                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
+                            return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
                     await record_trace(conversation_id, "tool_call", {"tool": call.name, "ok": not (isinstance(result, dict) and "error" in result)})
                     for item in result.get("results",[]) if isinstance(result,dict) else []:
                         if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
