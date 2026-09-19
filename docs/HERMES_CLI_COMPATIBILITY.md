@@ -1,7 +1,7 @@
 # Hermes CLI compatibility
 
-Noesek 1.11 provides a `hermes` entry point generated from canonical Hermes
-Agent commit `c712f06dcdd24053a4118f38d2090ac53137ecfc` (MIT). The machine-readable
+Noesek 2.0 provides a `hermes` entry point generated from canonical Hermes
+Agent commit `d7b836ab1c0cddaafc109ed24c9a83b6191cdc88` (MIT). The machine-readable
 source of truth is `compat/hermes-cli-manifest.json`; it includes per-file
 SHA-256 hashes, command paths, options, aliases, help metadata, and the slash
 command registry.
@@ -22,7 +22,16 @@ replace Noesek's controller, weaken its security model, require unavailable
 Hermes product services, or silently mutate external state.
 
 `hermes --noesek-compat-report` prints the pinned source and inventory counts.
-Regenerate with `HERMES_SOURCE=/path/to/pinned/hermes-agent python tools/inventory_hermes_cli.py`.
+Regenerate with `HERMES_SOURCE=/path/to/pinned/hermes-agent python tools/inventory_hermes_cli.py`
+(`HERMES_COMMIT` overrides the recorded pin).
+
+The surface was refreshed to upstream main (`d7b836ab`, 2026-09-19): 289 command
+paths and 102 slash commands, up from the stale `c712f06` pin. The refresh also
+removed double-nesting extraction artifacts from the old manifest (for example
+`send send`, `kanban kanban`, `portal portal`); those commands now appear at
+their real paths. New upstream groups include kanban, pets, journey, insights,
+logs, skin, console, dashboard, desktop, pause/resume, peer, dump, sync, verify,
+worktree, monitoring, security audit, claw, import-agent, moa, and lsp.
 
 ## Behavioral adapter coverage added after initial v1.11 packaging
 

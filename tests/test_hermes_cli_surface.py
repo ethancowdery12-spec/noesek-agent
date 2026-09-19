@@ -4,7 +4,7 @@ from noesek import hermes_cli
 
 def test_manifest_pin_and_scale():
  m=json.loads((Path(__file__).parents[1]/'compat/hermes-cli-manifest.json').read_text())
- assert m['upstream']['commit']=='c712f06dcdd24053a4118f38d2090ac53137ecfc'
+ assert m['upstream']['commit']=='d7b836ab1c0cddaafc109ed24c9a83b6191cdc88'
  assert len(m['commands']) >= 240
  assert sum(len(x['options']) for x in m['commands']) >= 500
  assert len(m['slash_commands']) == 102
