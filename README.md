@@ -107,3 +107,28 @@ Machine formats keep scripted use stable. Configuration output redacts secrets;
 session deletion needs an explicit `--yes`; backup remains local and never
 uploads data. See `docs/HERMES_CLI_PROVENANCE.md` for the exact source, commit,
 license review, reused ideas, and deliberately excluded features.
+
+---
+
+## Windows install - v2.0.0
+
+Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes both `noesek` and `hermes`. Open a new terminal after installation.
+
+### PowerShell
+
+```powershell
+$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.0.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'bff7cc3c1bb47b436fe8a54c2e30b292704ae4ec41da47f6fcc1ef02352f4f47'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.0.0/8-noesek-agent-v2.0.0.tar.gz' -ExpectedSha256 '78d3d3021d0d34e36bef277c625cc8a0b664c0cb07e3fd32ed943bf0dd06d1d3'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
+```
+
+### Command Prompt (CMD)
+
+```bat
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.0.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'bff7cc3c1bb47b436fe8a54c2e30b292704ae4ec41da47f6fcc1ef02352f4f47'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.0.0/8-noesek-agent-v2.0.0.tar.gz' -ExpectedSha256 '78d3d3021d0d34e36bef277c625cc8a0b664c0cb07e3fd32ed943bf0dd06d1d3'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
+```
+
+Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v2.0.0
+
+## Release hashes
+
+- PowerShell installer SHA-256: `bff7cc3c1bb47b436fe8a54c2e30b292704ae4ec41da47f6fcc1ef02352f4f47`
+- Source archive SHA-256: `78d3d3021d0d34e36bef277c625cc8a0b664c0cb07e3fd32ed943bf0dd06d1d3`
