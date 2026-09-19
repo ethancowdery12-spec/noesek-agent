@@ -15,6 +15,7 @@ class Conversation(Base):
     channel: Mapped[str] = mapped_column(String(32), index=True)
     external_user_id: Mapped[str] = mapped_column(String(128), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    title: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
 class Message(Base):
     __tablename__ = "messages"
@@ -132,6 +133,9 @@ async def init_db(eng: AsyncEngine | None = None):
 
 # Columns added after v0.1, applied to pre-existing databases by migrate().
 _COLUMN_UPGRADES = {
+    "conversations": {
+        "title": "VARCHAR(200)",
+    },
     "memories": {
         "source": "VARCHAR(64) NOT NULL DEFAULT 'conversation'",
         "superseded_by": "INTEGER",

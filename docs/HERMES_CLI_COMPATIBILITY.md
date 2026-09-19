@@ -125,3 +125,33 @@ plain loop with identical dispatch. Token/cost figures are local estimates
 Deferred intentionally: skins/pets theming, voice, image paste, ghost-text
 suggestions, subagent dock, and the full-screen TUI/desktop surfaces - those
 need presentation layers or services outside the controller contract.
+
+## Sessions analysis and administration tranche (v2.1)
+
+Offline adapters backed by the Noesek turn spine and local state:
+
+- `hermes sessions rename ID TITLE` sets a stored session title (new nullable
+  `conversations.title` column, applied by the in-place migrator); the title
+  surfaces in `sessions list` and the interactive `/title` status bar badge.
+- `hermes sessions prune` removes sessions idle past `--older-than` days while
+  always keeping the 5 most recent; without `--yes` it prints the plan only.
+- `hermes sessions stats` reports store-wide statistics (sessions, messages,
+  turns, span, database size). Per-session analysis (turns, tools, tokens from
+  GenAI usage attributes, policy blocks, active span) is available in the
+  interactive UI via `/sessions <id>`.
+- `hermes insights [--days N]` aggregates real analytics from the turn spine:
+  turns per day, tool-call frequency, input/output token totals from GenAI
+  usage attributes. Cost stays `n/a` until provider pricing is configured.
+- `hermes dump` emits a copy-pasteable support summary (version, platform,
+  redacted config, doctor, prompt sizes, pause state).
+- `hermes logs [name] [-n N]` lists/tails files under `~/.noesek/logs` with
+  path confinement; with no logs it points at `cron incidents` instead.
+- `hermes pause [--reason ...]` / `hermes resume` implement the global
+  emergency stop: a `~/.noesek/PAUSED` marker the task worker honors before
+  starting any new work (in-flight work is never killed, matching upstream
+  semantics).
+- `hermes worktree list [--repo P]` audits worktrees with age, size, verdict
+  and reason; `worktree prune` only ever touches clean, fully-merged trees,
+  never deletes uncommitted or unique work, and requires `--yes` (otherwise it
+  prints the plan). Follows the upstream safety rules (MIT patterns).
+- `hermes console` opens a read-eval loop over the full hermes command surface.

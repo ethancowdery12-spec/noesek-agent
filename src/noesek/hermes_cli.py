@@ -210,6 +210,36 @@ def _run(args):
     if path==('cron','incidents'):
         from .vendor.hermes.cron import incidents
         _emit(incidents.list_incidents(),as_json);return 0
+    if path==('sessions','rename'):
+        _emit(asyncio.run(cli_ops.session_rename(int(getattr(args,'session_id')),getattr(args,'title'))),as_json);return 0
+    if path==('sessions','prune'):
+        days=int(getattr(args,'older_than',None) or 30)
+        _emit(asyncio.run(cli_ops.sessions_prune(days,yes=bool(getattr(args,'yes',False)))),as_json);return 0
+    if path==('sessions','stats'):
+        _emit(asyncio.run(cli_ops.sessions_store_stats()),as_json);return 0
+    if path==('insights',):
+        _emit(asyncio.run(cli_ops.insights_report(int(getattr(args,'days',None) or 30))),as_json);return 0
+    if path==('dump',):
+        _emit(asyncio.run(cli_ops.dump_report()),as_json);return 0
+    if path==('logs',):
+        name=getattr(args,'log_name',None)
+        try:_emit(cli_ops.logs_tail(None if name in {None,'agent'} else name,int(getattr(args,'lines',50) or 50)),as_json);return 0
+        except LookupError:
+            print(f"hermes compatibility: log '{name}' not found under ~/.noesek/logs",file=sys.stderr);return 2
+    if path==('pause',):
+        _emit(cli_ops.set_paused(True,getattr(args,'reason',None)),as_json);return 0
+    if path==('resume',):
+        _emit(cli_ops.set_paused(False),as_json);return 0
+    if path==('console',):
+        return _console()
+    if path and path[0]=='worktree':
+        from .compat import worktree_audit
+        repo=Path(getattr(args,'repo',None) or '.').resolve()
+        if path[1:] in {('list',),()}:
+            _emit(worktree_audit.list_worktrees(repo),as_json);return 0
+        if path[1:]==('prune',):
+            yes=bool(getattr(args,'yes',False))
+            _emit(worktree_audit.prune(repo,dry_run=bool(getattr(args,'dry_run',False)) or not yes,yes=yes),as_json);return 0
     if path==('completion',):
         shell=getattr(args,'shell',None) or 'bash';print(_completion(shell));return 0
     if path==('chat',) or not path:
@@ -224,6 +254,16 @@ def _run(args):
         if getattr(args,'output_format','text')=='stream-json':av+=['--format','stream-json']
         return nmain(av)
     return _unsupported(path)
+def _console():
+    import shlex
+    print('hermes console (Noesek). Type hermes commands without the `hermes` prefix; exit to leave.')
+    while True:
+        try: line=input('console> ').strip()
+        except (EOFError,KeyboardInterrupt): print(); return 0
+        if not line: continue
+        if line in {'exit','quit'}: return 0
+        try: main(shlex.split(line))
+        except SystemExit: pass
 def _completion(shell):
     names=sorted({x['path'][0] for x in _manifest()['commands'] if x['path']}) ; words=' '.join(names)
     if shell=='fish':return f"complete -c hermes -f -a '{words}'"

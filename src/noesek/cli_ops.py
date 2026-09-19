@@ -12,7 +12,7 @@ import platform
 import shutil
 import sys
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -71,12 +71,12 @@ async def sessions_list(limit: int = 20) -> list[dict[str, Any]]:
     await init_db(); await migrate()
     async with Session() as s:
         q = (select(Conversation.id, Conversation.channel, Conversation.external_user_id,
-                    Conversation.created_at, func.count(Message.id).label("messages"),
+                    Conversation.created_at, Conversation.title, func.count(Message.id).label("messages"),
                     func.max(Message.created_at).label("updated_at"))
              .outerjoin(Message, Message.conversation_id == Conversation.id)
              .group_by(Conversation.id).order_by(func.max(Message.created_at).desc()).limit(limit))
         rows = (await s.execute(q)).all()
-    return [{"id": r.id, "channel": r.channel, "external_user_id": r.external_user_id,
+    return [{"id": r.id, "channel": r.channel, "external_user_id": r.external_user_id, "title": r.title,
              "messages": r.messages, "created_at": _iso(r.created_at), "updated_at": _iso(r.updated_at)} for r in rows]
 
 
@@ -170,3 +170,184 @@ def postmortem(incident_id: str) -> str:
         "- [ ] ",
     ]
     return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# v2.1: sessions analysis, insights, dump, logs, pause (hermes adapters)
+# ---------------------------------------------------------------------------
+
+
+def noesek_home() -> Path:
+    return Path(os.environ.get("NOESEK_HOME", "~/.noesek")).expanduser()
+
+
+def pause_file() -> Path:
+    return noesek_home() / "PAUSED"
+
+
+def is_paused() -> dict[str, Any]:
+    f = pause_file()
+    if not f.exists():
+        return {"paused": False}
+    try:
+        meta = json.loads(f.read_text())
+    except Exception:
+        meta = {}
+    return {"paused": True, "reason": meta.get("reason"), "since": meta.get("since")}
+
+
+def set_paused(paused: bool, reason: str | None = None) -> dict[str, Any]:
+    f = pause_file()
+    if paused:
+        f.parent.mkdir(parents=True, exist_ok=True)
+        f.write_text(json.dumps({"reason": reason, "since": datetime.now(timezone.utc).isoformat()}))
+    else:
+        f.unlink(missing_ok=True)
+    return is_paused()
+
+
+async def session_rename(session_id: int, title: str) -> dict[str, Any]:
+    from .db import Conversation, Session, init_db, migrate
+    await init_db(); await migrate()
+    async with Session() as s:
+        conv = (await s.execute(select(Conversation).where(Conversation.id == session_id))).scalar_one_or_none()
+        if conv is None: raise LookupError(session_id)
+        conv.title = title; await s.commit()
+    return {"id": session_id, "title": title}
+
+
+async def sessions_prune(older_than_days: int, *, yes: bool = False, keep_min: int = 5) -> dict[str, Any]:
+    """Delete sessions whose last message is older than the cutoff. Keeps at least keep_min."""
+    from .db import Conversation, Message, Session, init_db, migrate
+    await init_db(); await migrate()
+    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
+    async with Session() as s:
+        q = (select(Conversation.id, func.max(Message.created_at).label("updated_at"))
+             .outerjoin(Message, Message.conversation_id == Conversation.id)
+             .group_by(Conversation.id).order_by(func.max(Message.created_at).desc().nullslast()))
+        rows = (await s.execute(q)).all()
+    stale = [r.id for r in rows[keep_min:] if r.updated_at is None or r.updated_at.replace(tzinfo=timezone.utc) < cutoff]
+    if not yes:
+        return {"would_prune": stale, "count": len(stale), "confirm": "rerun with --yes to delete"}
+    for sid in stale:
+        await session_delete(sid)
+    return {"pruned": stale, "count": len(stale)}
+
+
+async def session_stats(session_id: int) -> dict[str, Any]:
+    """Per-session analysis: turns, tools, tokens, duration from the turn spine."""
+    from .db import Message, Session, TurnEvent, init_db, migrate
+    await init_db(); await migrate()
+    async with Session() as s:
+        roles = (await s.execute(select(Message.role, func.count()).where(Message.conversation_id == session_id)
+                                 .group_by(Message.role))).all()
+        events = (await s.execute(select(TurnEvent).where(TurnEvent.conversation_id == session_id)
+                                  .order_by(TurnEvent.created_at, TurnEvent.id))).scalars().all()
+    turns = {e.turn_id for e in events if e.kind == "turn_started"}
+    tools: dict[str, int] = {}
+    input_tokens = output_tokens = 0
+    blocked = 0
+    for e in events:
+        if e.kind == "tool_call_result":
+            name = (e.data or {}).get("tool", "?")
+            tools[name] = tools.get(name, 0) + 1
+        elif e.kind == "model_response":
+            input_tokens += (e.data or {}).get("gen_ai.usage.input_tokens") or 0
+            output_tokens += (e.data or {}).get("gen_ai.usage.output_tokens") or 0
+        elif e.kind == "policy_blocked":
+            blocked += 1
+    duration = None
+    if events:
+        duration = (events[-1].created_at - events[0].created_at).total_seconds()
+    return {"id": session_id, "messages": {r: c for r, c in roles}, "turns": len(turns),
+            "tools": dict(sorted(tools.items(), key=lambda kv: -kv[1])),
+            "input_tokens": input_tokens, "output_tokens": output_tokens,
+            "policy_blocked": blocked, "active_seconds": duration}
+
+
+async def insights_report(days: int = 7) -> dict[str, Any]:
+    """Token/tool/activity analytics across all sessions (turn spine, offline)."""
+    from .db import Conversation, Message, Session, TurnEvent, init_db, migrate
+    await init_db(); await migrate()
+    since = datetime.now(timezone.utc) - timedelta(days=days)
+    async with Session() as s:
+        events = (await s.execute(select(TurnEvent).where(TurnEvent.created_at >= since))).scalars().all()
+        conv_count = (await s.execute(select(func.count(Conversation.id)))).scalar() or 0
+        msg_count = (await s.execute(select(func.count(Message.id)))).scalar() or 0
+    per_day: dict[str, int] = {}
+    tools: dict[str, int] = {}
+    input_tokens = output_tokens = 0
+    for e in events:
+        day = e.created_at.date().isoformat()
+        if e.kind == "turn_started":
+            per_day[day] = per_day.get(day, 0) + 1
+        elif e.kind == "tool_call_result":
+            name = (e.data or {}).get("tool", "?")
+            tools[name] = tools.get(name, 0) + 1
+        elif e.kind == "model_response":
+            input_tokens += (e.data or {}).get("gen_ai.usage.input_tokens") or 0
+            output_tokens += (e.data or {}).get("gen_ai.usage.output_tokens") or 0
+    return {"window_days": days, "turns_per_day": dict(sorted(per_day.items())),
+            "total_turns": sum(per_day.values()),
+            "tools": dict(sorted(tools.items(), key=lambda kv: -kv[1])[:20]),
+            "input_tokens": input_tokens, "output_tokens": output_tokens,
+            "sessions_total": conv_count, "messages_total": msg_count,
+            "cost": "n/a (no provider pricing configured)"}
+
+
+async def dump_report() -> dict[str, Any]:
+    """Copy-pasteable support summary; secrets redacted by config_snapshot."""
+    from . import __version__ as version
+    doc = doctor_report()
+    return {"noesek_version": version, "python": platform.python_version(),
+            "platform": platform.platform(), "home": str(noesek_home()),
+            "paused": is_paused(), "config": config_snapshot(),
+            "doctor": {"ok": doc["ok"], "issues": doc.get("issues", [])},
+            "prompt_size": prompt_size_report()}
+
+
+def logs_list() -> list[dict[str, Any]]:
+    root = noesek_home() / "logs"
+    if not root.is_dir():
+        return []
+    return [{"file": str(p), "bytes": p.stat().st_size,
+             "modified": datetime.fromtimestamp(p.stat().st_mtime, timezone.utc).isoformat()}
+            for p in sorted(root.glob("*.log"))]
+
+
+def logs_tail(name: str | None = None, lines: int = 50) -> dict[str, Any]:
+    root = noesek_home() / "logs"
+    files = sorted(root.glob("*.log")) if root.is_dir() else []
+    if name:
+        target = root / Path(name).name  # confine to the logs dir
+        if not target.is_file():
+            raise LookupError(name)
+    elif files:
+        target = files[-1]
+    else:
+        return {"file": None, "lines": [], "note": "no log files under ~/.noesek/logs; see `hermes cron incidents` for failure records"}
+    content = target.read_text(errors="replace").splitlines()[-lines:]
+    return {"file": str(target), "lines": content}
+
+
+async def sessions_store_stats() -> dict[str, Any]:
+    """Store-wide session statistics (hermes sessions stats)."""
+    from .db import Conversation, Message, Session, TurnEvent, init_db, migrate
+    from .config import settings
+    await init_db(); await migrate()
+    async with Session() as s:
+        convs = (await s.execute(select(func.count(Conversation.id)))).scalar() or 0
+        msgs = (await s.execute(select(func.count(Message.id)))).scalar() or 0
+        turns = (await s.execute(select(func.count(TurnEvent.id.distinct()))
+                                 .where(TurnEvent.kind == "turn_started"))).scalar() or 0
+        first = (await s.execute(select(func.min(Message.created_at)))).scalar()
+        last = (await s.execute(select(func.max(Message.created_at)))).scalar()
+    db_url = settings.database_url
+    db_bytes = None
+    if db_url.startswith("sqlite"):
+        path = Path(db_url.split("///")[-1]).expanduser()
+        if path.is_file():
+            db_bytes = path.stat().st_size
+    return {"sessions": convs, "messages": msgs, "turns": turns,
+            "first_message_at": _iso(first), "last_message_at": _iso(last),
+            "database_bytes": db_bytes}
