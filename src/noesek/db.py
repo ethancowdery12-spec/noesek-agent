@@ -57,6 +57,10 @@ class Approval(Base):
     arguments: Mapped[dict] = mapped_column(JSON)
     rationale: Mapped[str] = mapped_column(Text)
     status: Mapped[str] = mapped_column(String(24), default="pending", index=True)
+    # Lease binding (v2 stage B): originating spine turn + canonical arguments
+    # recorded at creation and re-verified at execution (tamper check).
+    turn_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    canonical_args: Mapped[str] = mapped_column(Text, default="")
     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -106,6 +110,8 @@ _COLUMN_UPGRADES = {
     "approvals": {
         "expires_at": "TIMESTAMP",
         "decided_at": "TIMESTAMP",
+        "turn_id": "VARCHAR(36)",
+        "canonical_args": "TEXT NOT NULL DEFAULT ''",
     },
 }
 
