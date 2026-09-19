@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noesek-agent"
-version = "2.1.1"
+version = "2.1.2"
 description = "Self-hostable WhatsApp-first hybrid AI agent runtime"
 readme = "README.md"
 license = {text = "MIT"}
