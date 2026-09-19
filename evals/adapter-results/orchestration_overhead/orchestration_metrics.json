@@ -8,7 +8,7 @@
   },
   "one_tool": {
     "llm_turns": 2,
-    "wall_ms": 2.6,
+    "wall_ms": 2.5,
     "result_bytes": 74,
     "content": "tool done",
     "steps": 2

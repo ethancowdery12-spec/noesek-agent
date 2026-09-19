@@ -9,7 +9,7 @@
         "transcript_messages": 7,
         "transcript_path": "/home/sandbox/noesek-agent/evals/adapter-results/acp_wire/wire-transcript.jsonl",
         "verdict": "pass",
-        "wall_seconds": 0.93
+        "wall_seconds": 0.95
       },
       "upstream_sha256": "ca373ca4a4abd573b8372af7468275325bffbf84ebc471a9b30ad84d2fe15a51"
     },
@@ -30,7 +30,7 @@
         },
         "survives_fresh_process": true,
         "verdict": "pass",
-        "wall_seconds": 2.29
+        "wall_seconds": 2.38
       },
       "upstream_sha256": "2a6a2480c07ee0558f32daaed38b5d12f7215956a17629e4351130637a7a32f9"
     },
@@ -44,7 +44,7 @@
         "snapshot_ok": true,
         "tree_unchanged": true,
         "verdict": "pass",
-        "wall_seconds": 0.89
+        "wall_seconds": 0.88
       },
       "upstream_sha256": "07af1c817ccbac96ff77a9b080c9a6fbdd3a20c5304e8a0481495bc9c2d5939b"
     },
@@ -98,7 +98,7 @@
         "sends": 45,
         "unique_chats": 1,
         "verdict": "pass",
-        "wall_seconds": 2.51
+        "wall_seconds": 2.49
       },
       "upstream_sha256": "0df04116bb4a3eaff5eee77a186e09c3ceae76b3e9dd4de593f84ff7ee6f8f0d"
     },
@@ -107,10 +107,10 @@
       "result": {
         "conversations": 1,
         "messages": 1,
-        "sample_created_at": "2026-09-19T14:07:43.062770",
+        "sample_created_at": "2026-09-19T14:09:04.483762",
         "stable_across_processes": true,
         "verdict": "pass",
-        "wall_seconds": 1.31
+        "wall_seconds": 1.26
       },
       "upstream_sha256": "f21a3eea268c05334157c6e030aa2ae6a0c12856501c619562b0b43d238a7069"
     },
@@ -121,7 +121,7 @@
         "tools_checked": 9,
         "verdict": "pass",
         "violations": [],
-        "wall_seconds": 0.25
+        "wall_seconds": 0.24
       },
       "upstream_sha256": "245c47353838b273708709c0a9b96afd341964738127764938b037690bbf0c8b"
     },
@@ -132,7 +132,7 @@
         "presentation_differences": "approved_at timestamps differ (expected)",
         "state_identical": true,
         "verdict": "pass",
-        "wall_seconds": 2.14
+        "wall_seconds": 2.07
       },
       "upstream_sha256": "1e50c2a9d1cc636ca6176b55dee2b46d9fe97d11783796ce82c6f90037a8602b"
     },
@@ -147,7 +147,7 @@
         "status_redacted": true,
         "token_stored": true,
         "verdict": "pass",
-        "wall_seconds": 7.76
+        "wall_seconds": 7.77
       },
       "upstream_sha256": "080917093f7b5fc7f05033d297b91de25a9f6d075459b3eb374dee8b82bc50af"
     },
@@ -175,7 +175,7 @@
         "event_status": 200,
         "outbound_post_message_calls": 2,
         "verdict": "pass",
-        "wall_seconds": 0.98,
+        "wall_seconds": 0.97,
         "wire_path": "/home/sandbox/noesek-agent/evals/adapter-results/slack_wire/wire.json"
       },
       "upstream_sha256": "e3d9777dc3dcd2fe577c4947da3f2c7c2b5ef4ff84ed75cd2227f02a83f1fbec"
@@ -190,7 +190,7 @@
             "llm_turns": 2,
             "result_bytes": 74,
             "steps": 2,
-            "wall_ms": 2.6
+            "wall_ms": 2.5
           },
           "plain": {
             "content": "final answer",
@@ -226,7 +226,7 @@
         },
         "deviation": "provider-native schemes (Slack v0 HMAC, Telegram secret token) instead of svix",
         "verdict": "pass",
-        "wall_seconds": 0.93
+        "wall_seconds": 0.87
       },
       "upstream_sha256": "f93b06aecf756a595612d5322701a3b39729eb25d8c01fe29696e27641467fda"
     }
