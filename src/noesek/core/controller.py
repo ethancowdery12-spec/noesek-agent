@@ -7,6 +7,7 @@ from .approval_engine import assess_tool_arguments
 from .context import assemble
 from .loop_guard import LoopGuard, classify_exception
 from .memory_v2 import wrap_untrusted
+from .steering import consume_steering
 from .policy import evaluate_policy, parse_rules
 from .llm import configured_llm, provider_name
 from .metrics import inc
@@ -115,6 +116,11 @@ class Controller:
         guard = LoopGuard(settings.loop_max_identical, settings.loop_max_errors, settings.loop_cycle_window)
         try:
             for _ in range(self.max_steps):
+                notes = await consume_steering(conversation_id)
+                if notes:
+                    for note in notes:
+                        messages.append({"role": "user", "content": f"[Steering from the user]: {note}"})
+                    await spine.emit("steering", {"notes": len(notes)})
                 await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
                 reply = await self.llm.complete(messages, registry.schemas())
                 await spine.emit(MODEL_RESPONSE, {**self._gen_ai(), **self._usage_attrs(reply),
