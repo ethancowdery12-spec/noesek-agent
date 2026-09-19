@@ -75,8 +75,12 @@ for f in FILES:
   for n in ast.walk(fn):
    if not isinstance(n,ast.Call):continue
    op=name(n); b=base(n); target=parsers.get(b); args=n.args
+   if base(n) is None and op in {'add','inherited'}:
+    # Aliased helpers (``add, inherited = parser.add_argument, _inherited_flag``):
+    # route to the function's unique seeded parser.
+    uniq=set(parsers.values()); target=next(iter(uniq)) if len(uniq)==1 else None
    if op in {'_inherited_flag','inherited','add_json_flag','add_yes_flag','add_accept_hooks_flag'} and args and isinstance(args[0],ast.Name) and args[0].id in parsers:target=parsers[args[0].id];args=args[1:]
-   if op in {'add_argument','_inherited_flag','inherited','add_json_flag','add_yes_flag','add_accept_hooks_flag'} and target is not None:add_option(entries,target,n,env,args)
+   if op in {'add_argument','add','_inherited_flag','inherited','add_json_flag','add_yes_flag','add_accept_hooks_flag'} and target is not None:add_option(entries,target,n,env,args)
 # De-duplicate identical flags caused by helper wrappers being seen twice.
 for e in entries.values():
  seen=set(); out=[]

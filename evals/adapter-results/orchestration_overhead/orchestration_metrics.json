@@ -15,7 +15,7 @@
   },
   "unknown_tool_recovery": {
     "llm_turns": 2,
-    "wall_ms": 0.8,
+    "wall_ms": 0.9,
     "result_bytes": 91,
     "content": "recovered after tool error",
     "steps": 2
