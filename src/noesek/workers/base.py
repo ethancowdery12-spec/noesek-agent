@@ -15,9 +15,9 @@ WORKERS = {
  "coder": Worker("coder",
    "Plan, implement, test, and explain code. Prefer small reversible changes. "
    "Map the repo first (repo_map), edit with apply_edit SEARCH/REPLACE hunks "
-   "(write_file for new files), verify changes by running code, and finish with "
+   "(write_file for new files), verify changes with run_command (real exit codes and output), and finish with "
    "the submit checklist (summary, files_changed, verification evidence, limitations).",
-   ("run_python", "fetch_url", "read_file", "repo_map", "apply_edit", "write_file", "submit")),
+   ("run_python", "run_command", "fetch_url", "read_file", "repo_map", "apply_edit", "write_file", "submit")),
  "operator": Worker("operator",
    "Carry out stateful work carefully. Check current state and report exactly what changed; never claim unverified effects.",
    ("fetch_url", "run_python")),

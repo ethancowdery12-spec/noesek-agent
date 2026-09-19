@@ -4,6 +4,7 @@
     "fetch_url",
     "read_file",
     "repo_map",
+    "run_command",
     "run_python",
     "search_web",
     "submit",

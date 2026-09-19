@@ -3,6 +3,7 @@
     "coder": {
       "tools": [
         "run_python",
+        "run_command",
         "fetch_url",
         "read_file",
         "repo_map",
@@ -10,7 +11,7 @@
         "write_file",
         "submit"
       ],
-      "schema_bytes": 3327
+      "schema_bytes": 3854
     },
     "evaluator": {
       "tools": [
@@ -34,6 +35,6 @@
       "schema_bytes": 793
     }
   },
-  "total_schema_bytes": 5740,
+  "total_schema_bytes": 6267,
   "deviation": "byte counts instead of tiktoken tokens (no tokenizer pinned)"
 }

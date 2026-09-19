@@ -1,21 +1,21 @@
 {
   "plain": {
     "llm_turns": 1,
-    "wall_ms": 3.0,
+    "wall_ms": 4.2,
     "result_bytes": 77,
     "content": "final answer",
     "steps": 1
   },
   "one_tool": {
     "llm_turns": 2,
-    "wall_ms": 2.7,
+    "wall_ms": 2.5,
     "result_bytes": 74,
     "content": "tool done",
     "steps": 2
   },
   "unknown_tool_recovery": {
     "llm_turns": 2,
-    "wall_ms": 0.8,
+    "wall_ms": 1.0,
     "result_bytes": 91,
     "content": "recovered after tool error",
     "steps": 2
