@@ -5,6 +5,7 @@ from ..core.types import Risk
 from ..tools.research import SearchInput, search_web
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.local_read import ReadInput, read_file
+from ..tools.coding import ApplyEditInput, RepoMapInput, SubmitInput, WriteFileInput, apply_edit, repo_map, submit, write_file
 from ..tools.web import FetchInput, fetch_url
 from .base import WORKERS
 
@@ -22,6 +23,10 @@ def _all_tool_specs() -> dict[str, ToolSpec]:
         "fetch_url": ToolSpec("fetch_url", "Fetch a web page and return readable text with its final URL.", FetchInput, Risk.READ, fetch_url),
         "run_python": ToolSpec("run_python", "Run Python in a disposable, network-disabled Docker sandbox.", PythonInput, Risk.READ, run_python),
         "read_file": ToolSpec("read_file", "Read a UTF-8 text file from the allowlisted workspace root.", ReadInput, Risk.READ, read_file),
+        "repo_map": ToolSpec("repo_map", "Map the workspace: file list plus Python def/class signatures.", RepoMapInput, Risk.READ, repo_map),
+        "apply_edit": ToolSpec("apply_edit", "Edit a workspace file with SEARCH/REPLACE hunks (per-hunk salvage).", ApplyEditInput, Risk.WRITE, apply_edit),
+        "write_file": ToolSpec("write_file", "Create or overwrite a workspace file.", WriteFileInput, Risk.WRITE, write_file),
+        "submit": ToolSpec("submit", "Finish with the structured submit checklist (summary, files_changed, verification, limitations).", SubmitInput, Risk.READ, submit),
     }
 
 def worker_registry(worker_name: str, spawn_grant=None) -> ToolRegistry:
