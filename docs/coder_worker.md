@@ -28,3 +28,12 @@ the local pydantic/SQLite stack.
 
 Sandboxed `run_command` verification (workspace mounted read-only,
 network disabled) for build/test evidence on the submit checklist.
+
+## E2: sandboxed verification
+
+`run_command` runs a shell command in the Docker sandbox with the workspace
+mounted READ-ONLY at `/workspace`, network disabled, same isolation flags as
+`run_python` (plus `PYTHONDONTWRITEBYTECODE=1` so test runs work on the ro
+mount). docker-cli and docker-py backends implement it; e2b reports it as
+unsupported. The submit checklist's `verification` field is where observed
+exit codes and output tails land.

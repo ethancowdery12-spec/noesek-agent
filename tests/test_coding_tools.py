@@ -83,3 +83,21 @@ def test_coder_registry_has_coding_tools():
     assert {"repo_map", "apply_edit", "write_file", "submit", "read_file"} <= names
     # other workers unchanged
     assert "apply_edit" not in set(worker_registry("researcher").names())
+
+
+async def test_run_command_tool_contract(monkeypatch):
+    """run_command mounts the workspace read-only and reports exit codes."""
+    captured = {}
+    class FakeBackend:
+        async def run_command(self, command, *, image, timeout_seconds, workspace=None):
+            captured.update(command=command, workspace=workspace)
+            return {"exit_code": 0, "stdout": "5 passed", "stderr": "", "backend": "fake"}
+    monkeypatch.setattr("noesek.tools.sandbox.get_backend", lambda: FakeBackend())
+    from noesek.tools.sandbox import CommandInput, run_command
+    r = await run_command(CommandInput(command="python -m pytest tests -q"))
+    assert r["exit_code"] == 0 and captured["command"] == "python -m pytest tests -q"
+    assert captured["workspace"] == str(allowed_root())
+
+
+def test_coder_has_run_command():
+    assert "run_command" in set(worker_registry("coder").names())

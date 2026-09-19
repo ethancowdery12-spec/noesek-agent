@@ -56,6 +56,32 @@ class DockerCliBackend:
                 return {"error": "Sandbox timed out", "backend": self.name}
 
 
+    async def run_command(self, command: str, *, image: str, timeout_seconds: int,
+                          workspace: str | None = None) -> dict:
+        """Run a shell command with the workspace mounted read-only at /workspace.
+
+        Network stays disabled; PYTHONDONTWRITEBYTECODE keeps the ro mount clean."""
+        with tempfile.TemporaryDirectory() as d:
+            cmd = ["docker", "run", "--rm", "--network=none", "--read-only",
+                   "--memory=512m", "--cpus=1", "--pids-limit=64",
+                   "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+                   "-e", "PYTHONDONTWRITEBYTECODE=1"]
+            if workspace:
+                cmd += ["-v", f"{workspace}:/workspace:ro", "-w", "/workspace"]
+            cmd += [image, "sh", "-c", command]
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
+                return {"exit_code": proc.returncode, "stdout": _trim(out), "stderr": _trim(err),
+                        "backend": self.name}
+            except OSError:
+                return {"error": "Docker is not installed or not runnable on PATH", "backend": self.name}
+            except TimeoutError:
+                proc.kill(); await proc.wait()
+                return {"error": "Sandbox timed out", "backend": self.name}
+
+
 class DockerPyBackend:
     name = "docker-py"
 
@@ -97,6 +123,35 @@ class DockerPyBackend:
                 pass
 
 
+    async def run_command(self, command: str, *, image: str, timeout_seconds: int,
+                          workspace: str | None = None) -> dict:
+        def _run():
+            client = self._get_client()
+            volumes = {workspace: {"bind": "/workspace", "mode": "ro"}} if workspace else {}
+            container = client.containers.run(
+                image, ["sh", "-c", command], detach=True,
+                network_disabled=ISOLATION["network_disabled"],
+                read_only=ISOLATION["read_only"], mem_limit="512m",
+                nano_cpus=ISOLATION["nano_cpus"], pids_limit=ISOLATION["pids_limit"],
+                tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},
+                environment={"PYTHONDONTWRITEBYTECODE": "1"},
+                volumes=volumes, working_dir="/workspace" if workspace else None)
+            try:
+                result = container.wait(timeout=timeout_seconds + 30)
+                logs = container.logs(stdout=True, stderr=True)
+                return {"exit_code": result.get("StatusCode", -1), "stdout": _trim(logs),
+                        "stderr": "", "backend": self.name}
+            finally:
+                try: container.remove(force=True)
+                except Exception: pass
+        try:
+            return await asyncio.wait_for(asyncio.to_thread(_run), timeout=timeout_seconds + 35)
+        except TimeoutError:
+            return {"error": "Sandbox timed out", "backend": self.name}
+        except Exception as e:
+            return {"error": f"docker-py backend unavailable: {e}", "backend": self.name}
+
+
 class E2BBackend:
     """Remote E2B microVM backend. Selected only explicitly; requires E2B_API_KEY
     in the operator's environment (never requested or stored by Noesek)."""
@@ -111,6 +166,11 @@ class E2BBackend:
             return self._factory()
         from e2b import Sandbox
         return Sandbox()
+
+    async def run_command(self, command: str, *, image: str, timeout_seconds: int,
+                          workspace: str | None = None) -> dict:
+        return {"error": "run_command is not supported on the e2b backend; use docker-cli or docker-py",
+                "backend": self.name}
 
     async def run_python(self, code: str, *, image: str, timeout_seconds: int) -> dict:
         try:
