@@ -1,4 +1,4 @@
-"""Real channel directory over the vendored Hermes gateway channel directory.
+"""Real channel directory over the vendored upstream gateway channel directory.
 
 The directory maps known channels to names/types from durable session history
 and platform adapters; platform adapters that need live services simply yield

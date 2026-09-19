@@ -1,4 +1,4 @@
-"""Contract tests for Noesek's authorization gate over the vendored Hermes authz chain."""
+"""Contract tests for Noesek's authorization gate over the vendored upstream authz chain."""
 import os
 
 import pytest

@@ -1,7 +1,7 @@
 """Operational CLI helpers.
 
 The command surface is independently implemented for Noesek. Its design was
-informed by the public Hermes Agent CLI documentation; no Hermes source is
+informed by the public upstream CLI documentation (MIT, see THIRD_PARTY_NOTICES.md); no upstream source is
 vendored or imported here.
 """
 from __future__ import annotations
@@ -173,7 +173,7 @@ def postmortem(incident_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# v2.1: sessions analysis, insights, dump, logs, pause (hermes adapters)
+# v2.1: sessions analysis, insights, dump, logs, pause (command-surface adapters)
 # ---------------------------------------------------------------------------
 
 
@@ -325,13 +325,13 @@ def logs_tail(name: str | None = None, lines: int = 50) -> dict[str, Any]:
     elif files:
         target = files[-1]
     else:
-        return {"file": None, "lines": [], "note": "no log files under ~/.noesek/logs; see `hermes cron incidents` for failure records"}
+        return {"file": None, "lines": [], "note": "no log files under ~/.noesek/logs; see `noesek cron incidents` for failure records"}
     content = target.read_text(errors="replace").splitlines()[-lines:]
     return {"file": str(target), "lines": content}
 
 
 async def sessions_store_stats() -> dict[str, Any]:
-    """Store-wide session statistics (hermes sessions stats)."""
+    """Store-wide session statistics (noesek sessions stats)."""
     from .db import Conversation, Message, Session, TurnEvent, init_db, migrate
     from .config import settings
     await init_db(); await migrate()

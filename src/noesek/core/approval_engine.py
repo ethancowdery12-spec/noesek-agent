@@ -1,6 +1,6 @@
-"""Deterministic shell-command risk gate backed by the vendored Hermes approval stack.
+"""Deterministic shell-command risk gate backed by the vendored upstream approval stack.
 
-This replaces Noesek's interface-level approval boundary with Hermes Agent's
+This replaces Noesek's interface-level approval boundary with the upstream
 battle-tested detection tables (vendored under noesek.vendor.hermes, MIT,
 Nous Research): hardline blocks that no approval can override, the sudo -S
 stdin guard, and dangerous-pattern classification. Noesek's own approval

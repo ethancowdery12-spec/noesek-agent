@@ -1,4 +1,4 @@
-"""Conservative git worktree audit, following upstream hermes worktree semantics (MIT patterns).
+"""Conservative git worktree audit, following upstream worktree semantics (MIT patterns).
 
 Never deletes: trees with uncommitted tracked changes, branches with unique
 unpushed commits, trees in use, main/master/develop branches.

@@ -1,7 +1,7 @@
-"""Durable cron execution ledger backed by the vendored Hermes cron persistence core.
+"""Durable cron execution ledger backed by the vendored upstream cron persistence core.
 
 Noesek's task queue claims and runs due tasks; this ledger records each attempt
-as a Hermes execution row (claim -> running -> completed/failed), deduplicates
+as an upstream execution row (claim -> running -> completed/failed), deduplicates
 scheduled occurrences, tracks recurring failures as incidents, and queues
 result deliveries - all via the vendored Nous Research implementations (MIT).
 """
@@ -22,7 +22,7 @@ def default_home() -> Path:
 class CronLedger:
     """Process-wide handle over the vendored cron persistence databases.
 
-    The vendored modules resolve their state directory from the Hermes home
+    The vendored modules resolve their state directory from the upstream home
     override (a contextvar), so one ledger per process is the supported shape;
     constructing it pins the override to the Noesek home."""
 
@@ -77,7 +77,7 @@ class CronLedger:
 
 
 class CronJobStore:
-    """Noesek-facing durable cron job store over the vendored Hermes cron/jobs.
+    """Noesek-facing durable cron job store over the vendored upstream cron/jobs.
 
     Real cron job CRUD with claim fencing, occurrence identity, and pause/resume,
     replacing Noesek's in-memory CronDispatcher for durable schedules. Execution

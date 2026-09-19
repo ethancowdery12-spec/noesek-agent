@@ -1,4 +1,4 @@
-"""The vendored Hermes approval stack is the live command-risk gate."""
+"""The vendored upstream approval stack is the live command-risk gate."""
 import pytest
 from pydantic import BaseModel
 from noesek.core.approval_engine import assess_command, assess_tool_arguments

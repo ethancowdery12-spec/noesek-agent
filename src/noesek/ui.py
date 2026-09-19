@@ -1,11 +1,9 @@
-"""Hermes-look interactive terminal UI for Noesek.
+"""Noesek interactive terminal UI.
 
-Layout, banner art, status-bar grammar, and interaction patterns follow the
-MIT-licensed Hermes Agent (NousResearch/hermes-agent @ d7b836ab, see
-docs/HERMES_CLI_COMPATIBILITY.md and docs/licenses). The caduceus and logo art
-are copied verbatim from upstream hermes_cli/banner.py (MIT); everything else
-is a Noesek implementation driving Noesek's thin controller. Execution never
-imports Hermes' agent loop.
+Layout, banner art, status-bar grammar, and interaction patterns are adapted
+from MIT-licensed upstream code (see THIRD_PARTY_NOTICES.md and
+docs/licenses). Everything else is a Noesek implementation driving Noesek's
+thin controller. Execution never imports the upstream agent loop.
 
 The UI runs on prompt_toolkit when installed (the upstream CLI's own toolkit)
 and degrades to a plain input loop with identical dispatch when it is not.
@@ -35,7 +33,7 @@ _BOLD = "\x1b[1m"
 _DIM = "\x1b[2m"
 _ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
-# Skin fallbacks mirror upstream defaults (hermes_cli/skin_engine.py, MIT).
+# Skin fallbacks mirror MIT-licensed upstream defaults (see THIRD_PARTY_NOTICES.md).
 ACCENT = "#FFBF00"
 DIM = "#B8860B"
 TEXT = "#FFF8DC"
@@ -77,15 +75,8 @@ def visible_len(s: str) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Banner art (verbatim from upstream hermes_cli/banner.py @ d7b836ab, MIT)
+# Banner art (wordmark adapted from MIT-licensed upstream banner code; see THIRD_PARTY_NOTICES.md)
 # ---------------------------------------------------------------------------
-
-HERMES_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
-[bold #FFD700]██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
-[#FFBF00]███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║[/]
-[#FFBF00]██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║[/]
-[#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
-[#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
 
 
 NOESEK_LOGO = """[bold #FFD700]███╗   ██╗ ██████╗ ███████╗███████╗███████╗██╗  ██╗[/]
@@ -95,21 +86,6 @@ NOESEK_LOGO = """[bold #FFD700]███╗   ██╗ ██████╗ �
 [#CD7F32]██║ ╚████║╚██████╔╝███████║███████╗███████╗██║  ██╗[/]
 [#CD7F32]╚═╝  ╚═══╝ ╚═════╝ ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝[/]"""
 
-HERMES_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
-[#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +150,7 @@ def format_status_bar(snap: StatusSnapshot, *, width: int | None = None, now: fl
     model = snap.model if len(snap.model) <= 26 else snap.model[:25] + "…"
     duration = _fmt_duration(now - snap.started_at)
     p = lambda t, c=None, **kw: paint(t, c, **kw) if color else t
-    head = p(" ☤ ", DIM) + p(model, TEXT, bold=True)
+    head = p(" ◆ ", DIM) + p(model, TEXT, bold=True)
     if width < 52:  # minimal: model + duration (+ YOLO badge)
         tail = f" │ {duration}"
         if snap.yolo:
@@ -237,7 +213,7 @@ def strip_markdown(text: str) -> str:
 
 
 def load_slash_registry() -> list[dict]:
-    manifest = Path(__file__).resolve().parent / "data" / "hermes-cli-manifest.json"
+    manifest = Path(__file__).resolve().parent / "data" / "cli-manifest.json"
     rows = json.loads(manifest.read_text()).get("slash_commands", [])
     registry = []
     for row in rows:
@@ -294,11 +270,11 @@ def banner_lines(model: str, cwd: str, tools: list[str], skills: dict[str, list[
                  toolset_of=None, profile: str | None = None, no_color: bool = False) -> list[str]:
     """Build the banner body lines (no box); `print_banner` wraps them in a panel."""
     p = (lambda t, c=None, **kw: t) if no_color else paint
-    left = ["", render_markup(HERMES_CADUCEUS) if not no_color else " (caduceus) ", ""]
+    left = ["", "", ""]
     if model and model.lower() != "unknown":
         left.append(p(_short_model(model), ACCENT)
                     + (p(" · ", DIM) + p(f"{_fmt_context_length(context_length)} context", DIM) if context_length else "")
-                    + p(" · ", DIM) + p("Hermes-compatible", DIM))
+                    + p(" · ", DIM) + p("289 commands", DIM))
     else:
         left.append(p("no model configured", "#FF4500", bold=True) + p(" - run /model or noesek config", DIM))
     left.append(p(cwd, DIM))
@@ -351,7 +327,7 @@ def print_banner(model: str, cwd: str, tools: list[str], skills: dict[str, list[
         r = right[i] if i < len(right) else ""
         pad = " " * (left_w - visible_len(l) + 2)
         body.append(f"  {l}{pad}{r}")
-    title = f" Noesek Agent v{__version__} - Hermes-compatible CLI "
+    title = f" Noesek Agent v{__version__} "
     width = min(max((visible_len(b) for b in body), default=40) + 2, max(cols - 2, 44))
     out(p("╭" + "─" * 2 + title + "─" * max(0, width - visible_len(title) - 2) + "╮", BORDER))
     for b in body:
@@ -485,7 +461,7 @@ class SlashDispatcher:
 
     Registry-driven: every upstream slash command resolves; the ones without a
     safe local implementation say so explicitly instead of being silently
-    dropped (mirrors the hermes_cli exit-3 contract, in-session).
+    dropped (mirrors the CLI exit-3 contract, in-session).
     """
 
     def __init__(self, session: ChatSession, out=print):
@@ -633,10 +609,10 @@ class SlashDispatcher:
             result = await s.controller.decide_approval(s.conversation_id, approval_id, name == "approve")
             out(result.text)
         elif name == "version":
-            out(f"noesek {__version__} (Hermes-compatible)")
+            out(f"noesek {__version__}")
         elif row is not None:
-            out(paint(f"/{name} is recognized from the Hermes registry but has no safe Noesek "
-                      f"execution yet - nothing ran. See docs/HERMES_CLI_COMPATIBILITY.md.", "#FF8C00"))
+            out(paint(f"/{name} is recognized from the command registry but has no safe Noesek "
+                      f"execution yet - nothing ran. See docs/CLI_SURFACE.md.", "#FF8C00"))
         else:
             out(paint(f"Unknown command /{name}. /help lists everything.", "#FF8C00"))
         return True
@@ -756,7 +732,7 @@ async def _loop_ptk(disp: SlashDispatcher, session: ChatSession, out=print) -> N
 
 async def run_interactive(user: str = "cli-user", *, model: str | None = None, out=print,
                           force_plain: bool = False) -> int:
-    """Open an interactive Hermes-look session against the Noesek controller."""
+    """Open an interactive session against the Noesek controller."""
     session = ChatSession(user, model=model)
     await session.open()
     print_banner(session.model, str(Path.cwd()), session.tool_names(), discover_skills_grouped(),
@@ -771,4 +747,5 @@ async def run_interactive(user: str = "cli-user", *, model: str | None = None, o
 
 
 def main(user: str = "cli-user", model: str | None = None) -> int:
-    return asyncio.run(run_interactive(user, model=model))
+    asyncio.run(run_interactive(user, model=model))
+    return 0

@@ -48,7 +48,7 @@ consequential choices are reserved for Ethan at the end.
 - User value: workers that can read workspace files can summarize documents,
   inspect exports, and ground answers in local artifacts.
 - Options: (a) no file access; (b) read_file confined to an allowlisted root
-  via the vendored Hermes path-security helpers; (c) arbitrary filesystem
+  via the vendored upstream path-security helpers; (c) arbitrary filesystem
   reads.
 - Security: (c) would let prompt-injected tool output steer reads at secrets.
   (b) confines reads to NOESEK_LOCAL_READ_ROOT (default

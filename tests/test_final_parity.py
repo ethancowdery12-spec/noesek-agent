@@ -2,7 +2,7 @@ import io,wave
 from datetime import datetime,timezone
 from pathlib import Path
 import pytest
-from noesek.compat.hermes_contract import contract_report
+from noesek.compat.upstream_contract import contract_report
 from noesek.core.backends import WavMetadataBackend,OfflineHTMLBrowser
 from noesek.core.computer_use import ComputerPlan
 from noesek.core.peer_transport import PeerEnvelope,ReplayCache,verify_envelope

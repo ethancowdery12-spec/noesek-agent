@@ -38,7 +38,7 @@ credentials.
 - Attribute names follow the OpenTelemetry GenAI semantic conventions
   (opentelemetry.io, Apache-2.0). No code copied.
 - Write-ahead audit ordering and typed turn events re-implement patterns
-  studied in MIT-licensed agent harnesses (Hermes, SWE-agent) and the
+  studied in MIT-licensed agent harnesses (see THIRD_PARTY_NOTICES.md) and the
   OpenClaw deep-dive (TypeScript; pattern re-implemented in Python, no
   code ported).
 - The pre-existing `traces` audit table is unchanged for compatibility.

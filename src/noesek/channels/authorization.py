@@ -1,8 +1,8 @@
-"""Noesek authorization gate over the vendored Hermes gateway authz chain.
+"""Noesek authorization gate over the vendored upstream gateway authz chain.
 
 Hosts the vendored GatewayAuthorizationMixin (authz_mixin.py), PairingStore
 (pairing.py), BotLoopGuard (bot_loop_guard.py), SessionSource (session bridge)
-and WhatsApp identity canonicalization (whatsapp_identity.py) without a Hermes
+and WhatsApp identity canonicalization (whatsapp_identity.py) without an upstream
 GatewayRunner. Noesek is the single orchestrator and configuration owner:
 Noesek settings project into the platform env allowlist keys the vendored mixin
 reads (upstream's single-profile contract is env-over-config; an env var already
@@ -56,7 +56,7 @@ class NoesekAuthorizationGate(GatewayAuthorizationMixin):
         self.pairing_stores: dict = {}
         self.adapters: list = []
 
-    # GatewayRunner hooks the mixin expects; Noesek has no Hermes adapters.
+    # GatewayRunner hooks the mixin expects; Noesek has no upstream adapters.
     def _primary_adapters(self) -> dict:
         return {}
 
