@@ -37,6 +37,20 @@ class DelegateInput(BaseModel):
     run_in_seconds: int = Field(default=0, ge=0, le=7 * 24 * 3600)
     notify: bool = Field(default=True, description="Send the worker result back to this conversation")
 
+class SearchToolsInput(BaseModel):
+    query: str = Field(min_length=1, max_length=200)
+    limit: int = Field(default=5, ge=1, le=20)
+
+# Tools that stay visible when deferral is active.
+_CORE_VISIBLE = {"remember", "recall", "delegate_task", "search_tools"}
+
+def search_tools_handler(registry: ToolRegistry):
+    async def f(inp: SearchToolsInput):
+        names = registry.search(inp.query, inp.limit)
+        for n in names: registry.activate(n)
+        return {"activated": names, "note": "Activated tools are available with full schemas from the next step."}
+    return f
+
 class Controller:
     def __init__(self, llm=None, registry_factory=None, max_steps: int = MAX_STEPS):
         self.llm = llm or configured_llm()
@@ -93,6 +107,11 @@ class Controller:
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
         registry = self.registry(conversation_id); citations = []
+        threshold = settings.tool_defer_threshold
+        if threshold and len(registry.names()) > threshold:
+            registry.register(ToolSpec("search_tools", "Find tools by keyword and activate their schemas for this turn.", SearchToolsInput, Risk.READ, search_tools_handler(registry), timeout_seconds=settings.tool_timeout_seconds))
+            for n in registry.names():
+                if n not in _CORE_VISIBLE: registry.defer(n)
         guard = LoopGuard(settings.loop_max_identical, settings.loop_max_errors, settings.loop_cycle_window)
         try:
             for _ in range(self.max_steps):

@@ -23,7 +23,7 @@ WORK_TOOLS = frozenset({"search_web", "fetch_url", "run_python"})
 # The thin controller's complete tool surface: conversation state, task
 # coordination, and delegation. Anything else is work and must be delegated.
 CONTROLLER_TOOLS = frozenset({
-    "remember", "recall", "forget", "supersede_memory",
+    "remember", "recall", "forget", "supersede_memory", "search_tools",
     "create_task", "list_tasks", "cancel_task",
     "delegate_task",
 })
