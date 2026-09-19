@@ -1,14 +1,14 @@
 {
   "plain": {
     "llm_turns": 1,
-    "wall_ms": 2.9,
+    "wall_ms": 3.0,
     "result_bytes": 77,
     "content": "final answer",
     "steps": 1
   },
   "one_tool": {
     "llm_turns": 2,
-    "wall_ms": 2.5,
+    "wall_ms": 3.0,
     "result_bytes": 74,
     "content": "tool done",
     "steps": 2
