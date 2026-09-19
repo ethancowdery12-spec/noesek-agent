@@ -29,6 +29,7 @@ dependencies = [
   "e2b==2.9.0",
   "slack-sdk==3.39.0",
   "aiohttp==3.13.5",
+  "prompt_toolkit==3.0.52",
 ]
 
 [project.optional-dependencies]
