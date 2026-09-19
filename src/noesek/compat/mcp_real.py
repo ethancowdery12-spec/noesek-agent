@@ -15,6 +15,30 @@ class RealMCPError(RuntimeError):
     pass
 
 
+def mcp_tool_spec(client: "RealMCPStdioClient", name: str, description: str = "",
+                  risk=None, timeout_seconds: float = 30.0):
+    """Adapt one allowlisted MCP tool into a Noesek ToolSpec.
+
+    Default risk is EXTERNAL, so the stage-B policy engine pauses calls for
+    approval exactly like any other external tool; operators tune that with
+    NOESEK_POLICY_RULES. The MCP server allowlist still applies underneath.
+    """
+    from pydantic import BaseModel, Field
+    from ..core.tools import ToolSpec
+    from ..core.types import Risk
+    if risk is None: risk = Risk.EXTERNAL
+
+    class McpInput(BaseModel):
+        arguments: dict = Field(default_factory=dict)
+
+    async def _call(inp: McpInput):
+        content = await client.call_tool(name, inp.arguments)
+        return {"content": [getattr(c, "text", str(c)) for c in content] if isinstance(content, list) else str(content)}
+
+    return ToolSpec(f"mcp_{name}", description or f"MCP tool {name} (server {client.server.name})",
+                    McpInput, risk, _call, timeout_seconds=timeout_seconds)
+
+
 class RealMCPStdioClient:
     """MCP stdio client via mcp.client.stdio, enforcing Noesek's allowlist."""
 

@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     loop_max_identical: int = 3
     loop_max_errors: int = 3
     loop_cycle_window: int = 3
+    # Tool scaling (stage F): when a registry exceeds this many tools, non-core
+    # tools are deferred behind search_tools. 0 = disabled.
+    tool_defer_threshold: int = 0
     # Background worker
     worker_poll_seconds: float = 2.0
     task_max_attempts: int = 3

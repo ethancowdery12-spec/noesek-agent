@@ -24,10 +24,17 @@ class ToolSpec:
         self._semaphore = asyncio.Semaphore(self.concurrency)
 
 class ToolRegistry:
-    def __init__(self): self._tools: dict[str, ToolSpec] = {}
+    def __init__(self): self._tools: dict[str, ToolSpec] = {}; self._deferred: set[str] = set()
     def register(self, spec: ToolSpec):
         if spec.name in self._tools: raise ValueError(f"duplicate tool: {spec.name}")
         self._tools[spec.name] = spec
+    # Deferred schema exposure (v2, stage F): deferred tools stay searchable but
+    # their schemas stay out of the prompt until activated (search-then-activate).
+    def defer(self, name: str):
+        self.get(name); self._deferred.add(name)
+    def activate(self, name: str):
+        self.get(name); self._deferred.discard(name)
+    def deferred_names(self) -> list[str]: return sorted(self._deferred)
     def get(self, name: str) -> ToolSpec: return self._tools[name]
     def names(self) -> list[str]: return list(self._tools)
     def search(self, query: str, limit: int = 5) -> list[str]:
@@ -45,7 +52,7 @@ class ToolRegistry:
         return [n for _, n in scored[:limit]]
 
     def schemas(self) -> list[dict]:
-        return [{"type":"function","function":{"name":t.name,"description":t.description,"parameters":t.input_model.model_json_schema()}} for t in self._tools.values()]
+        return [{"type":"function","function":{"name":t.name,"description":t.description,"parameters":t.input_model.model_json_schema()}} for t in self._tools.values() if t.name not in self._deferred]
     async def invoke(self, name: str, arguments: dict):
         spec = self.get(name)
         parsed = spec.input_model.model_validate(arguments)
