@@ -4,7 +4,8 @@ from __future__ import annotations
 import ast, hashlib, json, os
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]; UP=Path(os.environ.get('HERMES_SOURCE',ROOT.parent/'hermes-agent'))
-FILES=[UP/'hermes_cli/_parser.py',*sorted((UP/'hermes_cli/subcommands').glob('*.py')),UP/'hermes_cli/send_cmd.py',UP/'hermes_cli/portal_cli.py',UP/'hermes_cli/projects_cmd.py',UP/'hermes_cli/vault.py',UP/'hermes_cli/proxy_cli.py',UP/'hermes_cli/bundles.py',UP/'hermes_cli/checkpoints.py',UP/'hermes_cli/curator.py',UP/'hermes_cli/pets.py',UP/'hermes_cli/journey.py',UP/'hermes_cli/kanban_parser.py']
+FILES=[UP/'hermes_cli/_parser.py',*sorted((UP/'hermes_cli/subcommands').glob('*.py')),UP/'hermes_cli/send_cmd.py',UP/'hermes_cli/portal_cli.py',UP/'hermes_cli/projects_cmd.py',UP/'hermes_cli/vault.py',UP/'hermes_cli/proxy_cli.py',UP/'hermes_cli/bundles.py',UP/'hermes_cli/checkpoints.py',UP/'hermes_cli/curator.py',UP/'hermes_cli/pets.py',UP/'hermes_cli/journey.py',UP/'hermes_cli/kanban_parser.py',UP/'agent/lsp/cli.py']
+PATH_HINT={'agent/lsp/cli.py':'lsp'}
 ROOT_HINT={'send_cmd':'send','portal_cli':'portal','projects_cmd':'project','vault':'vault','proxy_cli':'proxy','bundles':'bundles','checkpoints':'checkpoints','curator':'curator','pets':'pets','journey':'journey','kanban_parser':'kanban'}
 def val(n,env):
  try:return ast.literal_eval(n)
@@ -33,13 +34,19 @@ for f in FILES:
    x=val(n.value,globalenv)
    if x is not None:
     for a in names:globalenv[a]=x
- root=(ROOT_HINT[f.stem],) if f.stem in ROOT_HINT else ()
+ rel=f.relative_to(UP).as_posix()
+ root=(PATH_HINT[rel],) if rel in PATH_HINT else (ROOT_HINT[f.stem],) if f.stem in ROOT_HINT and f.parent==UP/'hermes_cli' else ()
  funcs=[n for n in tree.body if isinstance(n,(ast.FunctionDef,ast.AsyncFunctionDef))]
  for fn in funcs:
   env=dict(globalenv); parsers={}
+  # A function that adds a parser named after the group itself receives the
+  # top-level subparsers (seed ()); otherwise it receives the group parser or
+  # the group subparsers (seed root).
+  selfnames=root[-1:] and any(isinstance(n,ast.Call) and name(n)=='add_parser' and val(n.args[0],env)==root[-1] for n in ast.walk(fn) if isinstance(n,ast.Call) and n.args)
+  subseed=() if (root and selfnames) else root
   for a in fn.args.args:
-   if 'subparser' in a.arg: parsers[a.arg]=root
-   elif a.arg in {'parser','parent','p','subparser'}: parsers[a.arg]=root
+   if 'subparser' in a.arg: parsers[a.arg]=subseed
+   elif a.arg in {'parser','parent','p','subparser'} or a.arg.endswith('_parser'): parsers[a.arg]=root
   if fn.name in {'_add_top_level_flags'}: parsers['parser']=()
   if fn.name=='_build_chat_parser': parsers['subparsers']=()
   # repeated fixed-point discovers assigned parser/subparser variables
@@ -86,5 +93,5 @@ for n in ast.walk(ast.parse(raw)):
    for x in n.keywords:
     if x.arg in {'aliases','args_hint','subcommands','cli_only','gateway_only','busy_policy'}:row[x.arg]=val(x.value,{})
    slash.append(row)
-man={'schema':1,'upstream':{'repository':'https://github.com/NousResearch/hermes-agent','commit':'c712f06dcdd24053a4118f38d2090ac53137ecfc','license':'MIT','license_sha256':hashlib.sha256((UP/'LICENSE').read_bytes()).hexdigest(),'copyright':'Copyright (c) 2025 Nous Research'},'files':provenance,'commands':[{'path':list(p),**e} for p,e in sorted(entries.items())],'slash_commands':slash}
+man={'schema':1,'upstream':{'repository':'https://github.com/NousResearch/hermes-agent','commit':os.environ.get('HERMES_COMMIT','d7b836ab1c0cddaafc109ed24c9a83b6191cdc88'),'license':'MIT','license_sha256':hashlib.sha256((UP/'LICENSE').read_bytes()).hexdigest(),'copyright':'Copyright (c) 2025 Nous Research'},'files':provenance,'commands':[{'path':list(p),**e} for p,e in sorted(entries.items())],'slash_commands':slash}
 out=ROOT/'compat/hermes-cli-manifest.json';out.parent.mkdir(exist_ok=True);out.write_text(json.dumps(man,indent=2,sort_keys=True)+'\n');print(f'{len(entries)-1} command paths; {sum(len(e["options"]) for e in entries.values())} options; {len(slash)} slash commands')

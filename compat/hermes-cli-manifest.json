@@ -257,1358 +257,6 @@
       ]
     },
     {
-      "help": "Manage pooled provider credentials",
-      "options": [],
-      "path": [
-        "auth"
-      ]
-    },
-    {
-      "help": "Back up Hermes home directory to a zip file",
-      "options": [
-        {
-          "flags": [
-            "-o",
-            "--output"
-          ],
-          "help": "Output path for the zip file (default: ~/hermes-backup-<timestamp>.zip)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "-q",
-            "--quick"
-          ],
-          "help": "Quick snapshot: only critical state files (config, state.db, .env, auth, cron)"
-        },
-        {
-          "flags": [
-            "-l",
-            "--label"
-          ],
-          "help": "Label for the snapshot (only used with --quick)"
-        },
-        {
-          "default": 3,
-          "flags": [
-            "-k",
-            "--keep"
-          ],
-          "help": "After a full backup, delete older hermes-backup-*.zip files in the output directory beyond the newest N (default 3; 0 keeps everything)",
-          "metavar": "N"
-        }
-      ],
-      "path": [
-        "backup"
-      ]
-    },
-    {
-      "help": "Real-profile browsing helpers (close a browser locking its profile)",
-      "options": [],
-      "path": [
-        "browser"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "bundles"
-      ]
-    },
-    {
-      "help": "Interactive chat with the agent",
-      "options": [
-        {
-          "flags": [
-            "-q",
-            "--query"
-          ],
-          "help": "Query to run. On a real TTY the prompt seeds an interactive session (submitted literally as the first turn); combined with --oneshot or -Q, or on a non-TTY, it answers and exits."
-        },
-        {
-          "flags": [
-            "--query-file"
-          ],
-          "help": "Read the single query from a file instead of the command line ('-' reads stdin). Safe for arbitrary text: nothing is shell-interpreted, so quotes, $(...), and backticks are preserved verbatim. Mutually exclusive with -q.",
-          "metavar": "PATH"
-        },
-        {
-          "flags": [
-            "-m",
-            "--model"
-          ],
-          "help": "Model to use (e.g., anthropic/claude-sonnet-4)"
-        },
-        {
-          "flags": [
-            "--reasoning"
-          ],
-          "help": "Reasoning effort for this session: none, minimal, low, medium, high, xhigh, max, or ultra. Overrides agent.reasoning_effort for this run only (same levels as the /reasoning slash command).",
-          "metavar": "LEVEL"
-        },
-        {
-          "action": "append",
-          "flags": [
-            "-s",
-            "--skills"
-          ],
-          "help": "Preload one or more skills for the session (repeat flag or comma-separate)"
-        },
-        {
-          "flags": [
-            "--provider"
-          ],
-          "help": "Inference provider (default: auto). Built-in or a user-defined name from `providers:` in config.yaml."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--accept-hooks"
-          ],
-          "help": "Auto-approve any unseen shell hooks declared in config.yaml without a TTY prompt (see also HERMES_ACCEPT_HOOKS env var and hooks_auto_accept: in config.yaml)."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--yolo"
-          ],
-          "help": "Bypass all dangerous command approval prompts (use at your own risk)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--pass-session-id"
-          ],
-          "help": "Include the session ID in the agent's system prompt"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--ignore-user-config"
-          ]
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--ignore-rules"
-          ],
-          "help": "Skip auto-injection of AGENTS.md, SOUL.md, .cursorrules, memory, and preloaded skills. Combine with --ignore-user-config for a fully isolated run."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--safe-mode"
-          ],
-          "help": "Troubleshooting mode: disable ALL customizations \u2014 user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules). Use to isolate whether a problem comes from your setup or from Hermes itself."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--tui"
-          ],
-          "help": "Launch the modern TUI instead of the classic REPL"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--cli"
-          ],
-          "help": "Force the classic prompt_toolkit REPL (overrides display.interface=tui)"
-        },
-        {
-          "action": "store_true",
-          "dest": "tui_dev",
-          "flags": [
-            "--dev"
-          ],
-          "help": "With --tui: run TypeScript sources via tsx (skip dist build)"
-        }
-      ],
-      "path": [
-        "chat"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "checkpoints"
-      ]
-    },
-    {
-      "help": "OpenClaw migration tools",
-      "options": [],
-      "path": [
-        "claw"
-      ]
-    },
-    {
-      "help": "Print shell completion script (bash, zsh, or fish)",
-      "options": [
-        {
-          "choices": [
-            "bash",
-            "zsh",
-            "fish"
-          ],
-          "default": "bash",
-          "flags": [
-            "shell"
-          ],
-          "help": "Shell type (default: bash)",
-          "nargs": "?"
-        }
-      ],
-      "path": [
-        "completion"
-      ]
-    },
-    {
-      "help": "Manage the Computer Use (cua-driver) backend (macOS/Windows/Linux)",
-      "options": [],
-      "path": [
-        "computer-use"
-      ]
-    },
-    {
-      "help": "View and edit configuration",
-      "options": [],
-      "path": [
-        "config"
-      ]
-    },
-    {
-      "help": "Open the safe Hermes command console",
-      "options": [],
-      "path": [
-        "console"
-      ]
-    },
-    {
-      "help": "Cron job management",
-      "options": [],
-      "path": [
-        "cron"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "curator"
-      ]
-    },
-    {
-      "help": "Start the web UI dashboard",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--no-open"
-          ],
-          "help": "Don't open browser automatically"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--tui"
-          ]
-        }
-      ],
-      "path": [
-        "dashboard"
-      ]
-    },
-    {
-      "help": "Debug tools \u2014 upload logs and system info for support",
-      "options": [],
-      "path": [
-        "debug"
-      ]
-    },
-    {
-      "aliases": [
-        "gui"
-      ],
-      "help": "Build and launch the native desktop app",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--source"
-          ],
-          "help": "Launch via `electron .` against apps/desktop/dist instead of the packaged app"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--build-only"
-          ],
-          "help": "Build the desktop app but do not launch it (used by the installer's --update flow)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--fake-boot"
-          ],
-          "help": "Enable deterministic desktop boot delays for validating startup UI"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--ignore-existing"
-          ],
-          "help": "Force Desktop to ignore any hermes CLI already on PATH during backend resolution"
-        },
-        {
-          "flags": [
-            "--hermes-root"
-          ],
-          "help": "Override the Hermes source root used by Desktop (sets HERMES_DESKTOP_HERMES_ROOT)"
-        },
-        {
-          "flags": [
-            "--cwd"
-          ],
-          "help": "Initial project directory for Desktop chat sessions (sets HERMES_DESKTOP_CWD)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--skip-build"
-          ],
-          "help": "Skip npm install/package and launch the existing unpacked app from apps/desktop/release"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--local"
-          ],
-          "help": "Show the local-models UI in the desktop app (models pane, quickstart, picker rows)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--force-build"
-          ],
-          "help": "Force a full rebuild even if the content stamp matches"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--setup-tcc-identity"
-          ],
-          "help": "macOS only: create/import a self-signed code-signing certificate in the login keychain and point desktop.macos_signing_identity at it, then re-sign the packaged app. Makes macOS TCC grants (Full Disk Access, Accessibility, Files and Folders, microphone) survive rebuilds with a certificate-anchored identity. Idempotent \u2014 safe to re-run after updates."
-        },
-        {
-          "default": "Hermes Local Signing",
-          "flags": [
-            "--identity"
-          ],
-          "help": "Certificate name to create/use for --setup-tcc-identity (default: Hermes Local Signing)"
-        }
-      ],
-      "path": [
-        "desktop"
-      ]
-    },
-    {
-      "help": "Check configuration and dependencies",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--fix"
-          ],
-          "help": "Attempt to fix issues automatically"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--live"
-          ],
-          "help": "Opt-in: run one bounded, read-only real-call health probe per configured tool backend (Firecrawl/FAL/browser/MCP/TTS/STT) after the static checks. Makes real network calls."
-        },
-        {
-          "flags": [
-            "--ack"
-          ],
-          "help": "Acknowledge a security advisory by ID and exit. After ack, the advisory will no longer trigger startup banners. Run `hermes doctor` first to see active advisories and their IDs.",
-          "metavar": "ADVISORY_ID"
-        }
-      ],
-      "path": [
-        "doctor"
-      ]
-    },
-    {
-      "help": "Dump setup summary for support/debugging",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--show-keys"
-          ],
-          "help": "Show redacted API key prefixes (first/last 4 chars) instead of just set/not set"
-        }
-      ],
-      "path": [
-        "dump"
-      ]
-    },
-    {
-      "help": "Manage the iron-proxy egress credential-injection firewall",
-      "options": [],
-      "path": [
-        "egress"
-      ]
-    },
-    {
-      "help": "Manage fallback providers (tried when the primary model fails)",
-      "options": [],
-      "path": [
-        "fallback"
-      ]
-    },
-    {
-      "help": "Messaging gateway management",
-      "options": [],
-      "path": [
-        "gateway"
-      ]
-    },
-    {
-      "help": "Inspect and manage shell-script hooks",
-      "options": [],
-      "path": [
-        "hooks"
-      ]
-    },
-    {
-      "help": "Restore a Hermes backup from a zip file",
-      "options": [
-        {
-          "flags": [
-            "zipfile"
-          ],
-          "help": "Path to the backup zip file"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--force",
-            "-f"
-          ],
-          "help": "Overwrite existing files without confirmation"
-        }
-      ],
-      "path": [
-        "import"
-      ]
-    },
-    {
-      "help": "Import a Claude Code or Codex CLI setup into Hermes",
-      "options": [
-        {
-          "choices": [
-            "claude-code",
-            "codex"
-          ],
-          "flags": [
-            "agent"
-          ],
-          "help": "Which agent to import from (default: auto-detect ~/.claude or ~/.codex)",
-          "nargs": "?"
-        },
-        {
-          "flags": [
-            "--source"
-          ],
-          "help": "Path to the agent's config directory (default: ~/.claude or ~/.codex)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--dry-run"
-          ],
-          "help": "Preview only \u2014 stop after showing what would be imported"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--overwrite"
-          ],
-          "help": "Overwrite existing Hermes items on name conflicts (default: skip)"
-        },
-        {
-          "flags": [
-            "Skip confirmation prompts"
-          ]
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--sync"
-          ],
-          "help": "Re-import every previously imported source whose files changed since the last import (registered in HERMES_HOME/import-sync.json). Runs without prompts; combine with --dry-run to preview."
-        }
-      ],
-      "path": [
-        "import-agent"
-      ]
-    },
-    {
-      "help": "Show usage insights and analytics",
-      "options": [
-        {
-          "default": 30,
-          "flags": [
-            "--days"
-          ],
-          "help": "Number of days to analyze (default: 30)"
-        },
-        {
-          "flags": [
-            "--source"
-          ],
-          "help": "Filter by platform (cli, telegram, discord, etc.)"
-        }
-      ],
-      "path": [
-        "insights"
-      ]
-    },
-    {
-      "help": "",
-      "options": [
-        {
-          "default": 1.0,
-          "flags": [
-            "--reveal"
-          ],
-          "help": "Render the timeline built up to this point (0=oldest, 1=now).",
-          "metavar": "0..1"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--play"
-          ],
-          "help": "Animate the build-up over time (Ctrl-C to stop)."
-        },
-        {
-          "default": 12,
-          "flags": [
-            "--fps"
-          ],
-          "help": "Animation frames per second for --play (default 12)."
-        },
-        {
-          "flags": [
-            "--width"
-          ],
-          "help": "Override render width in columns."
-        },
-        {
-          "flags": [
-            "--height"
-          ],
-          "help": "Override render height in rows."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--no-color"
-          ],
-          "help": "Disable color output."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--force-color"
-          ]
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--json"
-          ],
-          "help": "Print the raw graph payload as JSON and exit."
-        }
-      ],
-      "path": [
-        "journey"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "kanban"
-      ]
-    },
-    {
-      "help": "Deprecated. Use `hermes auth` to manage credentials, `hermes model` to select a provider, or `hermes setup` for full setup.",
-      "options": [
-        {
-          "flags": [
-            "--provider"
-          ],
-          "help": "(deprecated) Provider name; ignored \u2014 see `hermes model`"
-        },
-        {
-          "flags": [
-            "--portal-url"
-          ],
-          "help": "Portal base URL (default: production portal)"
-        },
-        {
-          "flags": [
-            "--inference-url"
-          ],
-          "help": "Inference API base URL (default: production inference API)"
-        },
-        {
-          "flags": [
-            "--client-id"
-          ],
-          "help": "OAuth client id to use (default: hermes-cli)"
-        },
-        {
-          "flags": [
-            "--scope"
-          ],
-          "help": "OAuth scope to request"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--no-browser"
-          ],
-          "help": "Do not attempt to open the browser automatically"
-        },
-        {
-          "default": 15.0,
-          "flags": [
-            "--timeout"
-          ],
-          "help": "HTTP request timeout in seconds (default: 15)"
-        },
-        {
-          "flags": [
-            "--ca-bundle"
-          ],
-          "help": "Path to CA bundle PEM file for TLS verification"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--insecure"
-          ],
-          "help": "Disable TLS verification (testing only)"
-        }
-      ],
-      "path": [
-        "login"
-      ]
-    },
-    {
-      "help": "Clear authentication for an inference provider",
-      "options": [
-        {
-          "choices": [
-            "nous",
-            "openai-codex",
-            "xai-oauth",
-            "spotify"
-          ],
-          "flags": [
-            "--provider"
-          ],
-          "help": "Provider to log out from (default: active provider)"
-        }
-      ],
-      "path": [
-        "logout"
-      ]
-    },
-    {
-      "help": "View and filter Hermes log files",
-      "options": [
-        {
-          "default": "agent",
-          "flags": [
-            "log_name"
-          ],
-          "help": "Log to view: agent (default), errors, gateway, gui, or 'list' to show available files",
-          "nargs": "?"
-        },
-        {
-          "default": 50,
-          "flags": [
-            "-n",
-            "--lines"
-          ],
-          "help": "Number of lines to show (default: 50)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "-f",
-            "--follow"
-          ],
-          "help": "Follow the log in real time (like tail -f)"
-        },
-        {
-          "flags": [
-            "--level"
-          ],
-          "help": "Minimum log level to show (DEBUG, INFO, WARNING, ERROR)",
-          "metavar": "LEVEL"
-        },
-        {
-          "flags": [
-            "--session"
-          ],
-          "help": "Filter lines containing this session ID substring",
-          "metavar": "ID"
-        },
-        {
-          "flags": [
-            "--since"
-          ],
-          "help": "Show lines since TIME ago (e.g. 1h, 30m, 2d)",
-          "metavar": "TIME"
-        },
-        {
-          "flags": [
-            "--component"
-          ],
-          "help": "Filter by component: gateway, agent, tools, cli, cron, gui",
-          "metavar": "NAME"
-        }
-      ],
-      "path": [
-        "logs"
-      ]
-    },
-    {
-      "help": "Manage MCP servers and run Hermes as an MCP server",
-      "options": [],
-      "path": [
-        "mcp"
-      ]
-    },
-    {
-      "help": "Configure external memory provider",
-      "options": [],
-      "path": [
-        "memory"
-      ]
-    },
-    {
-      "help": "Migrate configuration for retired models or deprecated settings",
-      "options": [],
-      "path": [
-        "migrate"
-      ]
-    },
-    {
-      "help": "Configure Mixture of Agents provider/model slots",
-      "options": [],
-      "path": [
-        "moa"
-      ]
-    },
-    {
-      "help": "Select default model and provider",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--refresh"
-          ],
-          "help": "Wipe the model picker disk cache and re-fetch every provider's live /v1/models list."
-        },
-        {
-          "flags": [
-            "--portal-url"
-          ],
-          "help": "Portal base URL for Nous login (default: production portal)"
-        },
-        {
-          "flags": [
-            "--inference-url"
-          ],
-          "help": "Inference API base URL for Nous login (default: production inference API)"
-        },
-        {
-          "flags": [
-            "--client-id"
-          ],
-          "help": "OAuth client id to use for Nous login (default: hermes-cli)"
-        },
-        {
-          "flags": [
-            "--scope"
-          ],
-          "help": "OAuth scope to request for Nous login"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--no-browser"
-          ],
-          "help": "Do not attempt to open the browser automatically during Nous login"
-        },
-        {
-          "default": 15.0,
-          "flags": [
-            "--timeout"
-          ],
-          "help": "HTTP request timeout in seconds for Nous login (default: 15)"
-        },
-        {
-          "flags": [
-            "--ca-bundle"
-          ],
-          "help": "Path to CA bundle PEM file for Nous TLS verification"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--insecure"
-          ],
-          "help": "Disable TLS verification for Nous login (testing only)"
-        }
-      ],
-      "path": [
-        "model"
-      ]
-    },
-    {
-      "help": "Inspect gateway monitoring (health & diagnostics export)",
-      "options": [],
-      "path": [
-        "monitoring"
-      ]
-    },
-    {
-      "help": "Manage DM pairing codes for user authorization",
-      "options": [],
-      "path": [
-        "pairing"
-      ]
-    },
-    {
-      "help": "Emergency stop: pause cron/kanban dispatch and new gateway turns",
-      "options": [
-        {
-          "flags": [
-            "--reason"
-          ],
-          "help": "Optional reason stored in the sentinel and shown to users"
-        }
-      ],
-      "path": [
-        "pause"
-      ]
-    },
-    {
-      "help": "Bot-to-bot DMs across machines (peer Hermes gateways)",
-      "options": [],
-      "path": [
-        "peer"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "pets"
-      ]
-    },
-    {
-      "help": "Manage and validate plugins",
-      "options": [],
-      "path": [
-        "plugins"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "portal"
-      ]
-    },
-    {
-      "help": "Manage profiles \u2014 multiple isolated Hermes instances",
-      "options": [],
-      "path": [
-        "profile"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "project"
-      ]
-    },
-    {
-      "help": "Show a byte breakdown of the system prompt + tool schemas",
-      "options": [
-        {
-          "default": "cli",
-          "flags": [
-            "--platform"
-          ],
-          "help": "Platform to simulate (cli, telegram, discord, ...). Default: cli"
-        },
-        {
-          "flags": [
-            "Emit the breakdown as JSON"
-          ]
-        }
-      ],
-      "path": [
-        "prompt-size"
-      ]
-    },
-    {
-      "help": "Local OpenAI-compatible proxy to OAuth providers",
-      "options": [],
-      "path": [
-        "proxy"
-      ]
-    },
-    {
-      "help": "Lift the emergency stop set by `hermes pause`",
-      "options": [],
-      "path": [
-        "resume"
-      ]
-    },
-    {
-      "help": "Manage external secret sources (Bitwarden, 1Password)",
-      "options": [],
-      "path": [
-        "secrets"
-      ]
-    },
-    {
-      "help": "Supply-chain audit (OSV.dev) for venv, plugins, and MCP servers",
-      "options": [],
-      "path": [
-        "security"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "send"
-      ]
-    },
-    {
-      "help": "Start the Hermes backend server (headless; powers the desktop app and remote backends)",
-      "options": [],
-      "path": [
-        "serve"
-      ]
-    },
-    {
-      "help": "Manage session history (list, rename, export, prune, delete)",
-      "options": [],
-      "path": [
-        "sessions"
-      ]
-    },
-    {
-      "help": "Interactive setup wizard",
-      "options": [
-        {
-          "choices": [
-            "model",
-            "tts",
-            "terminal",
-            "gateway",
-            "tools",
-            "telemetry",
-            "agent"
-          ],
-          "flags": [
-            "section"
-          ],
-          "help": "Run a specific setup section instead of the full wizard",
-          "nargs": "?"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--non-interactive"
-          ],
-          "help": "Non-interactive mode (use defaults/env vars)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--reset"
-          ],
-          "help": "Reset configuration to defaults"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--reconfigure"
-          ],
-          "help": "(Default on existing installs.) Re-run the full wizard, showing current values as defaults. Kept for backwards compatibility \u2014 a bare 'hermes setup' now does this."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--quick"
-          ],
-          "help": "On existing installs: only prompt for items that are missing or unset, instead of running the full reconfigure wizard."
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--portal"
-          ],
-          "help": "One-shot Nous Portal setup: log in via OAuth, pick a Nous model, set Nous as the inference provider, and opt into the Tool Gateway. Skips the rest of the wizard."
-        }
-      ],
-      "path": [
-        "setup"
-      ]
-    },
-    {
-      "help": "Search, install, configure, and manage skills",
-      "options": [],
-      "path": [
-        "skills"
-      ]
-    },
-    {
-      "help": "List, switch, and tweak skins",
-      "options": [],
-      "path": [
-        "skin"
-      ]
-    },
-    {
-      "help": "Slack integration helpers (manifest generation, etc.)",
-      "options": [],
-      "path": [
-        "slack"
-      ]
-    },
-    {
-      "help": "Show status of all components",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--all"
-          ],
-          "help": "Show all details (redacted for sharing)"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--deep"
-          ],
-          "help": "Run deep checks (may take longer)"
-        }
-      ],
-      "path": [
-        "status"
-      ]
-    },
-    {
-      "help": "Skill Sync \u2014 sync your skills across devices and with your team",
-      "options": [],
-      "path": [
-        "sync"
-      ]
-    },
-    {
-      "help": "Configure which tools are enabled per platform",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--summary"
-          ],
-          "help": "Print a summary of enabled tools per platform and exit"
-        }
-      ],
-      "path": [
-        "tools"
-      ]
-    },
-    {
-      "help": "Uninstall Hermes Agent",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--full"
-          ],
-          "help": "Full uninstall - remove everything including configs and data"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--gui"
-          ],
-          "help": "Uninstall only the desktop Chat GUI, leaving the agent intact"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--gui-summary"
-          ],
-          "help": "Print a JSON summary of installed GUI/agent artifacts and exit (used by the desktop app to gate uninstall options)"
-        },
-        {
-          "flags": [
-            "Skip confirmation prompts"
-          ]
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--dry-run"
-          ],
-          "help": "Print what uninstall would remove without changing anything"
-        }
-      ],
-      "path": [
-        "uninstall"
-      ]
-    },
-    {
-      "help": "Update Hermes Agent to the latest version",
-      "options": [
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--gateway"
-          ],
-          "help": "Gateway mode: use file-based IPC for prompts instead of stdin (used internally by /update)"
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--check"
-          ],
-          "help": "Check whether an update is available without installing anything"
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--plan"
-          ],
-          "help": "Show the update plan and exit without changing anything: install kind (git/docker/nix), every running Hermes service across all profiles with its supervisor and running code version, and how each will be restarted. Read-only; safe on a live fleet."
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--no-backup"
-          ],
-          "help": "Skip ALL pre-update backups for this run (both the quick state snapshot and the full zip; overrides updates.pre_update_backup)"
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--backup"
-          ],
-          "help": "Force a FULL pre-update backup (quick state snapshot + HERMES_HOME zip) for this run, regardless of updates.pre_update_backup"
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--yes",
-            "-y"
-          ],
-          "help": "Run without blocking on prompts: accepts the config-migration and stash-restore prompts, skips the fork-upstream prompt without adding a remote. API-key entry is skipped; run 'hermes config migrate' separately for those."
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--keep-stash"
-          ],
-          "help": "Do NOT re-apply local changes after the update. Uncommitted changes are still stashed so the update can proceed, but they stay parked in git stash instead of being restored onto the updated code. Used by the desktop updater so local source edits never silently ride along across updates."
-        },
-        {
-          "flags": [
-            "--branch"
-          ],
-          "help": "Update against this branch instead of the default (main). If the local checkout is on a different branch, hermes will switch to the requested branch first (auto-stashing any uncommitted changes).",
-          "metavar": "NAME"
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--switch-branch"
-          ],
-          "help": "With updates.parked_branch_strategy: update_in_place configured, override it for this run: switch to the update target and update THERE instead of merging the target into the checked-out branch. The branch is left exactly as it was \u2014 no merge commit is written into its history. Use on long-lived feature branches where an update-driven merge commit would pollute the branch. No effect under the default strategy (switch), which already switches. Still refuses to touch a dirty tree."
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--force"
-          ],
-          "help": "Windows: proceed with the update even when another hermes.exe is detected. The concurrent process will likely cause WinError 32 warnings. Does NOT bypass the venv-process guard (see --force-venv)."
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--force-venv"
-          ],
-          "help": "Windows: mutate the venv even while other processes are running from its interpreter (desktop backend, gateway, terminals). Those processes keep native .pyd files locked, so the dependency sync will likely fail partway and strand the install half-updated. Use only if you know the detected holders are false positives."
-        },
-        {
-          "action": "store_true",
-          "default": false,
-          "flags": [
-            "--no-gateway-restart"
-          ],
-          "help": "Update code and dependencies but skip the final gateway restart. Use for cron/automated updates that run inside the gateway process: the gateway would otherwise restart its own cgroup and kill the updater. Pair with a separate restart step (e.g. a cron that runs 10-15 min later)."
-        },
-        {
-          "flags": [
-            "--post-swap"
-          ],
-          "metavar": "FILE"
-        }
-      ],
-      "path": [
-        "update"
-      ]
-    },
-    {
-      "help": "Hermes command group",
-      "options": [],
-      "path": [
-        "vault"
-      ]
-    },
-    {
-      "help": "Detect a project's run recipe and smoke-test it",
-      "options": [
-        {
-          "flags": [
-            "path"
-          ],
-          "help": "Project root to verify (default: current directory)",
-          "nargs": "?"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--detect-only"
-          ],
-          "help": "Only detect and print the recipe as JSON; run nothing"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--save"
-          ],
-          "help": "Save the recipe as .hermes/environment.json in the project"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--skip-start"
-          ],
-          "help": "Run command phases but skip starting the app / readiness poll"
-        },
-        {
-          "action": "append",
-          "choices": [
-            "bootstrap",
-            "build",
-            "test",
-            "start"
-          ],
-          "flags": [
-            "--phase"
-          ],
-          "help": "Run only the given phase(s); repeatable"
-        },
-        {
-          "flags": [
-            "--port"
-          ],
-          "help": "Override the port used for the readiness poll"
-        },
-        {
-          "default": 600.0,
-          "flags": [
-            "--timeout"
-          ]
-        },
-        {
-          "default": 60.0,
-          "flags": [
-            "--ready-timeout"
-          ]
-        },
-        {
-          "flags": [
-            "Emit a machine-readable JSON result"
-          ]
-        }
-      ],
-      "path": [
-        "verify"
-      ]
-    },
-    {
-      "help": "Manage dynamic webhook subscriptions",
-      "options": [],
-      "path": [
-        "webhook"
-      ]
-    },
-    {
-      "help": "Set up WhatsApp integration",
-      "options": [],
-      "path": [
-        "whatsapp"
-      ]
-    },
-    {
-      "help": "Set up WhatsApp Business Cloud API integration",
-      "options": [],
-      "path": [
-        "whatsapp-cloud"
-      ]
-    },
-    {
-      "help": "Audit and reclaim accumulated git worktrees and merged branches",
-      "options": [],
-      "path": [
-        "worktree"
-      ]
-    },
-    {
       "help": "Propose command_allowlist entries from past approvals",
       "options": [
         {
@@ -1685,6 +333,13 @@
       "path": [
         "approvals",
         "test"
+      ]
+    },
+    {
+      "help": "Manage pooled provider credentials",
+      "options": [],
+      "path": [
+        "auth"
       ]
     },
     {
@@ -1995,6 +650,52 @@
       ]
     },
     {
+      "help": "Back up Hermes home directory to a zip file",
+      "options": [
+        {
+          "flags": [
+            "-o",
+            "--output"
+          ],
+          "help": "Output path for the zip file (default: ~/hermes-backup-<timestamp>.zip)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "-q",
+            "--quick"
+          ],
+          "help": "Quick snapshot: only critical state files (config, state.db, .env, auth, cron)"
+        },
+        {
+          "flags": [
+            "-l",
+            "--label"
+          ],
+          "help": "Label for the snapshot (only used with --quick)"
+        },
+        {
+          "default": 3,
+          "flags": [
+            "-k",
+            "--keep"
+          ],
+          "help": "After a full backup, delete older hermes-backup-*.zip files in the output directory beyond the newest N (default 3; 0 keeps everything)",
+          "metavar": "N"
+        }
+      ],
+      "path": [
+        "backup"
+      ]
+    },
+    {
+      "help": "Real-profile browsing helpers (close a browser locking its profile)",
+      "options": [],
+      "path": [
+        "browser"
+      ]
+    },
+    {
       "help": "Close the browser locking your real profile (asks nothing \u2014 run only with the user's explicit OK; loses unsaved tabs)",
       "options": [
         {
@@ -2013,7 +714,6 @@
       "help": "Create, list, and manage skill bundles (aliases for multiple skills)",
       "options": [],
       "path": [
-        "bundles",
         "bundles"
       ]
     },
@@ -2112,10 +812,122 @@
       ]
     },
     {
+      "help": "Interactive chat with the agent",
+      "options": [
+        {
+          "flags": [
+            "-q",
+            "--query"
+          ],
+          "help": "Query to run. On a real TTY the prompt seeds an interactive session (submitted literally as the first turn); combined with --oneshot or -Q, or on a non-TTY, it answers and exits."
+        },
+        {
+          "flags": [
+            "--query-file"
+          ],
+          "help": "Read the single query from a file instead of the command line ('-' reads stdin). Safe for arbitrary text: nothing is shell-interpreted, so quotes, $(...), and backticks are preserved verbatim. Mutually exclusive with -q.",
+          "metavar": "PATH"
+        },
+        {
+          "flags": [
+            "-m",
+            "--model"
+          ],
+          "help": "Model to use (e.g., anthropic/claude-sonnet-4)"
+        },
+        {
+          "flags": [
+            "--reasoning"
+          ],
+          "help": "Reasoning effort for this session: none, minimal, low, medium, high, xhigh, max, or ultra. Overrides agent.reasoning_effort for this run only (same levels as the /reasoning slash command).",
+          "metavar": "LEVEL"
+        },
+        {
+          "action": "append",
+          "flags": [
+            "-s",
+            "--skills"
+          ],
+          "help": "Preload one or more skills for the session (repeat flag or comma-separate)"
+        },
+        {
+          "flags": [
+            "--provider"
+          ],
+          "help": "Inference provider (default: auto). Built-in or a user-defined name from `providers:` in config.yaml."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--accept-hooks"
+          ],
+          "help": "Auto-approve any unseen shell hooks declared in config.yaml without a TTY prompt (see also HERMES_ACCEPT_HOOKS env var and hooks_auto_accept: in config.yaml)."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--yolo"
+          ],
+          "help": "Bypass all dangerous command approval prompts (use at your own risk)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--pass-session-id"
+          ],
+          "help": "Include the session ID in the agent's system prompt"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--ignore-user-config"
+          ]
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--ignore-rules"
+          ],
+          "help": "Skip auto-injection of AGENTS.md, SOUL.md, .cursorrules, memory, and preloaded skills. Combine with --ignore-user-config for a fully isolated run."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--safe-mode"
+          ],
+          "help": "Troubleshooting mode: disable ALL customizations \u2014 user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules). Use to isolate whether a problem comes from your setup or from Hermes itself."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--tui"
+          ],
+          "help": "Launch the modern TUI instead of the classic REPL"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--cli"
+          ],
+          "help": "Force the classic prompt_toolkit REPL (overrides display.interface=tui)"
+        },
+        {
+          "action": "store_true",
+          "dest": "tui_dev",
+          "flags": [
+            "--dev"
+          ],
+          "help": "With --tui: run TypeScript sources via tsx (skip dist build)"
+        }
+      ],
+      "path": [
+        "chat"
+      ]
+    },
+    {
       "help": "Inspect / prune / clear ~/.hermes/checkpoints/",
       "options": [],
       "path": [
-        "checkpoints",
         "checkpoints"
       ]
     },
@@ -2186,6 +998,13 @@
       "path": [
         "checkpoints",
         "status"
+      ]
+    },
+    {
+      "help": "OpenClaw migration tools",
+      "options": [],
+      "path": [
+        "claw"
       ]
     },
     {
@@ -2296,6 +1115,34 @@
       ]
     },
     {
+      "help": "Print shell completion script (bash, zsh, or fish)",
+      "options": [
+        {
+          "choices": [
+            "bash",
+            "zsh",
+            "fish"
+          ],
+          "default": "bash",
+          "flags": [
+            "shell"
+          ],
+          "help": "Shell type (default: bash)",
+          "nargs": "?"
+        }
+      ],
+      "path": [
+        "completion"
+      ]
+    },
+    {
+      "help": "Manage the Computer Use (cua-driver) backend (macOS/Windows/Linux)",
+      "options": [],
+      "path": [
+        "computer-use"
+      ]
+    },
+    {
       "help": "Run cua-driver `health_report` and surface the check matrix",
       "options": [
         {
@@ -2352,11 +1199,42 @@
       ]
     },
     {
+      "help": "Request the grants (opens the dialog attributed to CuaDriver)",
+      "options": [],
+      "path": [
+        "computer-use",
+        "permissions",
+        "grant"
+      ]
+    },
+    {
+      "help": "Report Accessibility + Screen Recording grant state (read-only)",
+      "options": [
+        {
+          "flags": [
+            "Emit the normalized permission payload as JSON."
+          ]
+        }
+      ],
+      "path": [
+        "computer-use",
+        "permissions",
+        "status"
+      ]
+    },
+    {
       "help": "Print whether cua-driver is installed and on PATH",
       "options": [],
       "path": [
         "computer-use",
         "status"
+      ]
+    },
+    {
+      "help": "View and edit configuration",
+      "options": [],
+      "path": [
+        "config"
       ]
     },
     {
@@ -2479,6 +1357,20 @@
       "path": [
         "config",
         "unset"
+      ]
+    },
+    {
+      "help": "Open the safe Hermes command console",
+      "options": [],
+      "path": [
+        "console"
+      ]
+    },
+    {
+      "help": "Cron job management",
+      "options": [],
+      "path": [
+        "cron"
       ]
     },
     {
@@ -2997,8 +1889,28 @@
       "help": "Background skill maintenance (curator) \u2014 status, run, pause, pin",
       "options": [],
       "path": [
-        "curator",
         "curator"
+      ]
+    },
+    {
+      "help": "Start the web UI dashboard",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--no-open"
+          ],
+          "help": "Don't open browser automatically"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--tui"
+          ]
+        }
+      ],
+      "path": [
+        "dashboard"
       ]
     },
     {
@@ -3028,6 +1940,13 @@
       "path": [
         "dashboard",
         "register"
+      ]
+    },
+    {
+      "help": "Debug tools \u2014 upload logs and system info for support",
+      "options": [],
+      "path": [
+        "debug"
       ]
     },
     {
@@ -3100,6 +2019,150 @@
       ]
     },
     {
+      "aliases": [
+        "gui"
+      ],
+      "help": "Build and launch the native desktop app",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--source"
+          ],
+          "help": "Launch via `electron .` against apps/desktop/dist instead of the packaged app"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--build-only"
+          ],
+          "help": "Build the desktop app but do not launch it (used by the installer's --update flow)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--fake-boot"
+          ],
+          "help": "Enable deterministic desktop boot delays for validating startup UI"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--ignore-existing"
+          ],
+          "help": "Force Desktop to ignore any hermes CLI already on PATH during backend resolution"
+        },
+        {
+          "flags": [
+            "--hermes-root"
+          ],
+          "help": "Override the Hermes source root used by Desktop (sets HERMES_DESKTOP_HERMES_ROOT)"
+        },
+        {
+          "flags": [
+            "--cwd"
+          ],
+          "help": "Initial project directory for Desktop chat sessions (sets HERMES_DESKTOP_CWD)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--skip-build"
+          ],
+          "help": "Skip npm install/package and launch the existing unpacked app from apps/desktop/release"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--local"
+          ],
+          "help": "Show the local-models UI in the desktop app (models pane, quickstart, picker rows)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--force-build"
+          ],
+          "help": "Force a full rebuild even if the content stamp matches"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--setup-tcc-identity"
+          ],
+          "help": "macOS only: create/import a self-signed code-signing certificate in the login keychain and point desktop.macos_signing_identity at it, then re-sign the packaged app. Makes macOS TCC grants (Full Disk Access, Accessibility, Files and Folders, microphone) survive rebuilds with a certificate-anchored identity. Idempotent \u2014 safe to re-run after updates."
+        },
+        {
+          "default": "Hermes Local Signing",
+          "flags": [
+            "--identity"
+          ],
+          "help": "Certificate name to create/use for --setup-tcc-identity (default: Hermes Local Signing)"
+        }
+      ],
+      "path": [
+        "desktop"
+      ]
+    },
+    {
+      "help": "Check configuration and dependencies",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--fix"
+          ],
+          "help": "Attempt to fix issues automatically"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--live"
+          ],
+          "help": "Opt-in: run one bounded, read-only real-call health probe per configured tool backend (Firecrawl/FAL/browser/MCP/TTS/STT) after the static checks. Makes real network calls."
+        },
+        {
+          "flags": [
+            "--ack"
+          ],
+          "help": "Acknowledge a security advisory by ID and exit. After ack, the advisory will no longer trigger startup banners. Run `hermes doctor` first to see active advisories and their IDs.",
+          "metavar": "ADVISORY_ID"
+        }
+      ],
+      "path": [
+        "doctor"
+      ]
+    },
+    {
+      "help": "Dump setup summary for support/debugging",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--show-keys"
+          ],
+          "help": "Show redacted API key prefixes (first/last 4 chars) instead of just set/not set"
+        }
+      ],
+      "path": [
+        "dump"
+      ]
+    },
+    {
+      "help": "Manage the iron-proxy egress credential-injection firewall",
+      "options": [],
+      "path": [
+        "egress"
+      ]
+    },
+    {
+      "help": "Manage fallback providers (tried when the primary model fails)",
+      "options": [],
+      "path": [
+        "fallback"
+      ]
+    },
+    {
       "help": "Pick a provider + model (same picker as `hermes model`) and append to the chain",
       "options": [],
       "path": [
@@ -3135,6 +2198,13 @@
       "path": [
         "fallback",
         "remove"
+      ]
+    },
+    {
+      "help": "Messaging gateway management",
+      "options": [],
+      "path": [
+        "gateway"
       ]
     },
     {
@@ -3296,6 +2366,13 @@
       ]
     },
     {
+      "help": "Inspect and manage shell-script hooks",
+      "options": [],
+      "path": [
+        "hooks"
+      ]
+    },
+    {
       "help": "Check each configured hook: exec bit, allowlist, mtime drift, JSON validity, and synthetic run timing",
       "options": [],
       "path": [
@@ -3363,6 +2440,166 @@
       ]
     },
     {
+      "help": "Restore a Hermes backup from a zip file",
+      "options": [
+        {
+          "flags": [
+            "zipfile"
+          ],
+          "help": "Path to the backup zip file"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--force",
+            "-f"
+          ],
+          "help": "Overwrite existing files without confirmation"
+        }
+      ],
+      "path": [
+        "import"
+      ]
+    },
+    {
+      "help": "Import a Claude Code or Codex CLI setup into Hermes",
+      "options": [
+        {
+          "choices": [
+            "claude-code",
+            "codex"
+          ],
+          "flags": [
+            "agent"
+          ],
+          "help": "Which agent to import from (default: auto-detect ~/.claude or ~/.codex)",
+          "nargs": "?"
+        },
+        {
+          "flags": [
+            "--source"
+          ],
+          "help": "Path to the agent's config directory (default: ~/.claude or ~/.codex)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--dry-run"
+          ],
+          "help": "Preview only \u2014 stop after showing what would be imported"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--overwrite"
+          ],
+          "help": "Overwrite existing Hermes items on name conflicts (default: skip)"
+        },
+        {
+          "flags": [
+            "Skip confirmation prompts"
+          ]
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--sync"
+          ],
+          "help": "Re-import every previously imported source whose files changed since the last import (registered in HERMES_HOME/import-sync.json). Runs without prompts; combine with --dry-run to preview."
+        }
+      ],
+      "path": [
+        "import-agent"
+      ]
+    },
+    {
+      "help": "Show usage insights and analytics",
+      "options": [
+        {
+          "default": 30,
+          "flags": [
+            "--days"
+          ],
+          "help": "Number of days to analyze (default: 30)"
+        },
+        {
+          "flags": [
+            "--source"
+          ],
+          "help": "Filter by platform (cli, telegram, discord, etc.)"
+        }
+      ],
+      "path": [
+        "insights"
+      ]
+    },
+    {
+      "aliases": [
+        "learning",
+        "memory-graph"
+      ],
+      "help": "Timeline of learned skills + memories over time",
+      "options": [
+        {
+          "default": 1.0,
+          "flags": [
+            "--reveal"
+          ],
+          "help": "Render the timeline built up to this point (0=oldest, 1=now).",
+          "metavar": "0..1"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--play"
+          ],
+          "help": "Animate the build-up over time (Ctrl-C to stop)."
+        },
+        {
+          "default": 12,
+          "flags": [
+            "--fps"
+          ],
+          "help": "Animation frames per second for --play (default 12)."
+        },
+        {
+          "flags": [
+            "--width"
+          ],
+          "help": "Override render width in columns."
+        },
+        {
+          "flags": [
+            "--height"
+          ],
+          "help": "Override render height in rows."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--no-color"
+          ],
+          "help": "Disable color output."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--force-color"
+          ]
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--json"
+          ],
+          "help": "Print the raw graph payload as JSON and exit."
+        }
+      ],
+      "path": [
+        "journey"
+      ]
+    },
+    {
       "help": "Delete a learned skill (archived) or memory by node id.",
       "options": [
         {
@@ -3401,18 +2638,6 @@
       ]
     },
     {
-      "aliases": [
-        "learning",
-        "memory-graph"
-      ],
-      "help": "Timeline of learned skills + memories over time",
-      "options": [],
-      "path": [
-        "journey",
-        "journey"
-      ]
-    },
-    {
       "help": "List node ids (for delete/edit).",
       "options": [
         {
@@ -3445,8 +2670,166 @@
         }
       ],
       "path": [
-        "kanban",
         "kanban"
+      ]
+    },
+    {
+      "help": "Deprecated. Use `hermes auth` to manage credentials, `hermes model` to select a provider, or `hermes setup` for full setup.",
+      "options": [
+        {
+          "flags": [
+            "--provider"
+          ],
+          "help": "(deprecated) Provider name; ignored \u2014 see `hermes model`"
+        },
+        {
+          "flags": [
+            "--portal-url"
+          ],
+          "help": "Portal base URL (default: production portal)"
+        },
+        {
+          "flags": [
+            "--inference-url"
+          ],
+          "help": "Inference API base URL (default: production inference API)"
+        },
+        {
+          "flags": [
+            "--client-id"
+          ],
+          "help": "OAuth client id to use (default: hermes-cli)"
+        },
+        {
+          "flags": [
+            "--scope"
+          ],
+          "help": "OAuth scope to request"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--no-browser"
+          ],
+          "help": "Do not attempt to open the browser automatically"
+        },
+        {
+          "default": 15.0,
+          "flags": [
+            "--timeout"
+          ],
+          "help": "HTTP request timeout in seconds (default: 15)"
+        },
+        {
+          "flags": [
+            "--ca-bundle"
+          ],
+          "help": "Path to CA bundle PEM file for TLS verification"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--insecure"
+          ],
+          "help": "Disable TLS verification (testing only)"
+        }
+      ],
+      "path": [
+        "login"
+      ]
+    },
+    {
+      "help": "Clear authentication for an inference provider",
+      "options": [
+        {
+          "choices": [
+            "nous",
+            "openai-codex",
+            "xai-oauth",
+            "spotify"
+          ],
+          "flags": [
+            "--provider"
+          ],
+          "help": "Provider to log out from (default: active provider)"
+        }
+      ],
+      "path": [
+        "logout"
+      ]
+    },
+    {
+      "help": "View and filter Hermes log files",
+      "options": [
+        {
+          "default": "agent",
+          "flags": [
+            "log_name"
+          ],
+          "help": "Log to view: agent (default), errors, gateway, gui, or 'list' to show available files",
+          "nargs": "?"
+        },
+        {
+          "default": 50,
+          "flags": [
+            "-n",
+            "--lines"
+          ],
+          "help": "Number of lines to show (default: 50)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "-f",
+            "--follow"
+          ],
+          "help": "Follow the log in real time (like tail -f)"
+        },
+        {
+          "flags": [
+            "--level"
+          ],
+          "help": "Minimum log level to show (DEBUG, INFO, WARNING, ERROR)",
+          "metavar": "LEVEL"
+        },
+        {
+          "flags": [
+            "--session"
+          ],
+          "help": "Filter lines containing this session ID substring",
+          "metavar": "ID"
+        },
+        {
+          "flags": [
+            "--since"
+          ],
+          "help": "Show lines since TIME ago (e.g. 1h, 30m, 2d)",
+          "metavar": "TIME"
+        },
+        {
+          "flags": [
+            "--component"
+          ],
+          "help": "Filter by component: gateway, agent, tools, cli, cron, gui",
+          "metavar": "NAME"
+        }
+      ],
+      "path": [
+        "logs"
+      ]
+    },
+    {
+      "help": "Language Server Protocol management",
+      "options": [],
+      "path": [
+        "lsp"
+      ]
+    },
+    {
+      "help": "Manage MCP servers and run Hermes as an MCP server",
+      "options": [],
+      "path": [
+        "mcp"
       ]
     },
     {
@@ -3541,7 +2924,7 @@
       ]
     },
     {
-      "help": "Install a catalog MCP by name (e.g. `hermes mcp install n8n`)",
+      "help": "Install a catalog MCP by name (e.g. `hermes mcp install deepwiki`)",
       "options": [
         {
           "flags": [
@@ -3673,6 +3056,13 @@
       ]
     },
     {
+      "help": "Configure external memory provider",
+      "options": [],
+      "path": [
+        "memory"
+      ]
+    },
+    {
       "help": "Disable external provider (built-in only)",
       "options": [],
       "path": [
@@ -3726,6 +3116,13 @@
       ]
     },
     {
+      "help": "Migrate configuration for retired models or deprecated settings",
+      "options": [],
+      "path": [
+        "migrate"
+      ]
+    },
+    {
       "help": "Convert legacy HERMES_NEMO_RELAY_ATIF_*/ATOF_* exporter vars into relay-plugins.toml",
       "options": [
         {
@@ -3769,6 +3166,13 @@
       "path": [
         "migrate",
         "xai"
+      ]
+    },
+    {
+      "help": "Configure Mixture of Agents provider/model slots",
+      "options": [],
+      "path": [
+        "moa"
       ]
     },
     {
@@ -3820,11 +3224,91 @@
       ]
     },
     {
+      "help": "Select default model and provider",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--refresh"
+          ],
+          "help": "Wipe the model picker disk cache and re-fetch every provider's live /v1/models list."
+        },
+        {
+          "flags": [
+            "--portal-url"
+          ],
+          "help": "Portal base URL for Nous login (default: production portal)"
+        },
+        {
+          "flags": [
+            "--inference-url"
+          ],
+          "help": "Inference API base URL for Nous login (default: production inference API)"
+        },
+        {
+          "flags": [
+            "--client-id"
+          ],
+          "help": "OAuth client id to use for Nous login (default: hermes-cli)"
+        },
+        {
+          "flags": [
+            "--scope"
+          ],
+          "help": "OAuth scope to request for Nous login"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--no-browser"
+          ],
+          "help": "Do not attempt to open the browser automatically during Nous login"
+        },
+        {
+          "default": 15.0,
+          "flags": [
+            "--timeout"
+          ],
+          "help": "HTTP request timeout in seconds for Nous login (default: 15)"
+        },
+        {
+          "flags": [
+            "--ca-bundle"
+          ],
+          "help": "Path to CA bundle PEM file for Nous TLS verification"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--insecure"
+          ],
+          "help": "Disable TLS verification for Nous login (testing only)"
+        }
+      ],
+      "path": [
+        "model"
+      ]
+    },
+    {
+      "help": "Inspect gateway monitoring (health & diagnostics export)",
+      "options": [],
+      "path": [
+        "monitoring"
+      ]
+    },
+    {
       "help": "Show monitoring settings, export state, and redaction posture",
       "options": [],
       "path": [
         "monitoring",
         "status"
+      ]
+    },
+    {
+      "help": "Manage DM pairing codes for user authorization",
+      "options": [],
+      "path": [
+        "pairing"
       ]
     },
     {
@@ -3884,6 +3368,27 @@
       "path": [
         "pairing",
         "revoke"
+      ]
+    },
+    {
+      "help": "Emergency stop: pause cron/kanban dispatch and new gateway turns",
+      "options": [
+        {
+          "flags": [
+            "--reason"
+          ],
+          "help": "Optional reason stored in the sentinel and shown to users"
+        }
+      ],
+      "path": [
+        "pause"
+      ]
+    },
+    {
+      "help": "Bot-to-bot DMs across machines (peer Hermes gateways)",
+      "options": [],
+      "path": [
+        "peer"
       ]
     },
     {
@@ -3958,8 +3463,14 @@
       "help": "Browse, install, and select petdex animated pets",
       "options": [],
       "path": [
-        "pets",
         "pets"
+      ]
+    },
+    {
+      "help": "Manage and validate plugins",
+      "options": [],
+      "path": [
+        "plugins"
       ]
     },
     {
@@ -4189,6 +3700,70 @@
       ]
     },
     {
+      "help": "Emit a pack YAML for the current install on stdout",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--enabled-only"
+          ],
+          "help": "Only include plugins currently in plugins.enabled"
+        },
+        {
+          "default": "my-hermes-pack",
+          "flags": [
+            "--name"
+          ],
+          "help": "Pack name to embed in the exported YAML"
+        }
+      ],
+      "path": [
+        "plugins",
+        "pack",
+        "export"
+      ]
+    },
+    {
+      "help": "Review and install a pack from a file path or https URL",
+      "options": [
+        {
+          "flags": [
+            "source"
+          ],
+          "help": "Path to a hermes-pack.yaml file, or an https:// URL"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--force",
+            "-f"
+          ],
+          "help": "Reinstall plugins that already exist"
+        }
+      ],
+      "path": [
+        "plugins",
+        "pack",
+        "install"
+      ]
+    },
+    {
+      "help": "Dry-run: parse and display a pack without installing",
+      "options": [
+        {
+          "flags": [
+            "source"
+          ],
+          "help": "Path to a hermes-pack.yaml file, or an https:// URL"
+        }
+      ],
+      "path": [
+        "plugins",
+        "pack",
+        "show"
+      ]
+    },
+    {
       "aliases": [
         "rm",
         "uninstall"
@@ -4272,6 +3847,13 @@
           "help": "Path to the plugin directory"
         },
         {
+          "action": "store_true",
+          "flags": [
+            "--install-deps"
+          ],
+          "help": "Install the plugin's declared Python dependencies (pyproject/python_dependencies) into this venv before the capability probe, exactly as `plugins install` would \u2014 the catalog CI gate"
+        },
+        {
           "flags": [
             "Print machine-readable JSON (for CI)"
           ]
@@ -4286,8 +3868,14 @@
       "help": "Set up Nous Portal (login, model pick, Tool Gateway); see also `portal info`",
       "options": [],
       "path": [
-        "portal",
         "portal"
+      ]
+    },
+    {
+      "help": "Manage profiles \u2014 multiple isolated Hermes instances",
+      "options": [],
+      "path": [
+        "profile"
       ]
     },
     {
@@ -4691,8 +4279,119 @@
       "help": "Manage projects (named, multi-folder workspaces)",
       "options": [],
       "path": [
-        "project",
         "project"
+      ]
+    },
+    {
+      "help": "Create a new project",
+      "options": [
+        {
+          "flags": [
+            "name"
+          ],
+          "help": "Human name, e.g. 'Hermes Agent'"
+        },
+        {
+          "flags": [
+            "folders"
+          ],
+          "help": "Folder paths to include (first = primary)",
+          "nargs": "*"
+        },
+        {
+          "flags": [
+            "--slug"
+          ],
+          "help": "Explicit slug override"
+        },
+        {
+          "flags": [
+            "--primary"
+          ],
+          "help": "Primary repo path",
+          "metavar": "PATH"
+        },
+        {
+          "flags": [
+            "--board"
+          ],
+          "help": "Bind a kanban board",
+          "metavar": "SLUG"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--use"
+          ],
+          "help": "Set as the active project"
+        }
+      ],
+      "path": [
+        "project",
+        "create"
+      ]
+    },
+    {
+      "aliases": [
+        "ls"
+      ],
+      "help": "List projects",
+      "options": [
+        {
+          "action": "store_true",
+          "dest": "include_archived",
+          "flags": [
+            "--all"
+          ],
+          "help": "Include archived projects"
+        }
+      ],
+      "path": [
+        "project",
+        "list"
+      ]
+    },
+    {
+      "help": "Set the active project",
+      "options": [
+        {
+          "flags": [
+            "project"
+          ],
+          "help": "Project id or slug (omit to clear)",
+          "nargs": "?"
+        }
+      ],
+      "path": [
+        "project",
+        "use"
+      ]
+    },
+    {
+      "help": "Show a byte breakdown of the system prompt + tool schemas",
+      "options": [
+        {
+          "default": "cli",
+          "flags": [
+            "--platform"
+          ],
+          "help": "Platform to simulate (cli, telegram, discord, ...). Default: cli"
+        },
+        {
+          "flags": [
+            "Emit the breakdown as JSON"
+          ]
+        }
+      ],
+      "path": [
+        "prompt-size"
+      ]
+    },
+    {
+      "help": "Local OpenAI-compatible proxy to OAuth providers",
+      "options": [],
+      "path": [
+        "proxy"
       ]
     },
     {
@@ -4740,6 +4439,20 @@
       ]
     },
     {
+      "help": "Lift the emergency stop set by `hermes pause`",
+      "options": [],
+      "path": [
+        "resume"
+      ]
+    },
+    {
+      "help": "Manage external secret sources (Bitwarden, 1Password)",
+      "options": [],
+      "path": [
+        "secrets"
+      ]
+    },
+    {
       "aliases": [
         "bw"
       ],
@@ -4760,6 +4473,13 @@
       "path": [
         "secrets",
         "onepassword"
+      ]
+    },
+    {
+      "help": "Supply-chain audit (OSV.dev) for venv, plugins, and MCP servers",
+      "options": [],
+      "path": [
+        "security"
       ]
     },
     {
@@ -4814,8 +4534,21 @@
       "help": "Send a message to a configured platform (scripts, cron jobs, CI).",
       "options": [],
       "path": [
-        "send",
         "send"
+      ]
+    },
+    {
+      "help": "Start the Hermes backend server (headless; powers the desktop app and remote backends)",
+      "options": [],
+      "path": [
+        "serve"
+      ]
+    },
+    {
+      "help": "Manage session history (list, rename, export, prune, delete)",
+      "options": [],
+      "path": [
+        "sessions"
       ]
     },
     {
@@ -5115,6 +4848,27 @@
       ]
     },
     {
+      "help": "Settle session/routing state that landed under the wrong profile",
+      "options": [
+        {
+          "choices": [
+            "report",
+            "rekey",
+            "move"
+          ],
+          "default": "report",
+          "flags": [
+            "--legacy-main"
+          ],
+          "help": "What to do with agent:main rows found inside a named profile's store: 'rekey' them to that profile (a standalone gateway's own history, e.g. after multiplexing was switched on), 'move' them to the default store (a default chat that leaked in), or 'report' (default) \u2014 the rows themselves cannot tell the two cases apart"
+        }
+      ],
+      "path": [
+        "sessions",
+        "repair-profiles"
+      ]
+    },
+    {
       "help": "Re-stamp gateway sessions that lost their routing identity",
       "options": [
         {
@@ -5167,6 +4921,72 @@
       "path": [
         "sessions",
         "unpin"
+      ]
+    },
+    {
+      "help": "Interactive setup wizard",
+      "options": [
+        {
+          "choices": [
+            "model",
+            "tts",
+            "terminal",
+            "gateway",
+            "tools",
+            "telemetry",
+            "agent"
+          ],
+          "flags": [
+            "section"
+          ],
+          "help": "Run a specific setup section instead of the full wizard",
+          "nargs": "?"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--non-interactive"
+          ],
+          "help": "Non-interactive mode (use defaults/env vars)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--reset"
+          ],
+          "help": "Reset configuration to defaults"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--reconfigure"
+          ],
+          "help": "(Default on existing installs.) Re-run the full wizard, showing current values as defaults. Kept for backwards compatibility \u2014 a bare 'hermes setup' now does this."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--quick"
+          ],
+          "help": "On existing installs: only prompt for items that are missing or unset, instead of running the full reconfigure wizard."
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--portal"
+          ],
+          "help": "One-shot Nous Portal setup: log in via OAuth, pick a Nous model, set Nous as the inference provider, and opt into the Tool Gateway. Skips the rest of the wizard."
+        }
+      ],
+      "path": [
+        "setup"
+      ]
+    },
+    {
+      "help": "Search, install, configure, and manage skills",
+      "options": [],
+      "path": [
+        "skills"
       ]
     },
     {
@@ -5510,11 +5330,84 @@
       ]
     },
     {
+      "help": "Export installed skills to a file",
+      "options": [
+        {
+          "flags": [
+            "output"
+          ],
+          "help": "Output JSON file path (use - for stdout)"
+        }
+      ],
+      "path": [
+        "skills",
+        "snapshot",
+        "export"
+      ]
+    },
+    {
+      "help": "Import and install skills from a file",
+      "options": [
+        {
+          "flags": [
+            "input"
+          ],
+          "help": "Input JSON file path"
+        }
+      ],
+      "path": [
+        "skills",
+        "snapshot",
+        "import"
+      ]
+    },
+    {
       "help": "Manage skill sources",
       "options": [],
       "path": [
         "skills",
         "tap"
+      ]
+    },
+    {
+      "help": "Add a GitHub repo as skill source",
+      "options": [
+        {
+          "flags": [
+            "repo"
+          ],
+          "help": "GitHub repo (e.g. owner/repo)"
+        }
+      ],
+      "path": [
+        "skills",
+        "tap",
+        "add"
+      ]
+    },
+    {
+      "help": "List configured taps",
+      "options": [],
+      "path": [
+        "skills",
+        "tap",
+        "list"
+      ]
+    },
+    {
+      "help": "Remove a tap",
+      "options": [
+        {
+          "flags": [
+            "name"
+          ],
+          "help": "Tap name to remove"
+        }
+      ],
+      "path": [
+        "skills",
+        "tap",
+        "remove"
       ]
     },
     {
@@ -5581,6 +5474,13 @@
       ]
     },
     {
+      "help": "List, switch, and tweak skins",
+      "options": [],
+      "path": [
+        "skin"
+      ]
+    },
+    {
       "help": "List available skins",
       "options": [],
       "path": [
@@ -5628,6 +5528,13 @@
       "path": [
         "skin",
         "use"
+      ]
+    },
+    {
+      "help": "Slack integration helpers (manifest generation, etc.)",
+      "options": [],
+      "path": [
+        "slack"
       ]
     },
     {
@@ -5693,6 +5600,35 @@
       "path": [
         "slack",
         "manifest"
+      ]
+    },
+    {
+      "help": "Show status of all components",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--all"
+          ],
+          "help": "Show all details (redacted for sharing)"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--deep"
+          ],
+          "help": "Run deep checks (may take longer)"
+        }
+      ],
+      "path": [
+        "status"
+      ]
+    },
+    {
+      "help": "Skill Sync \u2014 sync your skills across devices and with your team",
+      "options": [],
+      "path": [
+        "sync"
       ]
     },
     {
@@ -5796,6 +5732,21 @@
       ]
     },
     {
+      "help": "Configure which tools are enabled per platform",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--summary"
+          ],
+          "help": "Print a summary of enabled tools per platform and exit"
+        }
+      ],
+      "path": [
+        "tools"
+      ]
+    },
+    {
       "help": "Disable toolsets or MCP tools",
       "options": [
         {
@@ -5876,6 +5827,164 @@
       ]
     },
     {
+      "help": "Uninstall Hermes Agent",
+      "options": [
+        {
+          "action": "store_true",
+          "flags": [
+            "--full"
+          ],
+          "help": "Full uninstall - remove everything including configs and data"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--gui"
+          ],
+          "help": "Uninstall only the desktop Chat GUI, leaving the agent intact"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--gui-summary"
+          ],
+          "help": "Print a JSON summary of installed GUI/agent artifacts and exit (used by the desktop app to gate uninstall options)"
+        },
+        {
+          "flags": [
+            "Skip confirmation prompts"
+          ]
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--dry-run"
+          ],
+          "help": "Print what uninstall would remove without changing anything"
+        }
+      ],
+      "path": [
+        "uninstall"
+      ]
+    },
+    {
+      "help": "Update Hermes Agent to the latest version",
+      "options": [
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--gateway"
+          ],
+          "help": "Gateway mode: use file-based IPC for prompts instead of stdin (used internally by /update)"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--check"
+          ],
+          "help": "Check whether an update is available without installing anything"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--plan"
+          ],
+          "help": "Show the update plan and exit without changing anything: install kind (git/docker/nix), every running Hermes service across all profiles with its supervisor and running code version, and how each will be restarted. Read-only; safe on a live fleet."
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--no-backup"
+          ],
+          "help": "Skip ALL pre-update backups for this run (both the quick state snapshot and the full zip; overrides updates.pre_update_backup)"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--backup"
+          ],
+          "help": "Force a FULL pre-update backup (quick state snapshot + HERMES_HOME zip) for this run, regardless of updates.pre_update_backup"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--yes",
+            "-y"
+          ],
+          "help": "Run without blocking on prompts: accepts the config-migration and stash-restore prompts, skips the fork-upstream prompt without adding a remote. API-key entry is skipped; run 'hermes config migrate' separately for those."
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--keep-stash"
+          ],
+          "help": "Do NOT re-apply local changes after the update. Uncommitted changes are still stashed so the update can proceed, but they stay parked in git stash instead of being restored onto the updated code. Used by the desktop updater so local source edits never silently ride along across updates."
+        },
+        {
+          "flags": [
+            "--branch"
+          ],
+          "help": "Update against this branch instead of the default (main). If the local checkout is on a different branch, hermes will switch to the requested branch first (auto-stashing any uncommitted changes).",
+          "metavar": "NAME"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--switch-branch"
+          ],
+          "help": "With updates.parked_branch_strategy: update_in_place configured, override it for this run: switch to the update target and update THERE instead of merging the target into the checked-out branch. The branch is left exactly as it was \u2014 no merge commit is written into its history. Use on long-lived feature branches where an update-driven merge commit would pollute the branch. No effect under the default strategy (switch), which already switches. Still refuses to touch a dirty tree."
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--force"
+          ],
+          "help": "Windows: proceed with the update even when another hermes.exe is detected. The concurrent process will likely cause WinError 32 warnings. Does NOT bypass the venv-process guard (see --force-venv)."
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--force-venv"
+          ],
+          "help": "Windows: mutate the venv even while other processes are running from its interpreter (desktop backend, gateway, terminals). Those processes keep native .pyd files locked, so the dependency sync will likely fail partway and strand the install half-updated. Use only if you know the detected holders are false positives."
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--no-gateway-restart"
+          ],
+          "help": "Update code and dependencies but skip the final gateway restart. Use for cron/automated updates that run inside the gateway process: the gateway would otherwise restart its own cgroup and kill the updater. Pair with a separate restart step (e.g. a cron that runs 10-15 min later)."
+        },
+        {
+          "flags": [
+            "--post-swap"
+          ],
+          "metavar": "FILE"
+        }
+      ],
+      "path": [
+        "update"
+      ]
+    },
+    {
+      "help": "Manage the local encrypted autofill vault (add/list/rm credentials)",
+      "options": [],
+      "path": [
+        "vault"
+      ]
+    },
+    {
       "help": "Save a login, card or address ahead of time (optional: the agent asks you on the page when it needs one)",
       "options": [
         {
@@ -5942,11 +6051,82 @@
       ]
     },
     {
-      "help": "Manage the local encrypted autofill vault (add/list/rm credentials)",
+      "help": "Detect a project's run recipe and smoke-test it",
+      "options": [
+        {
+          "flags": [
+            "path"
+          ],
+          "help": "Project root to verify (default: current directory)",
+          "nargs": "?"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--detect-only"
+          ],
+          "help": "Only detect and print the recipe as JSON; run nothing"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--save"
+          ],
+          "help": "Save the recipe as .hermes/environment.json in the project"
+        },
+        {
+          "action": "store_true",
+          "flags": [
+            "--skip-start"
+          ],
+          "help": "Run command phases but skip starting the app / readiness poll"
+        },
+        {
+          "action": "append",
+          "choices": [
+            "bootstrap",
+            "build",
+            "test",
+            "start"
+          ],
+          "flags": [
+            "--phase"
+          ],
+          "help": "Run only the given phase(s); repeatable"
+        },
+        {
+          "flags": [
+            "--port"
+          ],
+          "help": "Override the port used for the readiness poll"
+        },
+        {
+          "default": 600.0,
+          "flags": [
+            "--timeout"
+          ]
+        },
+        {
+          "default": 60.0,
+          "flags": [
+            "--ready-timeout"
+          ]
+        },
+        {
+          "flags": [
+            "Emit a machine-readable JSON result"
+          ]
+        }
+      ],
+      "path": [
+        "verify"
+      ]
+    },
+    {
+      "help": "Manage dynamic webhook subscriptions",
       "options": [],
       "path": [
-        "vault",
-        "vault"
+        "webhook"
       ]
     },
     {
@@ -6097,6 +6277,27 @@
       ]
     },
     {
+      "help": "Set up WhatsApp integration",
+      "options": [],
+      "path": [
+        "whatsapp"
+      ]
+    },
+    {
+      "help": "Set up WhatsApp Business Cloud API integration",
+      "options": [],
+      "path": [
+        "whatsapp-cloud"
+      ]
+    },
+    {
+      "help": "Audit and reclaim accumulated git worktrees and merged branches",
+      "options": [],
+      "path": [
+        "worktree"
+      ]
+    },
+    {
       "aliases": [
         "ls",
         "audit"
@@ -6180,261 +6381,12 @@
         "worktree",
         "prune"
       ]
-    },
-    {
-      "help": "Request the grants (opens the dialog attributed to CuaDriver)",
-      "options": [],
-      "path": [
-        "computer-use",
-        "permissions",
-        "grant"
-      ]
-    },
-    {
-      "help": "Report Accessibility + Screen Recording grant state (read-only)",
-      "options": [
-        {
-          "flags": [
-            "Emit the normalized permission payload as JSON."
-          ]
-        }
-      ],
-      "path": [
-        "computer-use",
-        "permissions",
-        "status"
-      ]
-    },
-    {
-      "help": "Emit a pack YAML for the current install on stdout",
-      "options": [
-        {
-          "action": "store_true",
-          "flags": [
-            "--enabled-only"
-          ],
-          "help": "Only include plugins currently in plugins.enabled"
-        },
-        {
-          "default": "my-hermes-pack",
-          "flags": [
-            "--name"
-          ],
-          "help": "Pack name to embed in the exported YAML"
-        }
-      ],
-      "path": [
-        "plugins",
-        "pack",
-        "export"
-      ]
-    },
-    {
-      "help": "Review and install a pack from a file path or https URL",
-      "options": [
-        {
-          "flags": [
-            "source"
-          ],
-          "help": "Path to a hermes-pack.yaml file, or an https:// URL"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--force",
-            "-f"
-          ],
-          "help": "Reinstall plugins that already exist"
-        }
-      ],
-      "path": [
-        "plugins",
-        "pack",
-        "install"
-      ]
-    },
-    {
-      "help": "Dry-run: parse and display a pack without installing",
-      "options": [
-        {
-          "flags": [
-            "source"
-          ],
-          "help": "Path to a hermes-pack.yaml file, or an https:// URL"
-        }
-      ],
-      "path": [
-        "plugins",
-        "pack",
-        "show"
-      ]
-    },
-    {
-      "help": "Create a new project",
-      "options": [
-        {
-          "flags": [
-            "name"
-          ],
-          "help": "Human name, e.g. 'Hermes Agent'"
-        },
-        {
-          "flags": [
-            "folders"
-          ],
-          "help": "Folder paths to include (first = primary)",
-          "nargs": "*"
-        },
-        {
-          "flags": [
-            "--slug"
-          ],
-          "help": "Explicit slug override"
-        },
-        {
-          "flags": [
-            "--primary"
-          ],
-          "help": "Primary repo path",
-          "metavar": "PATH"
-        },
-        {
-          "flags": [
-            "--board"
-          ],
-          "help": "Bind a kanban board",
-          "metavar": "SLUG"
-        },
-        {
-          "action": "store_true",
-          "flags": [
-            "--use"
-          ],
-          "help": "Set as the active project"
-        }
-      ],
-      "path": [
-        "project",
-        "project",
-        "create"
-      ]
-    },
-    {
-      "aliases": [
-        "ls"
-      ],
-      "help": "List projects",
-      "options": [
-        {
-          "action": "store_true",
-          "dest": "include_archived",
-          "flags": [
-            "--all"
-          ],
-          "help": "Include archived projects"
-        }
-      ],
-      "path": [
-        "project",
-        "project",
-        "list"
-      ]
-    },
-    {
-      "help": "Set the active project",
-      "options": [
-        {
-          "flags": [
-            "project"
-          ],
-          "help": "Project id or slug (omit to clear)",
-          "nargs": "?"
-        }
-      ],
-      "path": [
-        "project",
-        "project",
-        "use"
-      ]
-    },
-    {
-      "help": "Export installed skills to a file",
-      "options": [
-        {
-          "flags": [
-            "output"
-          ],
-          "help": "Output JSON file path (use - for stdout)"
-        }
-      ],
-      "path": [
-        "skills",
-        "snapshot",
-        "export"
-      ]
-    },
-    {
-      "help": "Import and install skills from a file",
-      "options": [
-        {
-          "flags": [
-            "input"
-          ],
-          "help": "Input JSON file path"
-        }
-      ],
-      "path": [
-        "skills",
-        "snapshot",
-        "import"
-      ]
-    },
-    {
-      "help": "Add a GitHub repo as skill source",
-      "options": [
-        {
-          "flags": [
-            "repo"
-          ],
-          "help": "GitHub repo (e.g. owner/repo)"
-        }
-      ],
-      "path": [
-        "skills",
-        "tap",
-        "add"
-      ]
-    },
-    {
-      "help": "List configured taps",
-      "options": [],
-      "path": [
-        "skills",
-        "tap",
-        "list"
-      ]
-    },
-    {
-      "help": "Remove a tap",
-      "options": [
-        {
-          "flags": [
-            "name"
-          ],
-          "help": "Tap name to remove"
-        }
-      ],
-      "path": [
-        "skills",
-        "tap",
-        "remove"
-      ]
     }
   ],
   "files": [
     {
       "path": "hermes_cli/_parser.py",
-      "sha256": "6940f8f587121768034e81c105b0192347e838746a060fca219b459046487210"
+      "sha256": "57e96f943880933d9caa30ab26a49ca5c6041631e199e8b3aec17548b76352ca"
     },
     {
       "path": "hermes_cli/subcommands/__init__.py",
@@ -6566,7 +6518,7 @@
     },
     {
       "path": "hermes_cli/subcommands/mcp.py",
-      "sha256": "a112aa41a98fff4923df2711ae8f43592d55c319087040eae741a93a27ca4e2d"
+      "sha256": "f89d87b7df174158523789cf59e33b5e8cfc1615fecc9b5898e6dbfe3ba74867"
     },
     {
       "path": "hermes_cli/subcommands/memory.py",
@@ -6606,7 +6558,7 @@
     },
     {
       "path": "hermes_cli/subcommands/plugins.py",
-      "sha256": "4eb8ecf4d53a5ef4ff280918e998506cfaf57831bddee197adee37523a879b4f"
+      "sha256": "ad12703e719669f69774c218e7eb9bac581e2645d10a7526683d58dc989756d4"
     },
     {
       "path": "hermes_cli/subcommands/profile.py",
@@ -6626,7 +6578,7 @@
     },
     {
       "path": "hermes_cli/subcommands/sessions.py",
-      "sha256": "d38a42e3c4efdefc023f093f00a887fbacc82c6567e3187223572d7d5dca2d5e"
+      "sha256": "3311a3c3462ca2e3b0b73e8d0cc9ae84ff927e0ef7d49cf4b10e0fb687b11715"
     },
     {
       "path": "hermes_cli/subcommands/setup.py",
@@ -6686,7 +6638,7 @@
     },
     {
       "path": "hermes_cli/send_cmd.py",
-      "sha256": "c6c54a0d3a604c2525b542c8dc5c9a99f059969eb7361881df9fc6441924aedd"
+      "sha256": "cf194cda126dff3af1f3ecd467da6c9a27d47dfae96930efda24ad8e6f5891bb"
     },
     {
       "path": "hermes_cli/portal_cli.py",
@@ -6714,7 +6666,7 @@
     },
     {
       "path": "hermes_cli/curator.py",
-      "sha256": "4832c943c3a4a3bd69b0bee39742e1a9b7fa08385a91566ef18ee66041ffa62e"
+      "sha256": "55dd78eaeb39b5733b3155af7361f219f87c545c792dcd969d462bc0e9a3d275"
     },
     {
       "path": "hermes_cli/pets.py",
@@ -6729,8 +6681,12 @@
       "sha256": "24a8db713f4ed7f94759349d1c6b2f1025664421a47176e64a0e9ff8dc53261f"
     },
     {
+      "path": "agent/lsp/cli.py",
+      "sha256": "9c40cd1461b64630008982975bdb1bbcea7a12dd0e43e457efb2b548e54495c5"
+    },
+    {
       "path": "hermes_cli/commands.py",
-      "sha256": "fa47d857c5bf80a230e3fb47d42fd79d84e17eb66e1d9d92c9e69eda587ed6b9"
+      "sha256": "1dff97078fbfcc14ed403fa703d8243892c366a1ef5567350f83a846f440e240"
     }
   ],
   "schema": 1,
@@ -7562,7 +7518,7 @@
     }
   ],
   "upstream": {
-    "commit": "c712f06dcdd24053a4118f38d2090ac53137ecfc",
+    "commit": "d7b836ab1c0cddaafc109ed24c9a83b6191cdc88",
     "copyright": "Copyright (c) 2025 Nous Research",
     "license": "MIT",
     "license_sha256": "821556e6336796450ab852d375117b48a4887e71d255794fd6318d99982a5ab6",
