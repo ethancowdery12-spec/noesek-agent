@@ -1,0 +1,52 @@
+# VENDORED from NousResearch/hermes-agent @ c712f06dcdd24053a4118f38d2090ac53137ecfc
+# Upstream path: plugins/plugin_storage.py
+# License: MIT (c) 2025 Nous Research - see noesek/vendor/hermes/LICENSE.hermes
+# Local changes: import-path rewrites into the noesek.vendor.hermes namespace only;
+# no semantic modifications. Do not edit by hand; regenerate via scripts/vendor_hermes.py.
+
+"""Per-plugin persistent storage: ``<hermes home>/plugin-data/<name>/``.
+
+Plugins must NOT park state in ``<hermes home>/plugins/<name>/`` (the install dir, deleted by
+``remove`` and git-pulled by ``update``). Secrets are deliberately NOT part of this convention —
+credential reads go through ``agent.secret_scope`` / ``.env``.
+Usage: ``plugin_data_dir("my-plugin") / "state.json"``; ``plugin_db("my-plugin")`` → ``data.db``.
+"""
+
+from __future__ import annotations
+
+import re
+import sqlite3
+from pathlib import Path
+
+__all__ = ["plugin_data_dir", "plugin_db"]
+
+# Mirrors the plugin-name shape `hermes plugins install` accepts (no separators/traversal).
+_NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._-]{0,63}$")
+
+
+def _validate_name(name: str) -> str:
+    if not _NAME_RE.fullmatch(name) or ".." in name:
+        raise ValueError(f"invalid plugin name for storage: {name!r}")
+    return name
+
+
+def plugin_data_dir(name: str) -> Path:
+    """Return (and create) ``<hermes home>/plugin-data/<name>/``; resolves ``get_hermes_home()`` on
+    every call so it follows the active profile — don't cache across profile switches."""
+    from noesek.vendor.hermes.hermes_constants import get_hermes_home
+    root = get_hermes_home() / "plugin-data" / _validate_name(name)
+    root.mkdir(parents=True, exist_ok=True)
+    return root
+
+
+def plugin_db(name: str, filename: str = "data.db") -> sqlite3.Connection:
+    """Open ``<data dir>/<filename>``. WAL so a dashboard reader and a tool writer coexist;
+    ``check_same_thread=False`` for the threaded FastAPI/tool env — caller owns transactions."""
+    if Path(filename).name != filename or not filename:
+        raise ValueError(f"invalid plugin db filename: {filename!r}")
+    from noesek.vendor.hermes.hermes_cli.sqlite_util import open_db
+
+    # WAL via the shared fallback helper: network filesystems degrade to DELETE and WAL-reset-bug
+    # builds never enable it, instead of every plugin DB bypassing those rules with a raw PRAGMA.
+    return open_db(plugin_data_dir(name) / filename, db_label=f"plugin-data/{name}/{filename}",
+                   foreign_keys=True, row_factory=None, check_same_thread=False)

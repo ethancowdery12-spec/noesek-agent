@@ -1,0 +1,18 @@
+{
+  "expect": {
+    "slack_valid": 200,
+    "slack_tampered": 401,
+    "slack_missing_headers": 401,
+    "telegram_valid": 200,
+    "telegram_wrong_secret": 401,
+    "telegram_missing": 401
+  },
+  "got": {
+    "slack_valid": 200,
+    "slack_tampered": 401,
+    "slack_missing_headers": 401,
+    "telegram_valid": 200,
+    "telegram_wrong_secret": 401,
+    "telegram_missing": 401
+  }
+}

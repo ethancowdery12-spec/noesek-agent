@@ -1,0 +1,665 @@
+{
+  "hermes_commit": "c712f06dcdd24053a4118f38d2090ac53137ecfc",
+  "probe_count": 68,
+  "verdict_counts": {
+    "run": 0,
+    "adapted": 15,
+    "needs-adapter": 0,
+    "incompatible": 53
+  },
+  "probes": [
+    {
+      "probe": "acp_empty_session_wire.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/acp_wire.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "ca373ca4a4abd573b8372af7468275325bffbf84ebc471a9b30ad84d2fe15a51"
+    },
+    {
+      "probe": "anthropic_proxy_thinking_replay.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: run_agent",
+      "hermes_internal_imports": [
+        "run_agent"
+      ],
+      "sources_sha256": "9b7a8630be133a63850bee15eb8dc773f91e9d6ad0255ac3781c370f3f415a75"
+    },
+    {
+      "probe": "api_delegation_http_probe.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: gateway, hermes_state, tools",
+      "hermes_internal_imports": [
+        "gateway",
+        "hermes_state",
+        "tools"
+      ],
+      "sources_sha256": "ccc33b6d55d353e1063f9e6073ac52f76261f86d3f3eed74c96747a4d315f2ec"
+    },
+    {
+      "probe": "api_delegation_sync_probe.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: gateway, hermes_state, tools",
+      "hermes_internal_imports": [
+        "gateway",
+        "hermes_state",
+        "tools"
+      ],
+      "sources_sha256": "6c7099104d9a6e76a46ec46cb85a5d87729d2915337de536f613ae1818652f0a"
+    },
+    {
+      "probe": "approval_deny_dispatch.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: tools",
+      "hermes_internal_imports": [
+        "tools"
+      ],
+      "sources_sha256": "329e87aaf9df01fbb560deff6124ceed82fc237cca28d1e9ef7a07e21f75d133"
+    },
+    {
+      "probe": "auth_pool_controls.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/auth_controls.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "2a6a2480c07ee0558f32daaed38b5d12f7215956a17629e4351130637a7a32f9"
+    },
+    {
+      "probe": "auxiliary_resource_exhausted.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent",
+      "hermes_internal_imports": [
+        "agent"
+      ],
+      "sources_sha256": "6fe39f7fa8aea45d4f0dcd56d4464b74a9c9c8551ab0e3a82078e0013f92d812"
+    },
+    {
+      "probe": "botmode-dm-delivery",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: cron",
+      "hermes_internal_imports": [
+        "cron"
+      ],
+      "sources_sha256": "9d18a7cb38b481f589c8045ade1d94aef01a6b2fdcb937030ef2a380c5742665"
+    },
+    {
+      "probe": "botmode-dm-matrix",
+      "verdict": "incompatible",
+      "reason": "no python sources (asset-only fixture)",
+      "hermes_internal_imports": [],
+      "sources_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "probe": "browser_use",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: run_agent, tools",
+      "hermes_internal_imports": [
+        "run_agent",
+        "tools"
+      ],
+      "sources_sha256": "a77356875709b8a117ff623a1d3d65f6e3fa38ec2ee562d250cdfda6999ea293"
+    },
+    {
+      "probe": "cli_deferred_notice.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "1f547c5e81b73c2cb8bbef3672075a1ffa636ef7dbdc7d53944e123615411ead"
+    },
+    {
+      "probe": "cli_fallback_add_picker_error.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/config_atomicity.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "07af1c817ccbac96ff77a9b080c9a6fbdd3a20c5304e8a0481495bc9c2d5939b"
+    },
+    {
+      "probe": "codebase_navigability",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/codebase_navigability.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "df55a53a8317bc93ba1c67a38e5f92448419a2a034384b580cf9dc89a6df5062"
+    },
+    {
+      "probe": "codex_echo",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_state",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_state"
+      ],
+      "sources_sha256": "5881d0c15de957044371979553b01ba936c9465ea5c2321aaeb51e7989e5f3a3"
+    },
+    {
+      "probe": "codex_masked_replay_review.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, run_agent",
+      "hermes_internal_imports": [
+        "agent",
+        "run_agent"
+      ],
+      "sources_sha256": "f37b3252a0a673474e5f135d38d625b8f2f74c4a430ca00d547d698cefffdaae"
+    },
+    {
+      "probe": "compaction",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent",
+      "hermes_internal_imports": [
+        "agent"
+      ],
+      "sources_sha256": "aead35ea9b2163bd3527abd131222128a05d5a29653afaed4ebe2b8c6a24e79c"
+    },
+    {
+      "probe": "completion_backlog_probe.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: cli, tools, tui_gateway",
+      "hermes_internal_imports": [
+        "cli",
+        "tools",
+        "tui_gateway"
+      ],
+      "sources_sha256": "31d4a32dcc66db4723dd48d2b3af65e7b3812ccf8d42a3c9f50a3e0ee1b98880"
+    },
+    {
+      "probe": "core_tool_deferral",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_state, run_agent, tools",
+      "hermes_internal_imports": [
+        "hermes_state",
+        "run_agent",
+        "tools"
+      ],
+      "sources_sha256": "440c4915c2594bbc34c67baa3da0d070272f9d75a8026d46b7cb9dec2fa53da9"
+    },
+    {
+      "probe": "cron_error_diagnostics.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/cron_errors.py preserves behavioral intent",
+      "hermes_internal_imports": [
+        "cron",
+        "hermes_cli",
+        "tools"
+      ],
+      "sources_sha256": "bad009eaf302c617edab2325448df3ffb0d6576fcd2dbfc136c64edcfa7a1a31"
+    },
+    {
+      "probe": "cron_timeout_fork_race.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: cron",
+      "hermes_internal_imports": [
+        "cron"
+      ],
+      "sources_sha256": "e1d72c0c5cba3ab17cd270630c82f4872a81bf379255c2745cbd68214f713f51"
+    },
+    {
+      "probe": "dashboard_auth",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "8adaa3cc54e99b684dc334917e0fdbc87008c895b5203fb12490874943d7baa6"
+    },
+    {
+      "probe": "delegation_group_schema",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/schema_footprint.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "266996b81dcf3c63bb8b4c52b5fdfca169cbd7528f9a4cbcfa95cb425f245ba7"
+    },
+    {
+      "probe": "delivery_flood_wire.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/telegram_flood.py preserves behavioral intent",
+      "hermes_internal_imports": [
+        "gateway",
+        "plugins"
+      ],
+      "sources_sha256": "0df04116bb4a3eaff5eee77a186e09c3ceae76b3e9dd4de593f84ff7ee6f8f0d"
+    },
+    {
+      "probe": "desktop-pane-fixture",
+      "verdict": "incompatible",
+      "reason": "no python sources (asset-only fixture)",
+      "hermes_internal_imports": [],
+      "sources_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "probe": "desktop-reap-clock-pressure.cjs",
+      "verdict": "incompatible",
+      "reason": "no python sources (asset-only fixture)",
+      "hermes_internal_imports": [],
+      "sources_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "probe": "desktop_bug_campaign",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: cron, gateway, hermes_cli, hermes_state, tools, tui_gateway",
+      "hermes_internal_imports": [
+        "cron",
+        "gateway",
+        "hermes_cli",
+        "hermes_state",
+        "tools",
+        "tui_gateway"
+      ],
+      "sources_sha256": "3d506a2c7177b4586fe4c2139e0e3d139abd5d9b76a2d0203e7a5c6b5df9f16e"
+    },
+    {
+      "probe": "desktop_mcp_oauth",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli, tools, tui_gateway",
+      "hermes_internal_imports": [
+        "hermes_cli",
+        "tools",
+        "tui_gateway"
+      ],
+      "sources_sha256": "42ba9fb3db8711a633fec9d726ea3b94cae297b40695a8dd8b4fdbdb1be31a5b"
+    },
+    {
+      "probe": "fanout_resource_bench.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_state, run_agent, tools",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_state",
+        "run_agent",
+        "tools"
+      ],
+      "sources_sha256": "991bf81caf8873c036412074541912158bfd76a087216b865acdc994a0ce531a"
+    },
+    {
+      "probe": "gateway",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/session_persistence.py preserves behavioral intent",
+      "hermes_internal_imports": [
+        "gateway",
+        "hermes_cli"
+      ],
+      "sources_sha256": "f21a3eea268c05334157c6e030aa2ae6a0c12856501c619562b0b43d238a7069"
+    },
+    {
+      "probe": "gateway_completion",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: gateway, plugins, tools",
+      "hermes_internal_imports": [
+        "gateway",
+        "plugins",
+        "tools"
+      ],
+      "sources_sha256": "844e7c9319984a603dfcc8c6268e8d0c2e08120e21cb4d8b9ad9346dc18ffbc9"
+    },
+    {
+      "probe": "gateway_failure_ownership",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: gateway, hermes_state, run_agent",
+      "hermes_internal_imports": [
+        "gateway",
+        "hermes_state",
+        "run_agent"
+      ],
+      "sources_sha256": "9796900a01a4dce264345d014a533c5a094e562321efdec02fdc2fe3e7a80401"
+    },
+    {
+      "probe": "gateway_status_render",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: gateway, run_agent",
+      "hermes_internal_imports": [
+        "gateway",
+        "run_agent"
+      ],
+      "sources_sha256": "fc9d3521613fe40b2bf59ca41e7b4df79d4bc7839f8b92baebaf43cc72d583ad"
+    },
+    {
+      "probe": "gemini_type_array_probe.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/schema_arrays.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "245c47353838b273708709c0a9b96afd341964738127764938b037690bbf0c8b"
+    },
+    {
+      "probe": "goal_command_parity.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/command_parity.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "1e50c2a9d1cc636ca6176b55dee2b46d9fe97d11783796ce82c6f90037a8602b"
+    },
+    {
+      "probe": "heartbeat_idle_wire.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: gateway, hermes_cli",
+      "hermes_internal_imports": [
+        "gateway",
+        "hermes_cli"
+      ],
+      "sources_sha256": "7c31f2734063f145571a13e85f540282dbbed9c3f37c471a8852fd90fb6b076c"
+    },
+    {
+      "probe": "kanban_graph_identity.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli, tools",
+      "hermes_internal_imports": [
+        "hermes_cli",
+        "tools"
+      ],
+      "sources_sha256": "4ac90ba9aaf0e0efce8b0782ec5cac08972cbf56335348cd17dfbbe686d747e5"
+    },
+    {
+      "probe": "kanban_pr_acceptance_live.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "30b6e83f68cd0cb083ac2e4029ec82963d38eda84b9b7f4010d965a99a868530"
+    },
+    {
+      "probe": "kanban_scope_probe.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_cli",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_cli"
+      ],
+      "sources_sha256": "2552d6f35d1708d332ad068e038e2777ed061b8bbd47994bcb4eb8919ee21ecf"
+    },
+    {
+      "probe": "key_cmd_picker_live.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "2544960f3527e2f08ba58a9be68c24becc1a001eea0692392093e1537442001c"
+    },
+    {
+      "probe": "liveness",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: tui_gateway",
+      "hermes_internal_imports": [
+        "tui_gateway"
+      ],
+      "sources_sha256": "a2c3faea8fe5bf4c5cbbbe527745ca0f569efb54b0184f8b898c3b24745ff266"
+    },
+    {
+      "probe": "mcp_device_flow.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/mcp_device_flow.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "080917093f7b5fc7f05033d297b91de25a9f6d075459b3eb374dee8b82bc50af"
+    },
+    {
+      "probe": "memory",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, plugins, run_agent",
+      "hermes_internal_imports": [
+        "agent",
+        "plugins",
+        "run_agent"
+      ],
+      "sources_sha256": "dc18ff98a4b0f0d2ecd61749bf358cdf3001ff1aad9fd484d209728aac261d9d"
+    },
+    {
+      "probe": "native_compaction",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_state, run_agent",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_state",
+        "run_agent"
+      ],
+      "sources_sha256": "b205bc260402212623d89d7b562e5e1a33e9a4b666c76cac872f1905ad03b242"
+    },
+    {
+      "probe": "openrouter_pkce_ab",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "ceeb4d104e1e835e3a71730d9e5fbc714ee490e130a4541f15aa87a7e53fca1d"
+    },
+    {
+      "probe": "output_caps_local_capture.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, gateway, hermes_cli, providers, run_agent, tools",
+      "hermes_internal_imports": [
+        "agent",
+        "gateway",
+        "hermes_cli",
+        "providers",
+        "run_agent",
+        "tools"
+      ],
+      "sources_sha256": "cf7c846ebb789c7bd582bfc543ce3a629db217f2af4cd86ceab3b81d9d060239"
+    },
+    {
+      "probe": "output_caps_scope.md",
+      "verdict": "incompatible",
+      "reason": "no python sources (asset-only fixture)",
+      "hermes_internal_imports": [],
+      "sources_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "probe": "output_caps_surfaces.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, tools",
+      "hermes_internal_imports": [
+        "agent",
+        "tools"
+      ],
+      "sources_sha256": "69f6b09ff11e5a73e4ecafd8c85e44efae9d1ef11cef9274aae83f168e59617b"
+    },
+    {
+      "probe": "postmortem",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, cli, gateway, hermes_cli, hermes_state, run_agent, tools, tui_gateway",
+      "hermes_internal_imports": [
+        "agent",
+        "cli",
+        "gateway",
+        "hermes_cli",
+        "hermes_state",
+        "run_agent",
+        "tools",
+        "tui_gateway"
+      ],
+      "sources_sha256": "8e53224cfb91d287d690b6ec1ff48ffcdaaa30389157aa0c5662e33fe08dd2b7"
+    },
+    {
+      "probe": "process_result_receipt_probe.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/process_receipt.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "63cdb602f497447b0d3a7777210e1b34ba1c5a44a82b4e7440c1d4c054767e89"
+    },
+    {
+      "probe": "prompt_footprint",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, tools",
+      "hermes_internal_imports": [
+        "agent",
+        "tools"
+      ],
+      "sources_sha256": "47dcaf37cb77cf4362b3d74d17878d0cfb9b5c3e16e4ec412c20afa0714e60e5"
+    },
+    {
+      "probe": "provider_fallback",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_cli, run_agent",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_cli",
+        "run_agent"
+      ],
+      "sources_sha256": "03e4b8e99dc1cbc993d88550d7137980467900c0b87b688b45835f447845379d"
+    },
+    {
+      "probe": "provider_wire",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_cli, hermes_state, providers, run_agent",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_cli",
+        "hermes_state",
+        "providers",
+        "run_agent"
+      ],
+      "sources_sha256": "d5688b1f631dd39c614a6a60d23d58da4ab80b7a9b3c1476ab88359501de0a0e"
+    },
+    {
+      "probe": "providers",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, run_agent",
+      "hermes_internal_imports": [
+        "agent",
+        "run_agent"
+      ],
+      "sources_sha256": "467a59285ef182ce530921cdcac8f8a3a130e5ca369cfd0570de0778c1650ddc"
+    },
+    {
+      "probe": "readtool",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: run_agent",
+      "hermes_internal_imports": [
+        "run_agent"
+      ],
+      "sources_sha256": "c7eb1086afc1bd005b44fa6eacc6b18e88fa62dae55c9edc1c45130dfbe2affc"
+    },
+    {
+      "probe": "session_search_schema",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_state",
+      "hermes_internal_imports": [
+        "hermes_state"
+      ],
+      "sources_sha256": "68083ee2c40e02c31e92bc5d88d0080bc67d5db0a095a62cffb594394e5e296e"
+    },
+    {
+      "probe": "session_snapshot_removal.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_cli, hermes_state",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_cli",
+        "hermes_state"
+      ],
+      "sources_sha256": "901e49891d6ea461555b97beb5e1ecf7b91b9ce2c8429db9e7ccdfb4b2d71b81"
+    },
+    {
+      "probe": "slack_stream_wire_contract.py",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/slack_wire.py preserves behavioral intent",
+      "hermes_internal_imports": [
+        "gateway",
+        "plugins"
+      ],
+      "sources_sha256": "e3d9777dc3dcd2fe577c4947da3f2c7c2b5ef4ff84ed75cd2227f02a83f1fbec"
+    },
+    {
+      "probe": "subagent_process_handoff",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: run_agent, tools",
+      "hermes_internal_imports": [
+        "run_agent",
+        "tools"
+      ],
+      "sources_sha256": "8840b5cbe0d50f12a486173f79a989634732f24dd2665811b9303dfaa0a282bc"
+    },
+    {
+      "probe": "token_accounting",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, cli, gateway, hermes_state, run_agent, tui_gateway",
+      "hermes_internal_imports": [
+        "agent",
+        "cli",
+        "gateway",
+        "hermes_state",
+        "run_agent",
+        "tui_gateway"
+      ],
+      "sources_sha256": "661c7d3ffa1d5c54ea8fdea9fdcf95b86e806e5626cb35e5ff7cfa138727581f"
+    },
+    {
+      "probe": "tool_search",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, hermes_cli, run_agent, tools",
+      "hermes_internal_imports": [
+        "agent",
+        "hermes_cli",
+        "run_agent",
+        "tools"
+      ],
+      "sources_sha256": "8e5aca84fe6a810540800cb9f95b870b110af6d4883fe428444a93bf76e15775"
+    },
+    {
+      "probe": "toolperf_abeval",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/orchestration_overhead.py preserves behavioral intent",
+      "hermes_internal_imports": [],
+      "sources_sha256": "55e1a37904fd50d9d3aeee1a4e0d4c611b2f917a0cd529f43507f03b217769f6"
+    },
+    {
+      "probe": "update_check_ssh_pty.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "8f462657f70638cd80d02f106202300e8b50727a7e3257bc4e6e8d07432e8a47"
+    },
+    {
+      "probe": "update_obligation_identity.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "785e1ca3266df85d81423f5a1d1929e955dba85657355c0b2090b2baea383b05"
+    },
+    {
+      "probe": "update_pipeline",
+      "verdict": "incompatible",
+      "reason": "no python sources (asset-only fixture)",
+      "hermes_internal_imports": [],
+      "sources_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "probe": "update_streaming",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "04ed2757fed81d00fa2df4b7fce7c19937410373e6a0949427bc8f1c4af93fe9"
+    },
+    {
+      "probe": "update_unit_client_budget.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: hermes_cli",
+      "hermes_internal_imports": [
+        "hermes_cli"
+      ],
+      "sources_sha256": "5647417ca50b3a6a9e03268f6c1850a0990dc8aaaa3770a39f865975896c44e9"
+    },
+    {
+      "probe": "vault_fill_live_e2e.py",
+      "verdict": "incompatible",
+      "reason": "imports Hermes-internal modules: agent, tools",
+      "hermes_internal_imports": [
+        "agent",
+        "tools"
+      ],
+      "sources_sha256": "5f222d037e6d4b66b290e8da062d78c909a24472d8dbb841f55a21430bbf4a43"
+    },
+    {
+      "probe": "webhook_auth",
+      "verdict": "adapted",
+      "reason": "Noesek adapter evals/adapters/webhook_signatures.py preserves behavioral intent",
+      "hermes_internal_imports": [
+        "gateway"
+      ],
+      "sources_sha256": "f93b06aecf756a595612d5322701a3b39729eb25d8c01fe29696e27641467fda"
+    }
+  ]
+}

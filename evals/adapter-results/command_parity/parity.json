@@ -1,0 +1,32 @@
+{
+  "a": {
+    "approve": {
+      "user_id": "u-parity",
+      "user_name": "Parity User"
+    },
+    "list": [
+      {
+        "approved_at": 1789772822.8425827,
+        "platform": "slack",
+        "user_id": "u-parity",
+        "user_name": "Parity User"
+      }
+    ],
+    "pending": []
+  },
+  "b": {
+    "approve": {
+      "user_id": "u-parity",
+      "user_name": "Parity User"
+    },
+    "list": [
+      {
+        "approved_at": 1789772823.9291153,
+        "platform": "slack",
+        "user_id": "u-parity",
+        "user_name": "Parity User"
+      }
+    ],
+    "pending": []
+  }
+}

@@ -1,0 +1,4 @@
+{
+  "error": "Docker is not installed or not runnable on PATH",
+  "backend": "docker-cli"
+}

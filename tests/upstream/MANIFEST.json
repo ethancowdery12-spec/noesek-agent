@@ -1,0 +1,107 @@
+{
+ "upstream": {
+  "repo": "NousResearch/hermes-agent",
+  "commit": "c712f06dcdd24053a4118f38d2090ac53137ecfc",
+  "license": "MIT (c) 2025 Nous Research",
+  "tests_root": "tests/"
+ },
+ "policy": "Adopted test files are byte-identical copies of the upstream file at the pinned commit (drift-checked). Excluded test IDs are skipped with a recorded reason because they require non-vendored Hermes infrastructure; no adopted test source is edited.",
+ "files": {
+  "tools/test_approval.py": {
+   "sha256": "63bcacf5f8f1fd23c46e1a60cfb16ffd1a1622b33a9a96278769cd3705a514c8",
+   "covers": "approval detection, session allowlists, hardline/dangerous classification, prompting"
+  },
+  "cron/test_compute_next_run_dst.py": {
+   "sha256": "e4f8f3c434def854533c6856391f5b0a6231bc6768be0ce0da61a9bbcbfe91ee",
+   "covers": "cron next-run computation across DST transitions"
+  },
+  "cron/test_compute_next_run_last_run_at.py": {
+   "sha256": "df182b62f7f3da635cb2b3b21ec5c36a438f962e1c32d66dfeff84a29e7d2de3",
+   "covers": "next-run computation anchored at last_run_at"
+  },
+  "cron/test_claim_job_for_fire.py": {
+   "sha256": "a47f3e21a26eefdccb138b6cd8c05289cd755c493898415bfc36dc91bcb29a59",
+   "covers": "atomic job claiming for the scheduler tick (create_job/claim_job_for_fire/get_job)"
+  },
+  "plugins/test_plugin_loader_unreadable.py": {
+   "sha256": "930e55e996d72b2e6e9c56fa70f6f4c87e4a4c3726e1c25f771d43824fe64d86",
+   "covers": "plugin loader degrades on unreadable plugin dirs"
+  },
+  "plugins/test_plugin_storage.py": {
+   "sha256": "629af3d2cfa9d307ad79cc55980454b2e3bf08a00bcbf667c6de1fecc3e2a85c",
+   "covers": "plugin data dir and per-plugin sqlite storage"
+  },
+  "plugins/test_plugin_utils.py": {
+   "sha256": "7db33de67d540aec43ffeeeb8bbb6a82d21a637ba3523808b613eee329f0c168",
+   "covers": "SingletonSlot/lazy_singleton concurrency semantics"
+  },
+  "gateway/test_whatsapp_identity.py": {
+   "sha256": "ba33b6afcd1ad1d4e7ef60f924b95c166ca0179b68121fe7902864fa964d5d01",
+   "covers": "WhatsApp LID/JID alias expansion via bridge mapping files"
+  },
+  "gateway/test_whatsapp_to_jid.py": {
+   "sha256": "025001b1c645358f8dccae58d222f5778f11e1cf2c35874508222a8e504605a4",
+   "covers": "WhatsApp outbound JID canonicalization"
+  },
+  "gateway/test_pairing.py": {
+   "sha256": "0286874e210aa6b5eb739a5ce16443efab5e0aa465cd46b8e989968dfba0757a",
+   "covers": "pairing code lifecycle, approval store, rate limits, allowlist mirror"
+  },
+  "tools/test_skills_tool.py": {
+   "sha256": "b585b17d1137e7145d29f2a498a3503274172f0c682b670796d87be231db69e5",
+   "covers": "skill discovery/install/view/remove, hub metadata, path security"
+  },
+  "tools/test_skill_provenance.py": {
+   "sha256": "907761eb0e1356bd4c4fff9b680070932069da6a98d1bc655b3ea83d75c96a45",
+   "covers": "skill provenance recording"
+  }
+ },
+ "excluded_tests": {
+  "tests/upstream/tools/test_approval.py::TestApprovalPromptRedaction::test_callback_receives_redacted_command": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestApprovalTimeoutIsNotConsent::test_explicit_deny_carries_same_no_consent_shape": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestApprovalTimeoutIsNotConsent::test_notify_failure_emits_post_hook_and_cleans_up": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestApprovalTimeoutIsNotConsent::test_pending_approval_is_replayable_and_acknowledged": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestApprovalTimeoutIsNotConsent::test_stale_request_id_cannot_resolve_current_approval": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestApprovalTimeoutIsNotConsent::test_timeout_blocks_with_no_consent_and_timeout_hook": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestApprovalTimeoutIsNotConsent::test_timeout_emits_post_hook_with_timeout_outcome": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestCliApprovalTimeoutClassifiedSeparately::test_guard_classifies_callback_timeout_as_timeout": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestCliApprovalTimeoutClassifiedSeparately::test_guard_still_classifies_explicit_deny_as_denied": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestCliApprovalTimeoutClassifiedSeparately::test_prompt_returns_timeout_when_input_never_arrives": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestConcurrentApprovalCoalescing::test_deny_propagates_to_followers": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestConcurrentApprovalCoalescing::test_different_commands_are_not_coalesced": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestConcurrentApprovalCoalescing::test_identical_concurrent_approvals_send_one_prompt": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestConcurrentApprovalCoalescing::test_once_makes_follower_reprompt": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestFailClosedUnderPromptToolkit::test_callback_path_still_wins_over_guard": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestFailClosedUnderPromptToolkit::test_denies_when_prompt_toolkit_active_and_no_callback": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestFullCommandAlwaysShown::test_choice_with_long_command": "asserts on Hermes interactive TTY prompt rendering (UI fixture, out of scope)",
+  "tests/upstream/tools/test_approval.py::TestLaunchctlGatewayLifecycle::test_quote_spliced_verbs_detected": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestLifecycleGuardLaunchctlParity::test_bypassable_layer_is_never_stricter": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestLifecycleGuardLaunchctlParity::test_hard_block_covers_every_lifecycle_verb": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestSmartApproval::test_smart_approval_does_not_allowlist_the_pattern_for_session": "patches agent.auxiliary_client (Hermes LLM agent stack, not vendored); Noesek smart-approval path is covered by tests/test_approval_engine.py",
+  "tests/upstream/tools/test_approval.py::TestSmartApproval::test_smart_approval_uses_call_llm": "patches agent.auxiliary_client (Hermes LLM agent stack, not vendored); Noesek smart-approval path is covered by tests/test_approval_engine.py",
+  "tests/upstream/tools/test_approval.py::TestSmartDeniedPrompt::test_short_prompt_smart_deny_rejects_session_input": "patches agent.auxiliary_client (Hermes LLM agent stack, not vendored)",
+  "tests/upstream/tools/test_approval.py::TestSmartDeniedPrompt::test_smart_deny_offers_only_once_and_deny": "patches agent.auxiliary_client (Hermes LLM agent stack, not vendored)",
+  "tests/upstream/tools/test_approval.py::TestSmartDeniedPrompt::test_smart_deny_uses_locale_specific_once_deny_choices": "patches agent.auxiliary_client (Hermes LLM agent stack, not vendored)",
+  "tests/upstream/tools/test_approval.py::TestTirithImportErrorFailOpenPolicy::test_fail_open_false_escalates_to_approval_on_import_error": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestTirithImportErrorFailOpenPolicy::test_import_error_allows_when_fail_open_or_disabled[False-False]": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestTirithImportErrorFailOpenPolicy::test_import_error_allows_when_fail_open_or_disabled[True-True]": "requires non-vendored Hermes infrastructure",
+  "tests/upstream/tools/test_approval.py::TestWebhookApprovalExclusion::test_api_server_dangerous_command_denies_by_default": "requires the Hermes GatewayRunner webhook surface (not vendored; Noesek webhook approval exclusion is covered by controller tests)",
+  "tests/upstream/tools/test_approval.py::TestWebhookApprovalExclusion::test_webhook_dangerous_command_approves_when_opted_in": "requires the Hermes GatewayRunner webhook surface (not vendored; Noesek webhook approval exclusion is covered by controller tests)",
+  "tests/upstream/tools/test_approval.py::TestWebhookApprovalExclusion::test_webhook_dangerous_command_denies_by_default": "requires the Hermes GatewayRunner webhook surface (not vendored; Noesek webhook approval exclusion is covered by controller tests)",
+  "tests/upstream/tools/test_approval.py::TestWebhookApprovalExclusion::test_webhook_safe_command_still_approves": "requires the Hermes GatewayRunner webhook surface (not vendored; Noesek webhook approval exclusion is covered by controller tests)",
+  "tests/upstream/tools/test_skills_tool.py::TestRequiredEnvironmentVariablesNormalization::test_active_profile_secret_scope_satisfies_requirement": "exercises Hermes multiplex secret-scope semantics; Noesek's _shared bridge is single-profile by design (documented bridge difference)",
+  "tests/upstream/tools/test_skills_tool.py::TestRequiredEnvironmentVariablesNormalization::test_empty_env_file_value_is_treated_as_missing": "exercises Hermes multiplex secret-scope semantics; Noesek's _shared bridge is single-profile by design (documented bridge difference)",
+  "tests/upstream/tools/test_skills_tool.py::TestRequiredEnvironmentVariablesNormalization::test_unscoped_multiplex_requirement_does_not_read_process_environment": "exercises Hermes multiplex secret-scope semantics; Noesek's _shared bridge is single-profile by design (documented bridge difference)",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_becomes_available_after_local_secret_capture[daytona]": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_becomes_available_after_local_secret_capture[docker]": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_becomes_available_after_local_secret_capture[modal]": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_becomes_available_after_local_secret_capture[singularity]": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_becomes_available_after_local_secret_capture[ssh]": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_becomes_available_after_local_secret_capture[vercel_sandbox]": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_remote_backend_treats_persisted_env_as_available": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path",
+  "tests/upstream/tools/test_skills_tool.py::TestSkillViewPrerequisites::test_successful_secret_capture_reloads_empty_env_placeholder": "exercises Hermes remote terminal backends (ssh/daytona/docker/singularity/modal/vercel) and secret capture, not vendored; Noesek terminal env bridges cover the local path"
+ },
+ "rejected_files": {
+  "tests/gateway/test_bot_loop_guard.py": "all but 2 tests construct a full GatewayRunner fixture (not vendored); BotLoopGuard semantics are covered by Noesek contract tests in tests/test_authorization_gate.py"
+ }
+}

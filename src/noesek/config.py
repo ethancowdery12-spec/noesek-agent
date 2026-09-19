@@ -1,0 +1,56 @@
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_prefix="NOESEK_", env_file=".env", extra="ignore")
+    # Core
+    database_url: str = "sqlite+aiosqlite:///./noesek.db"
+    public_base_url: str = "http://localhost:8000"
+    log_level: str = "INFO"
+    # WhatsApp / Meta
+    verify_token: str = "replace-me"
+    whatsapp_access_token: str = ""
+    whatsapp_phone_number_id: str = ""
+    meta_app_secret: str = ""
+    # Slack (optional channel; slack-sdk)
+    slack_bot_token: str = ""
+    slack_signing_secret: str = ""
+    # Telegram (optional channel; aiogram)
+    telegram_bot_token: str = ""
+    telegram_webhook_secret: str = ""
+    # LLM
+    llm_provider: str = "openai-compatible"
+    llm_base_url: str = "https://api.openai.com/v1"
+    llm_api_key: str = ""
+    llm_model: str = ""
+    llm_timeout_seconds: float = 90.0
+    llm_max_retries: int = 3
+    # Tools
+    brave_search_api_key: str = ""
+    llm_fallbacks: str = ""  # JSON list of {base_url, model, api_key}; empty = single provider
+    llm_max_concurrent: int = 0  # 0 = unbounded; >0 bounds simultaneous LLM calls
+    local_read_root: str = ""  # allowlisted root for the read_file tool; default NOESEK_HOME/workspace
+    sandbox_image: str = "python:3.12-alpine"
+    sandbox_backend: str = "docker-cli"  # docker-cli | docker-py | e2b
+    tool_timeout_seconds: float = 45.0
+    fetch_timeout_seconds: float = 20.0
+    fetch_max_bytes: int = 1_000_000
+    # Context
+    history_limit: int = 24
+    memory_limit: int = 12
+    max_context_chars: int = 12000
+    # Approvals
+    approval_ttl_hours: float = 24.0
+    # Background worker
+    worker_poll_seconds: float = 2.0
+    task_max_attempts: int = 3
+    # Channel authorization (Hermes gateway authz chain; deny-by-default)
+    whatsapp_allowed_users: str = ""  # comma-separated numbers/JIDs; empty = allowlist off
+    gateway_allow_all_users: bool = False
+    unauthorized_dm_behavior: str = "pair"  # pair | ignore | decline
+    # Abuse control
+    rate_limit_messages: int = 20
+    rate_limit_window_seconds: float = 60.0
+    # Observability
+    metrics_enabled: bool = True
+
+settings = Settings()
