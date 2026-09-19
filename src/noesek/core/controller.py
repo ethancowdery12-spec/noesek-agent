@@ -5,9 +5,15 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from .approval_engine import assess_tool_arguments
 from .context import assemble
-from .llm import configured_llm
+from .llm import configured_llm, provider_name
 from .metrics import inc
 from .tools import ToolRegistry, ToolSpec
+from .turn_spine import (
+    TurnSpine, canonical,
+    APPROVAL_DECIDED, APPROVAL_REQUIRED, MODEL_REQUEST, MODEL_RESPONSE,
+    POLICY_BLOCKED, TOOL_CALL_REQUESTED, TOOL_CALL_RESULT,
+    TURN_COMPLETED, TURN_FAILED, TURN_STARTED, TURN_STOPPED,
+)
 from .types import Risk, TurnResult
 from ..config import settings
 from ..db import Approval, Message, Session, Task, now, record_trace
@@ -57,61 +63,100 @@ class Controller:
                 return {"delegated": True, "task_id": t.id, "worker": inp.worker}
         return f
 
+    def _gen_ai(self) -> dict:
+        """OTel GenAI semantic-convention attributes for model events."""
+        return {"gen_ai.system": provider_name(settings.llm_base_url, settings.llm_provider),
+                "gen_ai.request.model": settings.llm_model}
+
+    @staticmethod
+    def _usage_attrs(reply) -> dict:
+        # getattr: LLM doubles in tests and third-party adapters may be duck-typed.
+        usage = getattr(reply, "usage", None) or {}
+        finish = getattr(reply, "finish_reason", None)
+        return {"gen_ai.response.finish_reasons": [finish] if finish else [],
+                "gen_ai.usage.input_tokens": usage.get("input_tokens"),
+                "gen_ai.usage.output_tokens": usage.get("output_tokens")}
+
     async def handle(self, conversation_id: int, text: str, external_id: str | None = None) -> TurnResult:
         async with Session() as s:
             if external_id and (await s.execute(select(Message).where(Message.external_id==external_id))).scalar_one_or_none():
                 return TurnResult(text="")
             s.add(Message(conversation_id=conversation_id, role="user", content=text, external_id=external_id)); await s.commit()
             messages = await assemble(s, conversation_id, query=text)
+        spine = TurnSpine(conversation_id)
+        await spine.emit(TURN_STARTED, {"chars": len(text)})
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
         registry = self.registry(conversation_id); citations = []
-        for _ in range(self.max_steps):
-            reply = await self.llm.complete(messages, registry.schemas())
-            if not reply.tool_calls:
-                final = reply.content or "I could not produce a response."
-                async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=final)); await s.commit()
-                await record_trace(conversation_id, "final_reply", {"chars": len(final)})
-                return TurnResult(text=final, citations=list(dict.fromkeys(citations)))
-            messages.append({"role":"assistant","content":reply.content,"tool_calls":[{"id":c.id,"type":"function","function":{"name":c.name,"arguments":json.dumps(c.arguments)}} for c in reply.tool_calls]})
-            for call in reply.tool_calls:
-                inc("noesek_tool_calls_total")
-                try: spec = registry.get(call.name)
-                except KeyError: result = {"error": "unknown tool"}
-                else:
-                    if spec.risk in APPROVAL_RISKS:
-                        gate = assess_tool_arguments(call.arguments)
-                        if gate.blocked:
-                            inc("noesek_approvals_blocked_total")
-                            refusal = (f"Blocked by policy: {gate.reason}. This cannot be approved or run "
-                                       "through the agent.")
-                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=refusal)); await s.commit()
-                            await record_trace(conversation_id, "approval_blocked", {"tool": call.name, "reason": gate.reason})
-                            return TurnResult(text=refusal)
-                        inc("noesek_approvals_total")
-                        rationale = f"Requested during conversation turn: {text[:300]}"
-                        if gate.verdict == "approval": rationale += f" (policy flag: {gate.reason})"
-                        async with Session() as s:
-                            a = Approval(conversation_id=conversation_id, tool_name=call.name, arguments=call.arguments,
-                                         rationale=rationale,
-                                         expires_at=now()+timedelta(hours=settings.approval_ttl_hours))
-                            s.add(a); await s.commit()
-                        prompt = (f"Approval required #{a.id}: {call.name} with {json.dumps(call.arguments, ensure_ascii=False)}. "
-                                  f"Reply 'approve {a.id}' or 'reject {a.id}' within {settings.approval_ttl_hours:g}h.")
-                        async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=prompt)); await s.commit()
-                        await record_trace(conversation_id, "approval_required", {"approval_id": a.id, "tool": call.name})
-                        return TurnResult(text=prompt, pending_approval_id=a.id)
-                    try: result = await registry.invoke(call.name, call.arguments)
-                    except Exception as e: result = {"error": type(e).__name__, "detail": str(e)[:500]}
-                await record_trace(conversation_id, "tool_call", {"tool": call.name, "ok": not (isinstance(result, dict) and "error" in result)})
-                for item in result.get("results",[]) if isinstance(result,dict) else []:
-                    if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
-                if isinstance(result, dict) and result.get("url"): citations.append(result["url"])
-                messages.append({"role":"tool","tool_call_id":call.id,"content":json.dumps(result,ensure_ascii=False)})
+        try:
+            for _ in range(self.max_steps):
+                await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
+                reply = await self.llm.complete(messages, registry.schemas())
+                await spine.emit(MODEL_RESPONSE, {**self._gen_ai(), **self._usage_attrs(reply),
+                                                  "tool_calls": len(reply.tool_calls), "content_chars": len(reply.content or "")})
+                if not reply.tool_calls:
+                    final = reply.content or "I could not produce a response."
+                    async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=final)); await s.commit()
+                    await record_trace(conversation_id, "final_reply", {"chars": len(final)})
+                    await spine.emit(TURN_COMPLETED, {"chars": len(final)})
+                    return TurnResult(text=final, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
+                messages.append({"role":"assistant","content":reply.content,"tool_calls":[{"id":c.id,"type":"function","function":{"name":c.name,"arguments":json.dumps(c.arguments)}} for c in reply.tool_calls]})
+                for call in reply.tool_calls:
+                    inc("noesek_tool_calls_total")
+                    try: spec = registry.get(call.name)
+                    except KeyError:
+                        await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "unknown": True}, strict=False)
+                        result = {"error": "unknown tool"}
+                        await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id, "ok": False, "error": "unknown_tool"})
+                    else:
+                        if spec.risk in APPROVAL_RISKS:
+                            gate = assess_tool_arguments(call.arguments)
+                            if gate.blocked:
+                                inc("noesek_approvals_blocked_total")
+                                refusal = (f"Blocked by policy: {gate.reason}. This cannot be approved or run "
+                                           "through the agent.")
+                                async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=refusal)); await s.commit()
+                                await record_trace(conversation_id, "approval_blocked", {"tool": call.name, "reason": gate.reason})
+                                await spine.emit(POLICY_BLOCKED, {"tool": call.name, "call_id": call.id, "reason": gate.reason})
+                                await spine.emit(TURN_COMPLETED, {"outcome": "policy_blocked"})
+                                return TurnResult(text=refusal, turn_id=spine.turn_id)
+                            inc("noesek_approvals_total")
+                            rationale = f"Requested during conversation turn: {text[:300]}"
+                            if gate.verdict == "approval": rationale += f" (policy flag: {gate.reason})"
+                            async with Session() as s:
+                                a = Approval(conversation_id=conversation_id, tool_name=call.name, arguments=call.arguments,
+                                             rationale=rationale,
+                                             expires_at=now()+timedelta(hours=settings.approval_ttl_hours))
+                                s.add(a); await s.commit()
+                            prompt = (f"Approval required #{a.id}: {call.name} with {json.dumps(call.arguments, ensure_ascii=False)}. "
+                                      f"Reply 'approve {a.id}' or 'reject {a.id}' within {settings.approval_ttl_hours:g}h.")
+                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=prompt)); await s.commit()
+                            await record_trace(conversation_id, "approval_required", {"approval_id": a.id, "tool": call.name})
+                            await spine.emit(APPROVAL_REQUIRED, {"approval_id": a.id, "tool": call.name, "call_id": call.id,
+                                                                 "arguments_json": canonical(call.arguments)})
+                            return TurnResult(text=prompt, pending_approval_id=a.id, turn_id=spine.turn_id)
+                        await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "risk": spec.risk.value,
+                                                               "arguments_json": canonical(call.arguments)}, strict=True)
+                        try: result = await registry.invoke(call.name, call.arguments)
+                        except Exception as e: result = {"error": type(e).__name__, "detail": str(e)[:500]}
+                        await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id,
+                                                            "ok": not (isinstance(result, dict) and "error" in result),
+                                                            "error": result.get("error") if isinstance(result, dict) else None})
+                    await record_trace(conversation_id, "tool_call", {"tool": call.name, "ok": not (isinstance(result, dict) and "error" in result)})
+                    for item in result.get("results",[]) if isinstance(result,dict) else []:
+                        if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
+                    if isinstance(result, dict) and result.get("url"): citations.append(result["url"])
+                    messages.append({"role":"tool","tool_call_id":call.id,"content":json.dumps(result,ensure_ascii=False)})
+        except Exception as e:
+            await spine.emit(TURN_FAILED, {"error": type(e).__name__}, strict=False)
+            raise
         await record_trace(conversation_id, "max_steps_stop", {})
-        return TurnResult(text="I stopped after the maximum tool steps. Please narrow the request.", citations=citations)
+        await spine.emit(TURN_STOPPED, {"reason": "max_steps"})
+        return TurnResult(text="I stopped after the maximum tool steps. Please narrow the request.", citations=citations, turn_id=spine.turn_id)
 
     async def decide_approval(self, conversation_id: int, approval_id: int, approved: bool) -> TurnResult:
+        spine = TurnSpine(conversation_id)
+        await spine.emit(TURN_STARTED, {"kind": "approval_decision", "approval_id": approval_id})
         async with Session() as s:
             a = (await s.execute(select(Approval).where(Approval.id==approval_id, Approval.conversation_id==conversation_id))).scalar_one_or_none()
             if not a: return TurnResult(text=f"Approval #{approval_id} was not found.")
@@ -119,16 +164,22 @@ class Controller:
             if a.expires_at and a.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
                 a.status = "expired"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_expired", {"approval_id": approval_id})
-                return TurnResult(text=f"Approval #{approval_id} expired. Ask again to create a fresh one.")
+                await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "expired"})
+                return TurnResult(text=f"Approval #{approval_id} expired. Ask again to create a fresh one.", turn_id=spine.turn_id)
             if not approved:
                 a.status = "rejected"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_rejected", {"approval_id": approval_id})
-                return TurnResult(text=f"Rejected approval #{approval_id}.")
+                await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "rejected"})
+                return TurnResult(text=f"Rejected approval #{approval_id}.", turn_id=spine.turn_id)
             gate = assess_tool_arguments(a.arguments or {})
             if gate.blocked:
                 a.status = "blocked"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_blocked", {"approval_id": approval_id, "reason": gate.reason})
-                return TurnResult(text=f"Approval #{approval_id} cannot run: {gate.reason}. Hardline policy blocks it for everyone.")
+                await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "blocked", "reason": gate.reason})
+                return TurnResult(text=f"Approval #{approval_id} cannot run: {gate.reason}. Hardline policy blocks it for everyone.", turn_id=spine.turn_id)
+            await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "approved", "tool": a.tool_name})
+            await spine.emit(TOOL_CALL_REQUESTED, {"tool": a.tool_name, "approval_id": approval_id, "via_approval": True,
+                                                   "arguments_json": canonical(a.arguments or {})}, strict=True)
             try:
                 # Thin controller: approved WORK tools execute inside the operator
                 # worker's scoped registry, never in the controller's own surface.
@@ -143,7 +194,11 @@ class Controller:
                 result = {"error": type(e).__name__, "detail": str(e)[:500]}; a.status = "failed"
             a.decided_at = now(); await s.commit()
         await record_trace(conversation_id, f"approval_{a.status}", {"approval_id": approval_id})
-        return TurnResult(text=f"Approval #{approval_id}: {a.status}. Result: {json.dumps(result, ensure_ascii=False)}")
+        await spine.emit(TOOL_CALL_RESULT, {"tool": a.tool_name, "approval_id": approval_id,
+                                            "ok": a.status == "executed",
+                                            "error": result.get("error") if isinstance(result, dict) else None})
+        await spine.emit(TURN_COMPLETED, {"outcome": a.status})
+        return TurnResult(text=f"Approval #{approval_id}: {a.status}. Result: {json.dumps(result, ensure_ascii=False)}", turn_id=spine.turn_id)
 
     async def pending_approvals(self, conversation_id: int) -> TurnResult:
         async with Session() as s:

@@ -13,6 +13,12 @@ def provider_name(base_url: str, configured: str | None = None) -> str:
              "api.anthropic.com": "anthropic"}
     return known.get(host, f"openai-compatible ({host})")
 
+def normalize_usage(data: dict) -> dict:
+    """Normalize a provider usage object to {"input_tokens", "output_tokens"}."""
+    usage = (data or {}).get("usage") or {}
+    return {"input_tokens": usage.get("prompt_tokens"), "output_tokens": usage.get("completion_tokens")}
+
+
 class LLMError(RuntimeError):
     def __init__(self, *, provider: str, base_url: str, model: str, status: int | None = None,
                  kind: str = "request failed"):
@@ -64,11 +70,14 @@ class OpenAICompatibleLLM:
                         raise last
                 else:
                     try:
-                        msg = r.json()["choices"][0]["message"]
+                        data = r.json()
+                        choice = data["choices"][0]
+                        msg = choice["message"]
                         calls = [ToolCall(id=c["id"], name=c["function"]["name"],
                                           arguments=json.loads(c["function"].get("arguments") or "{}"))
                                  for c in (msg.get("tool_calls") or [])]
-                        return LLMReply(content=msg.get("content"), tool_calls=calls)
+                        return LLMReply(content=msg.get("content"), tool_calls=calls,
+                                        usage=normalize_usage(data), finish_reason=choice.get("finish_reason"))
                     except (KeyError, IndexError, TypeError, ValueError, json.JSONDecodeError):
                         raise _llm_error(base_url, model, r.status_code, "invalid response") from None
             except LLMError:
@@ -121,11 +130,14 @@ class FallbackLLM:
                                               headers={"Authorization": f"Bearer {cfg['api_key']}"})
                     if r.status_code >= 400:
                         raise _llm_error(base_url, model, r.status_code, "HTTP error")
-                    msg = r.json()["choices"][0]["message"]
+                    data = r.json()
+                    choice = data["choices"][0]
+                    msg = choice["message"]
                     calls = [ToolCall(id=c.get("id", ""), name=c["function"]["name"],
                                       arguments=json.loads(c["function"].get("arguments") or "{}"))
                              for c in (msg.get("tool_calls") or [])]
-                    return LLMReply(content=msg.get("content") or "", tool_calls=calls)
+                    return LLMReply(content=msg.get("content") or "", tool_calls=calls,
+                                    usage=normalize_usage(data), finish_reason=choice.get("finish_reason"))
                 except httpx.TimeoutException:
                     last = _llm_error(base_url, model, kind="timeout")
                 except httpx.TransportError:

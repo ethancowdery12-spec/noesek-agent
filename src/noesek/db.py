@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, inspect, select, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -69,6 +69,24 @@ class Trace(Base):
     event: Mapped[str] = mapped_column(String(64), index=True)
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+class TurnEvent(Base):
+    """Durable turn spine: one typed, ordered event in one agent turn.
+
+    Write-ahead kinds (see core.turn_spine) are flushed strictly before the
+    side effect they announce; (turn_id, seq) is unique so postmortems replay
+    deterministically.
+    """
+    __tablename__ = "turn_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    turn_id: Mapped[str] = mapped_column(String(36), index=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), index=True)
+    seq: Mapped[int] = mapped_column(Integer)
+    kind: Mapped[str] = mapped_column(String(64), index=True)
+    data: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+    __table_args__ = (UniqueConstraint("turn_id", "seq", name="uq_turn_events_turn_seq"),)
+
 
 engine = create_async_engine(settings.database_url, poolclass=NullPool)
 Session = async_sessionmaker(engine, expire_on_commit=False)

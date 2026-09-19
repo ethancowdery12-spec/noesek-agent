@@ -17,8 +17,13 @@ class ToolCall(BaseModel):
 class LLMReply(BaseModel):
     content: str | None = None
     tool_calls: list[ToolCall] = Field(default_factory=list)
+    # Normalized token usage: {"input_tokens": int|None, "output_tokens": int|None}.
+    usage: dict[str, Any] | None = None
+    finish_reason: str | None = None
 
 class TurnResult(BaseModel):
     text: str
     citations: list[str] = Field(default_factory=list)
     pending_approval_id: int | None = None
+    # Durable turn spine id (core.turn_spine) for postmortem lookup.
+    turn_id: str | None = None

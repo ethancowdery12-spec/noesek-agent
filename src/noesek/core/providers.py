@@ -28,7 +28,9 @@ class AnthropicAdapter(ProviderAdapter):
         for block in data.get("content",[]):
             if block.get("type")=="text": text.append(block.get("text",""))
             elif block.get("type")=="tool_use": calls.append(ToolCall(id=block["id"],name=block["name"],arguments=block.get("input") or {}))
-        return LLMReply(content="".join(text) or None,tool_calls=calls)
+        raw=data.get("usage") or {}
+        usage={"input_tokens":raw.get("input_tokens"),"output_tokens":raw.get("output_tokens")}
+        return LLMReply(content="".join(text) or None,tool_calls=calls,usage=usage,finish_reason=data.get("stop_reason"))
 
 class GeminiAdapter(ProviderAdapter):
     async def complete(self, messages, tools):
@@ -44,12 +46,16 @@ class GeminiAdapter(ProviderAdapter):
         url=f"{self.base_url}/models/{self.model}:generateContent"
         async with httpx.AsyncClient(timeout=self.timeout) as client: r=await client.post(url,params={"key":self.api_key},json=body)
         if r.status_code >= 400: raise _llm_error(self.base_url, self.model, r.status_code, "HTTP error", "gemini")
-        parts=((r.json().get("candidates") or [{}])[0].get("content") or {}).get("parts",[]); text=[]; calls=[]
+        data=r.json(); candidate=(data.get("candidates") or [{}])[0]
+        parts=(candidate.get("content") or {}).get("parts",[]); text=[]; calls=[]
         for i,p in enumerate(parts):
             if "text" in p: text.append(p["text"])
             if "functionCall" in p:
                 c=p["functionCall"]; calls.append(ToolCall(id=f"gemini-{i}",name=c["name"],arguments=c.get("args") or {}))
-        return LLMReply(content="".join(text) or None,tool_calls=calls)
+        raw=data.get("usageMetadata") or {}
+        usage={"input_tokens":raw.get("promptTokenCount"),"output_tokens":raw.get("candidatesTokenCount")}
+        fr=candidate.get("finishReason"); fr=fr.lower() if isinstance(fr,str) else None
+        return LLMReply(content="".join(text) or None,tool_calls=calls,usage=usage,finish_reason=fr)
 
 class FailoverLLM:
     """Try providers only on transport/rate/server failure, never auth or bad requests."""
@@ -80,4 +86,6 @@ class BedrockAdapter:
             if "text" in b: text.append(b["text"])
             if "toolUse" in b:
                 c=b["toolUse"]; calls.append(ToolCall(id=c["toolUseId"],name=c["name"],arguments=c.get("input") or {}))
-        return LLMReply(content="".join(text) or None,tool_calls=calls)
+        raw=data.get("usage") or {}
+        usage={"input_tokens":raw.get("inputTokens"),"output_tokens":raw.get("outputTokens")}
+        return LLMReply(content="".join(text) or None,tool_calls=calls,usage=usage,finish_reason=data.get("stopReason"))
