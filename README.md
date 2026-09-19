@@ -112,25 +112,25 @@ license review, reused ideas, and deliberately excluded features.
 
 ---
 
-## Windows install - v2.1.0
+## Windows install - v2.1.1
 
-Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes both `noesek` and `hermes`. Open a new terminal after installation.
+Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes `noesek` as the primary command and `hermes` as a compatibility alias. Open a new terminal after installation, then run `noesek`.
 
 ### PowerShell
 
 ```powershell
-$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'a4d51624918ed4fcd2d100ab6f3277cb8773e18860d8f3c7495071623e675f60'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.0/8-noesek-agent-v2.1.0.tar.gz' -ExpectedSha256 'a599f36dc89d1cea7b02d4934844c1f93247ccea7e093c00e41e03309a8d26af'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
+$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.1/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'b77cc3cf868e937e29baf82732d21a8d38f38dc7fe58235a302e7df8ecace87c'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.1/8-noesek-agent-v2.1.1.tar.gz' -ExpectedSha256 'ec5baf0c3ae4a7d28f5c7ad601273ac3373a0495eca071ed9edcef8fda53d9b0'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
 ```
 
 ### Command Prompt (CMD)
 
 ```bat
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'a4d51624918ed4fcd2d100ab6f3277cb8773e18860d8f3c7495071623e675f60'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.0/8-noesek-agent-v2.1.0.tar.gz' -ExpectedSha256 'a599f36dc89d1cea7b02d4934844c1f93247ccea7e093c00e41e03309a8d26af'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.1/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'b77cc3cf868e937e29baf82732d21a8d38f38dc7fe58235a302e7df8ecace87c'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.1/8-noesek-agent-v2.1.1.tar.gz' -ExpectedSha256 'ec5baf0c3ae4a7d28f5c7ad601273ac3373a0495eca071ed9edcef8fda53d9b0'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
 ```
 
-Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v2.1.0
+Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v2.1.1
 
 ## Release hashes
 
-- PowerShell installer SHA-256: `a4d51624918ed4fcd2d100ab6f3277cb8773e18860d8f3c7495071623e675f60`
-- Source archive SHA-256: `a599f36dc89d1cea7b02d4934844c1f93247ccea7e093c00e41e03309a8d26af`
+- PowerShell installer SHA-256: `b77cc3cf868e937e29baf82732d21a8d38f38dc7fe58235a302e7df8ecace87c`
+- Source archive SHA-256: `ec5baf0c3ae4a7d28f5c7ad601273ac3373a0495eca071ed9edcef8fda53d9b0`
