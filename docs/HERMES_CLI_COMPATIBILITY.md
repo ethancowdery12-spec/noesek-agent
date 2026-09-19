@@ -91,3 +91,37 @@ operator process ownership, external services, or formats Noesek does not own.
   does not mutate the host. An operator-owned executor is a separate boundary.
 - External sends, billing, remote installs, and UI/project mutation remain
   explicit exit 3.
+
+## Interactive UI (v2.1)
+
+`hermes` with no arguments, `hermes chat`, and `noesek chat` (interactive) now
+open a Hermes-look terminal UI (`noesek.hermes_ui`) instead of the plain loop:
+
+- Welcome banner in the upstream layout: caduceus + logo art (verbatim from
+  upstream `hermes_cli/banner.py`, MIT), model/context line, cwd, session id,
+  tools grouped by toolset, skills grouped by category, and the summary line.
+- Live status bar above the input in the upstream grammar: caduceus glyph,
+  model (truncated at 26 chars), `~tokens/max`, `[####......]` context bar
+  with the upstream color thresholds (green/yellow/orange/red), cost, duration,
+  compression and background-task badges, YOLO warning, and session title.
+  Width-adaptive: full >= 76 columns, compact 52-75, minimal below 52.
+- Slash-command autocomplete from the generated 102-command registry
+  (prompt_toolkit). Implemented commands execute against Noesek state;
+  recognized-but-unimplemented commands say so explicitly in-session, matching
+  the exit-3 contract of the CLI adapters.
+- `!` shell mode: runs locally without a model turn, never enters conversation
+  history, prints `! exited N` on failure, and refuses commands matching the
+  dangerous-command pattern (same gate philosophy as the terminal tool).
+- Markdown stripping on final replies: bold/italic/heading markers removed,
+  code blocks and lists preserved.
+- Keybindings: Enter sends, Alt+Enter/Ctrl+J newline, Ctrl+C interrupts
+  (double-press exits), Ctrl+D exits. History persists under `~/.noesek`.
+
+prompt_toolkit 3.0.52 is the only new dependency (the upstream CLI's own
+toolkit; pure Python, Windows-compatible). Without it the UI degrades to a
+plain loop with identical dispatch. Token/cost figures are local estimates
+(marked `~`) until provider usage reporting is wired; cost shows `n/a`.
+
+Deferred intentionally: skins/pets theming, voice, image paste, ghost-text
+suggestions, subagent dock, and the full-screen TUI/desktop surfaces - those
+need presentation layers or services outside the controller contract.

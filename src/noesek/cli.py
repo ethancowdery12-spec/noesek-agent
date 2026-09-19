@@ -85,6 +85,9 @@ async def _chat(args):
     from .core.controller import Controller
     from .core.llm import LLMError
     if args.query and args.oneshot: return await _one_shot(args)
+    if not args.query:
+        from .hermes_ui import run_interactive
+        return await run_interactive(args.user)
     cid = await _conversation(args.user); c = Controller()
     if args.query:
         try: result = await c.handle(cid, args.query); print("agent>", result.text)

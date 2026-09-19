@@ -215,6 +215,9 @@ def _run(args):
     if path==('chat',) or not path:
         # Preserve Hermes one-shot spellings while delegating work to Noesek's controller.
         query=getattr(args,'query',None) or getattr(args,'oneshot',None)
+        if not query and getattr(args,'output_format','text')!='stream-json':
+            from .hermes_ui import main as uimain
+            return uimain(model=getattr(args,'model',None))
         from .cli import main as nmain
         av=['chat'];
         if query:av+=['--oneshot','--query',query]
