@@ -29,9 +29,12 @@ class Memory(Base):
     __tablename__ = "memories"
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), index=True)
-    kind: Mapped[str] = mapped_column(String(32), default="note")
+    kind: Mapped[str] = mapped_column(String(32), default="note")  # note | fact | preference | episode
     content: Mapped[str] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Provenance + invalidate-not-overwrite (v2 stage D)
+    source: Mapped[str] = mapped_column(String(64), default="conversation")
+    superseded_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 class Task(Base):
@@ -74,6 +77,19 @@ class Trace(Base):
     detail: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
 
+class Compaction(Base):
+    """A persisted, visible context-compaction transition (v2 stage D)."""
+    __tablename__ = "compactions"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), index=True)
+    turn_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    removed_count: Mapped[int] = mapped_column(Integer)
+    budget_chars: Mapped[int] = mapped_column(Integer)
+    oldest_dropped_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    newest_dropped_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, index=True)
+
+
 class TurnEvent(Base):
     """Durable turn spine: one typed, ordered event in one agent turn.
 
@@ -95,12 +111,21 @@ class TurnEvent(Base):
 engine = create_async_engine(settings.database_url, poolclass=NullPool)
 Session = async_sessionmaker(engine, expire_on_commit=False)
 
+_FTS_DDL = "CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(memory_id UNINDEXED, content)"
+
 async def init_db(eng: AsyncEngine | None = None):
     e = eng or engine
-    async with e.begin() as conn: await conn.run_sync(Base.metadata.create_all)
+    async with e.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+        try: await conn.execute(text(_FTS_DDL))
+        except Exception: pass  # SQLite build without FTS5: keyword fallback stays in place
 
 # Columns added after v0.1, applied to pre-existing databases by migrate().
 _COLUMN_UPGRADES = {
+    "memories": {
+        "source": "VARCHAR(64) NOT NULL DEFAULT 'conversation'",
+        "superseded_by": "INTEGER",
+    },
     "tasks": {
         "result": "JSON",
         "last_error": "TEXT NOT NULL DEFAULT ''",
