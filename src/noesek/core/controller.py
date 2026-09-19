@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from .approval_engine import assess_tool_arguments
 from .context import assemble
+from .policy import evaluate_policy, parse_rules
 from .llm import configured_llm, provider_name
 from .metrics import inc
 from .tools import ToolRegistry, ToolSpec
@@ -39,6 +40,7 @@ class Controller:
         self.llm = llm or configured_llm()
         self._registry_factory = registry_factory
         self.max_steps = max_steps
+        self._policy_rules = parse_rules(settings.policy_rules)
 
     def registry(self, conversation_id: int) -> ToolRegistry:
         if self._registry_factory: return self._registry_factory(conversation_id)
@@ -109,23 +111,23 @@ class Controller:
                         result = {"error": "unknown tool"}
                         await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id, "ok": False, "error": "unknown_tool"})
                     else:
-                        if spec.risk in APPROVAL_RISKS:
-                            gate = assess_tool_arguments(call.arguments)
-                            if gate.blocked:
+                        decision = evaluate_policy(call.name, spec.risk, call.arguments, extra_rules=self._policy_rules)
+                        if decision.denied:
                                 inc("noesek_approvals_blocked_total")
-                                refusal = (f"Blocked by policy: {gate.reason}. This cannot be approved or run "
+                                refusal = (f"Blocked by policy: {decision.reason}. This cannot be approved or run "
                                            "through the agent.")
                                 async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=refusal)); await s.commit()
-                                await record_trace(conversation_id, "approval_blocked", {"tool": call.name, "reason": gate.reason})
-                                await spine.emit(POLICY_BLOCKED, {"tool": call.name, "call_id": call.id, "reason": gate.reason})
+                                await record_trace(conversation_id, "approval_blocked", {"tool": call.name, "reason": decision.reason})
+                                await spine.emit(POLICY_BLOCKED, {"tool": call.name, "call_id": call.id, "reason": decision.reason, "rule": decision.rule})
                                 await spine.emit(TURN_COMPLETED, {"outcome": "policy_blocked"})
                                 return TurnResult(text=refusal, turn_id=spine.turn_id)
+                        if decision.needs_approval:
                             inc("noesek_approvals_total")
-                            rationale = f"Requested during conversation turn: {text[:300]}"
-                            if gate.verdict == "approval": rationale += f" (policy flag: {gate.reason})"
+                            rationale = f"Requested during conversation turn: {text[:300]} (rule: {decision.rule})"
+                            if decision.content_flag: rationale += f" (policy flag: {decision.content_flag})"
                             async with Session() as s:
                                 a = Approval(conversation_id=conversation_id, tool_name=call.name, arguments=call.arguments,
-                                             rationale=rationale,
+                                             rationale=rationale, turn_id=spine.turn_id, canonical_args=canonical(call.arguments),
                                              expires_at=now()+timedelta(hours=settings.approval_ttl_hours))
                                 s.add(a); await s.commit()
                             prompt = (f"Approval required #{a.id}: {call.name} with {json.dumps(call.arguments, ensure_ascii=False)}. "
@@ -171,6 +173,11 @@ class Controller:
                 await record_trace(conversation_id, "approval_rejected", {"approval_id": approval_id})
                 await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "rejected"})
                 return TurnResult(text=f"Rejected approval #{approval_id}.", turn_id=spine.turn_id)
+            if a.canonical_args and a.canonical_args != canonical(a.arguments or {}):
+                a.status = "blocked"; a.decided_at = now(); await s.commit()
+                await record_trace(conversation_id, "approval_blocked", {"approval_id": approval_id, "reason": "arguments changed since creation"})
+                await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "blocked", "reason": "lease integrity check failed"})
+                return TurnResult(text=f"Approval #{approval_id} cannot run: its stored arguments no longer match the lease. Ask again to create a fresh one.", turn_id=spine.turn_id)
             gate = assess_tool_arguments(a.arguments or {})
             if gate.blocked:
                 a.status = "blocked"; a.decided_at = now(); await s.commit()
