@@ -4,6 +4,29 @@
       "help": "Hermes Agent - AI assistant with tool-calling capabilities",
       "options": [
         {
+          "action": "store_true",
+          "flags": [
+            "--version",
+            "-V"
+          ],
+          "help": "Show version and exit"
+        },
+        {
+          "flags": [
+            "-z",
+            "--oneshot"
+          ],
+          "help": "One-shot mode: send a single prompt and print ONLY the final response text to stdout. No banner, no spinner, no tool previews, no session_id line. Tools, memory, rules, and AGENTS.md in the CWD are loaded as normal; approvals are auto-bypassed. Intended for scripts / pipes.",
+          "metavar": "PROMPT"
+        },
+        {
+          "flags": [
+            "--usage-file"
+          ],
+          "help": "One-shot mode only: after the run, write a JSON usage report (estimated cost, token counts, model, api_calls) to PATH. The report is written even when the run fails, so pipelines can always account for spend. No effect outside -z/--oneshot.",
+          "metavar": "PATH"
+        },
+        {
           "flags": [
             "-m",
             "--model"
@@ -22,6 +45,57 @@
           ],
           "help": "Reasoning effort for this invocation: none, minimal, low, medium, high, xhigh, max, or ultra. Overrides agent.reasoning_effort in config.yaml for this run only; the persistent level lives there (or per-model under agent.reasoning_overrides).",
           "metavar": "LEVEL"
+        },
+        {
+          "flags": [
+            "-t",
+            "--toolsets"
+          ],
+          "help": "Comma-separated toolsets to enable for this invocation. Applies to -z/--oneshot and --tui."
+        },
+        {
+          "flags": [
+            "--resume",
+            "-r"
+          ],
+          "help": "Resume a previous session by ID or title, or pass 'latest' for the most recent session (workspace-scoped, like -c with no name)",
+          "metavar": "SESSION"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--no-restore-cwd"
+          ],
+          "help": "Don't cd into a resumed session's recorded working directory."
+        },
+        {
+          "dest": "in_dir",
+          "flags": [
+            "--in"
+          ],
+          "help": "Change into DIR before starting or resuming. Combined with '--resume latest' or -c, the most recent session for DIR's workspace is picked, and the session stays in DIR (skips the recorded-cwd restore).",
+          "metavar": "DIR"
+        },
+        {
+          "const": true,
+          "dest": "continue_last",
+          "flags": [
+            "--continue",
+            "-c"
+          ],
+          "help": "Resume a session by name, or the most recent if no name given",
+          "metavar": "SESSION_NAME",
+          "nargs": "?"
+        },
+        {
+          "action": "store_true",
+          "default": false,
+          "flags": [
+            "--worktree",
+            "-w"
+          ],
+          "help": "Run in an isolated git worktree (for parallel agents)"
         },
         {
           "action": "store_true",
