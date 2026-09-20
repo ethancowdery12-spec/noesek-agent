@@ -5,14 +5,19 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 RUN apt-get update -qq \
  && apt-get install -y -qq --no-install-recommends \
-    xvfb scrot xdotool espeak-ng fonts-liberation curl ca-certificates \
+    xvfb scrot xdotool espeak-ng ffmpeg unzip fonts-liberation curl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install . \
+RUN pip install .[stt] \
  && playwright install --with-deps chromium
+
+# Small offline STT model (vosk small-en, ~40MB) baked into the image.
+RUN curl -fsSL https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip -o /tmp/vosk.zip \
+ && unzip -q /tmp/vosk.zip -d /opt && rm /tmp/vosk.zip
+ENV NOESEK_VOSK_MODEL=/opt/vosk-model-small-en-us-0.15
 
 RUN useradd -r -u 10001 noesek && mkdir -p /home/noesek && chown noesek /home/noesek
 USER noesek

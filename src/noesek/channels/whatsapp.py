@@ -79,6 +79,34 @@ async def send_document(to: str, filename: str, data: bytes, mime: str = "applic
 
 outbound.register("whatsapp", send_text)
 
+async def _fetch_media(media_id: str) -> tuple[bytes, str]:
+    """Download one inbound media object: id -> URL -> bytes."""
+    if not settings.whatsapp_access_token:
+        raise RuntimeError("whatsapp not configured")
+    headers = {"Authorization": f"Bearer {settings.whatsapp_access_token}"}
+    async with httpx.AsyncClient(timeout=30) as c:
+        meta = await c.get(f"https://graph.facebook.com/v22.0/{media_id}", headers=headers)
+        meta.raise_for_status()
+        info = meta.json()
+        blob = await c.get(info["url"], headers=headers)
+        blob.raise_for_status()
+        return blob.content, info.get("mime_type", "audio/ogg")
+
+
+async def _transcribe_inbound(media: dict) -> str | None:
+    """Voice note -> text, or None when STT is unavailable/failed."""
+    media_id = media.get("id")
+    if not media_id:
+        return None
+    try:
+        from .. import stt
+        data, mime = await _fetch_media(media_id)
+        return await stt.transcribe(data, mime)
+    except Exception as exc:
+        log.warning("voice-note transcription failed: %s", exc)
+        return None
+
+
 async def _reply(sender: str, text: str):
     if text: await send_text(sender, text)
 
@@ -114,7 +142,14 @@ async def inbound(request: Request, x_hub_signature_256: str | None = Header(def
                 conv = await get_or_create_conversation(s, "whatsapp", sender); await s.commit(); cid = conv.id
             mtype = msg.get("type")
             if mtype != "text":
-                if mtype in MEDIA_TYPES:
+                if mtype in ("audio", "voice"):
+                    text = await _transcribe_inbound(msg.get(mtype) or {})
+                    if text:
+                        result = await controller.handle(cid, f"[voice note] {text}", msg.get("id"))
+                        await _reply(sender, result.text)
+                    else:
+                        await _reply(sender, "I received your voice note but couldn't transcribe it on this box. Type it out and I'll help.")
+                elif mtype in MEDIA_TYPES:
                     await _reply(sender, f"I received your {mtype}. Media understanding isn't supported yet; describe it in text and I'll help.")
                 continue
             text = msg.get("text", {}).get("body", "")
