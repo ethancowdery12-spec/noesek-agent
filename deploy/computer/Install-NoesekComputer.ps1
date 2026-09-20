@@ -8,7 +8,7 @@ param(
     [string]$LlmApiKey = $(if ($env:NOESEK_LLM_API_KEY) { $env:NOESEK_LLM_API_KEY } else { '' }),
     [string]$LlmBaseUrl = 'https://api.deepseek.com/v1',
     [string]$LlmModel = 'deepseek-chat',
-    [string]$NoesekVersion = '3.2.0',
+    [string]$NoesekVersion = '3.2.1',
     [string]$TarballSha256 = 'FILL-ON-RELEASE'
 )
 $ErrorActionPreference = 'Stop'
