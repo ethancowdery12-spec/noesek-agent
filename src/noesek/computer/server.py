@@ -360,6 +360,45 @@ async def github_notifications(chat_id: str, max_results: int = 10):
     return {"chat_id": chat_id, "count": len(notes), "notifications": notes}
 
 
+class InputIn(BaseModel):
+    action: str  # click | type | key | move
+    x: int = 0
+    y: int = 0
+    text: str = ""
+    keys: str = ""  # xdotool key syntax, e.g. "ctrl+s"
+    button: int = 1
+
+
+_INPUT_ACTIONS = {"click", "type", "key", "move"}
+
+
+@app.post("/computer/input")
+async def computer_input(body: InputIn):
+    """Touch the machine: mouse/keyboard on the virtual display via xdotool."""
+    if body.action not in _INPUT_ACTIONS:
+        raise HTTPException(400, f"action must be one of {sorted(_INPUT_ACTIONS)}")
+    if not os.environ.get("DISPLAY") or not shutil.which("xdotool"):
+        raise HTTPException(503, "no display or xdotool unavailable")
+    if body.action == "move":
+        cmd = ["xdotool", "mousemove", str(body.x), str(body.y)]
+    elif body.action == "click":
+        cmd = ["xdotool", "mousemove", str(body.x), str(body.y), "click", str(body.button)]
+    elif body.action == "type":
+        if not body.text:
+            raise HTTPException(400, "text is required for type")
+        cmd = ["xdotool", "type", "--delay", "20", "--", body.text]
+    else:
+        if not body.keys:
+            raise HTTPException(400, "keys is required for key")
+        cmd = ["xdotool", "key", "--", body.keys]
+    proc = await asyncio.create_subprocess_exec(
+        *cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    _, err = await proc.communicate()
+    if proc.returncode != 0:
+        raise HTTPException(502, f"input failed: {(err or b'').decode()[:200]}")
+    return {"ok": True, "action": body.action}
+
+
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "version": __version__, "display": os.environ.get("DISPLAY", "")}
