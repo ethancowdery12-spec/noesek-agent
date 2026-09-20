@@ -270,3 +270,32 @@ async def test_proactive_flow_and_idle_withholding(monkeypatch, tmp_path):
 
         listing = await c.get("/proactive")
         assert listing.json()["chats"]["ethan-main"]["active"] is False
+
+
+@pytest.mark.asyncio
+async def test_gmail_tool_reads_with_stored_grant(monkeypatch, tmp_path):
+    from noesek import connectors
+    from noesek.connectors import google as gtool
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    store.put("google", "ethan-main", "tok-g", ("gmail.readonly",))
+
+    seen = {}
+
+    async def fake_list(token, max_results):
+        seen["token"] = token
+        seen["max"] = max_results
+        return [{"id": "m1", "from": "sam@x.com", "subject": "tennis?",
+                 "date": "Sun, 20 Sep 2026 09:00:00 -0500", "snippet": "sat 3pm?"}]
+
+    monkeypatch.setattr(gtool, "list_messages", fake_list)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        no_grant = await c.get("/connectors/google/gmail/messages", params={"chat_id": "nobody"})
+        assert no_grant.status_code == 403
+        r = await c.get("/connectors/google/gmail/messages",
+                        params={"chat_id": "ethan-main", "max_results": 3})
+        assert r.status_code == 200
+        assert r.json()["messages"][0]["subject"] == "tennis?"
+        assert seen == {"token": "tok-g", "max": 3}
