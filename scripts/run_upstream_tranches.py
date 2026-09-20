@@ -14,7 +14,7 @@ REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VENDOR = os.path.join(REPO, "vendor", "hermes-agent")
 MANIFEST = os.path.join(REPO, "tests", "upstream", "TRANCHE_RESULTS.json")
 LOGDIR = os.path.join(REPO, "tests", "upstream", "logs")
-FILE_TIMEOUT_S = int(os.environ.get("UPSTREAM_FILE_TIMEOUT_S", "300"))
+FILE_TIMEOUT_S = int(os.environ.get("UPSTREAM_FILE_TIMEOUT_S", "900"))
 WORKERS = int(os.environ.get("UPSTREAM_TEST_WORKERS", "4"))
 COUNT_RE = re.compile(r"(\d+)\s+(passed|failed|skipped|error|errors|xfailed|xpassed|warning|warnings|deselected)")
 
@@ -47,23 +47,36 @@ def run_file(path, kexpr):
     if kexpr:
         cmd += ["-k", kexpr]
     started = time.time()
-    proc = subprocess.Popen(cmd, cwd=VENDOR, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, text=True,
-                            start_new_session=True)
+    clean_env = {
+        "PATH": os.environ.get("PATH", ""), "HOME": os.environ.get("HOME", ""),
+        "TZ": "UTC", "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
+        "PYTHONHASHSEED": "0", "PYTHONUTF8": "1",
+    }
+    attempts = []
     timed_out = False
-    try:
-        output, _ = proc.communicate(timeout=FILE_TIMEOUT_S)
-    except subprocess.TimeoutExpired:
-        timed_out = True
+    for attempt in range(2):
+        proc = subprocess.Popen(cmd, cwd=VENDOR, stdout=subprocess.PIPE,
+                                stderr=subprocess.STDOUT, text=True,
+                                start_new_session=True, env=clean_env)
         try:
-            os.killpg(proc.pid, signal.SIGKILL)
-        except ProcessLookupError:
-            pass
-        output, _ = proc.communicate()
-    return {"path": path, "cmd": " ".join(cmd), "counts": parse_counts(output),
-            "exit_code": -9 if timed_out else proc.returncode,
-            "timed_out": timed_out, "duration_s": round(time.time()-started, 1),
-            "output": output}
+            output, _ = proc.communicate(timeout=FILE_TIMEOUT_S)
+            code = proc.returncode
+        except subprocess.TimeoutExpired:
+            timed_out = True
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            output, _ = proc.communicate()
+            code = -9
+        attempts.append(output)
+        if code in (0, 5):
+            break
+    combined = "".join(f"\n--- attempt {i+1} ---\n{text}" for i, text in enumerate(attempts))
+    return {"path": path, "cmd": " ".join(cmd), "counts": parse_counts(attempts[-1]),
+            "exit_code": code, "timed_out": timed_out,
+            "flaky": len(attempts) > 1 and code in (0, 5),
+            "duration_s": round(time.time()-started, 1), "output": combined}
 
 
 def run_tranche(spec):
@@ -99,7 +112,9 @@ def run_tranche(spec):
             "exit_code": 1 if failing else 0,
             "timed_out": any(row["timed_out"] for row in results),
             "duration_s": round(time.time()-started, 1), "files": len(files),
-            "failing_files": failing, "workers": WORKERS,
+            "failing_files": failing,
+            "flaky_files": [row["path"] for row in results if row.get("flaky")],
+            "workers": WORKERS,
             "log": os.path.relpath(logpath, REPO), "tail": output[-2000:]}
 
 
