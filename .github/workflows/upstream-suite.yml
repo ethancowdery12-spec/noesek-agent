@@ -1,0 +1,55 @@
+name: upstream-suite
+# Runs the vendored upstream hermes-agent test suite (vendor/hermes-agent/tests,
+# pinned commit d7b836ab) in tranches, in place, against the installed Noesek
+# package. Informational: legs are continue-on-error so infra-needing failures
+# never block a PR. Results land as per-leg artifacts (TRANCHE_RESULTS.json +
+# full log). See tests/upstream/EXCLUSIONS.md for the excluded dirs and why.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'vendor/**'
+      - 'scripts/run_upstream_tranches.py'
+      - '.github/workflows/upstream-suite.yml'
+      - 'tests/upstream/**'
+jobs:
+  tranche:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: cron,         spec: "tests/cron"}
+          - {name: tools-core,   spec: "tests/tools::not browser and not camofox"}
+          - {name: tools-browser, spec: "tests/tools::browser or camofox"}
+          - {name: gateway,      spec: "tests/gateway"}
+          - {name: plugins,      spec: "tests/plugins"}
+          - {name: agent,        spec: "tests/agent"}
+          - {name: hermes_cli,   spec: "tests/hermes_cli"}
+          - {name: tui_gateway,  spec: "tests/tui_gateway"}
+          - {name: acp_adapter,  spec: "tests/acp_adapter"}
+          - {name: skills,       spec: "tests/skills"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install -e '.[test]'
+          pip install 'pytest==9.1.1' 'pytest-asyncio==1.3.0' 'mcp==2.0.0' 'httpx2==2.7.0' 'starlette==1.3.1'
+      - name: Install Playwright Chromium (browser leg only)
+        if: matrix.name == 'tools-browser'
+        run: python -m playwright install --with-deps chromium
+      - name: Run tranche
+        run: python scripts/run_upstream_tranches.py "${{ matrix.spec }}" 2>&1 | tee tranche-${{ matrix.name }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tranche-${{ matrix.name }}
+          path: |
+            tests/upstream/TRANCHE_RESULTS.json
+            tranche-${{ matrix.name }}.log
+          if-no-files-found: warn
