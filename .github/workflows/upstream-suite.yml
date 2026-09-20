@@ -1,0 +1,71 @@
+name: upstream-suite
+# Runs the vendored upstream hermes-agent test suite (vendor/hermes-agent/tests,
+# pinned commit d7b836ab) in tranches, in place, against the installed Noesek
+# package. Each file gets a fresh pytest process, matching upstream CI isolation. Informational: legs are continue-on-error so infra-needing failures
+# never block a PR. Big suites are split into sub-legs to stay well inside
+# runner resource limits. Per-tranche pytest output streams to
+# tests/upstream/logs/*.log (uploaded as artifacts even when a leg dies).
+# Results land in tests/upstream/TRANCHE_RESULTS.json per leg.
+# See tests/upstream/EXCLUSIONS.md for the excluded dirs and why.
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'vendor/**'
+      - 'scripts/run_upstream_tranches.py'
+      - '.github/workflows/upstream-suite.yml'
+      - 'tests/upstream/**'
+jobs:
+  tranche:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: cron,              spec: "tests/cron"}
+          - {name: tools-core-ae,     spec: "tests/tools/test_[a-e]*.py::not browser and not camofox"}
+          - {name: tools-core-fj,     spec: "tests/tools/test_[f-j]*.py::not browser and not camofox"}
+          - {name: tools-core-km,     spec: "tests/tools/test_[k-m]*.py::not browser and not camofox"}
+          - {name: tools-core-nz,     spec: "tests/tools/test_[n-z]*.py::not browser and not camofox"}
+          - {name: tools-env,         spec: "tests/tools/environments"}
+          - {name: tools-browser,     spec: "tests/tools::browser or camofox"}
+          - {name: gateway-root-af,   spec: "tests/gateway/test_[a-f]*.py"}
+          - {name: gateway-root-gm,   spec: "tests/gateway/test_[g-m]*.py"}
+          - {name: gateway-root-nz,   spec: "tests/gateway/test_[n-z]*.py"}
+          - {name: gateway-platforms, spec: "tests/gateway/platforms"}
+          - {name: gateway-relay,     spec: "tests/gateway/relay"}
+          - {name: agent-root-af,     spec: "tests/agent/test_[a-f]*.py"}
+          - {name: agent-root-gm,     spec: "tests/agent/test_[g-m]*.py"}
+          - {name: agent-root-nz,     spec: "tests/agent/test_[n-z]*.py"}
+          - {name: agent-lsp,         spec: "tests/agent/lsp"}
+          - {name: agent-transports,  spec: "tests/agent/transports"}
+          - {name: plugins,           spec: "tests/plugins"}
+          - {name: hermes_cli-am,     spec: "tests/hermes_cli/test_[a-m]*.py"}
+          - {name: hermes_cli-nz,     spec: "tests/hermes_cli/test_[n-z]*.py"}
+          - {name: tui_gateway,       spec: "tests/tui_gateway"}
+          - {name: acp_adapter,       spec: "tests/acp_adapter"}
+          - {name: skills,            spec: "tests/skills"}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.9.28"
+      - name: Recreate the upstream locked test environment
+        run: |
+          uv python install 3.11
+          cd vendor/hermes-agent
+          uv sync --locked --python 3.11 --extra all --extra dev --extra anthropic --extra mistral --extra fal --extra modal --extra daytona --extra hindsight --extra parallel-web
+          sudo apt-get install -y ripgrep
+      - name: Run tranche
+        run: vendor/hermes-agent/.venv/bin/python scripts/run_upstream_tranches.py "${{ matrix.spec }}" 2>&1 | tee tranche-${{ matrix.name }}.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: tranche-${{ matrix.name }}
+          path: |
+            tests/upstream/TRANCHE_RESULTS.json
+            tests/upstream/logs/
+            tranche-${{ matrix.name }}.log
+          if-no-files-found: warn

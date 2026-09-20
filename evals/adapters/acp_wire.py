@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import emit, env_for, out_dir
 
 
-def rpc(proc, sel, transcript, method, params, rid, timeout=20):
+def rpc(proc, sel, transcript, method, params, rid, timeout=180):
     line = json.dumps({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
     proc.stdin.write(line + "\n"); proc.stdin.flush()
     transcript.append({"dir": "client->agent", "msg": json.loads(line)})
