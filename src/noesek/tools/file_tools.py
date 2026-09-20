@@ -19,5 +19,9 @@ def create_file_handler(conversation_id: int):
             meta = filestore.write_file(inp.name, inp.content)
         except filestore.FileStoreError as exc:
             return {"error": str(exc)}
-        return {"created": True, "download": f"/files/{meta['name']}", **meta}
+        from .delivery import deliver_file
+        note = await deliver_file(conversation_id, meta["name"],
+                                  inp.content.encode(), "application/octet-stream",
+                                  caption=inp.name)
+        return {"created": True, "download": f"/files/{meta['name']}", **(note or {}), **meta}
     return h
