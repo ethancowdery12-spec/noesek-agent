@@ -1,8 +1,8 @@
-# Upstream suite results (v3 S6)
+# Upstream suite results (v3 S6, superseded)
 
 Source: vendored upstream commit `d7b836ab` (MIT, copyright Nous Research).  
 Workflow: [upstream-suite run 35494355700](https://github.com/ethancowdery12-spec/noesek-agent/actions/runs/35494355700), Ubuntu/Python 3.12, commit `9586a0d1c781e2dc2bef057d4d41cab95b325f0d`.  
-Result: all **23 CI legs completed successfully** as an informational compatibility inventory. The runner recorded **49,338 passed, 658 failed, 109 errors, 443 skipped, and 2 xfailed** across 5,901 test-seconds.
+Superseded methodology: all **23 CI legs completed**, but this run grouped many files in one pytest process rather than using upstream CI's per-file process isolation. Its failure totals are retained for traceability and must not be treated as defect counts. A file-isolated rerun supersedes this table. Original result as an informational compatibility inventory. The runner recorded **49,338 passed, 658 failed, 109 errors, 443 skipped, and 2 xfailed** across 5,901 test-seconds.
 
 The upstream suite is intentionally informational: it runs the unchanged vendored tests against the Noesek integration boundary and preserves failures in artifacts rather than concealing them with source edits or skips. Noesek's release gate remains the native `eval-gate` suite. This run also caught and fixed a real dependency drift before release: ACP is pinned to the upstream-compatible `agent-client-protocol==0.9.0`.
 
