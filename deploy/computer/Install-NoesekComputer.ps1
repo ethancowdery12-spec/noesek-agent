@@ -9,7 +9,7 @@ param(
     [string]$LlmBaseUrl = 'https://api.deepseek.com/v1',
     [string]$LlmModel = 'deepseek-chat',
     [string]$NoesekVersion = '3.2.0',
-    [string]$TarballSha256 = '311ec12aeba007508fc71faa4a7a7575ab7571c6951240f9b857bab14f1871c5'
+    [string]$TarballSha256 = 'FILL-ON-RELEASE'
 )
 $ErrorActionPreference = 'Stop'
 
@@ -50,7 +50,7 @@ if (-not (Test-Path $setup)) {
 $wslPath = (wsl.exe -d $Distro -- wslpath -a ($setup -replace '\\','\\'))
 Say "Running setup inside $Distro (this takes a few minutes the first time)"
 wsl.exe -d $Distro -u root -- bash -c "sed -i 's/\r$//' '$wslPath' && chmod +x '$wslPath'"
-if ($TarballSha256 -eq '311ec12aeba007508fc71faa4a7a7575ab7571c6951240f9b857bab14f1871c5') { throw 'This installer ships with the v3.1.0 release - use the copy attached to the release.' }
+if ($TarballSha256 -eq 'FILL-ON-RELEASE') { throw 'This installer ships with the current release - use the copy attached to the release.' }
 wsl.exe -d $Distro -- env "NOESEK_VERSION=$NoesekVersion" "NOESEK_TARBALL_SHA256=$TarballSha256" NOESEK_LLM_API_KEY="$LlmApiKey" NOESEK_LLM_BASE_URL="$LlmBaseUrl" NOESEK_LLM_MODEL="$LlmModel" bash "$wslPath"
 
 # 5. Make it start with Windows
