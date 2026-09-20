@@ -28,6 +28,10 @@ curl -fsSL -o noesek.tar.gz "$TARBALL_URL"
 echo "$TARBALL_SHA256  noesek.tar.gz" | sha256sum -c -
 "$VENV/bin/pip" -q install noesek.tar.gz
 
+echo "==> Installing Chromium for the browser tool"
+sudo "$VENV/bin/playwright" install-deps chromium >/dev/null
+"$VENV/bin/playwright" install chromium >/dev/null
+
 echo "==> Writing config"
 mkdir -p "$HOME_DIR"
 if [ ! -f "$HOME_DIR/computer.env" ]; then

@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     llm_fallbacks: str = ""  # JSON list of {base_url, model, api_key}; empty = single provider
     llm_max_concurrent: int = 0  # 0 = unbounded; >0 bounds simultaneous LLM calls
     local_read_root: str = ""  # allowlisted root for the read_file tool; default NOESEK_HOME/workspace
+    computer_allowed_origins: str = ""  # comma-separated https origins for /computer/browse; empty = allow any
     sandbox_image: str = "python:3.12-alpine"
     sandbox_backend: str = "docker-cli"  # docker-cli | docker-py | e2b
     tool_timeout_seconds: float = 45.0

@@ -30,6 +30,8 @@ from ..channels.slack_router import router as slack_router
 from ..channels.telegram_router import router as telegram_router
 from ..config import settings
 from ..db import Session, init_db, migrate, get_or_create_conversation
+from ..core.browser_backend import PlaywrightExecutor, BrowserBackendError
+from ..core.computer_use import ComputerPlan
 
 log = logging.getLogger("noesek.computer")
 
@@ -99,6 +101,60 @@ async def screenshot():
         data = f.read()
     os.unlink(path)
     return Response(content=data, media_type="image/png")
+
+
+class BrowseIn(BaseModel):
+    url: str
+    actions: list[dict] | None = None
+    timeout_ms: int = 30_000
+
+
+_BROWSE_ACTIONS = {"navigate", "click", "type", "extract_text", "screenshot"}
+_TEXT_CAP = 8000
+
+
+@app.post("/computer/browse")
+async def browse(body: BrowseIn):
+    """Drive Chromium as a tool: build a plan, validate it, execute it.
+
+    Default plan: navigate + extract body text + screenshot. The server is
+    the operator on-box, so it self-approves the plan digest after
+    validation; remote approval rides the same digest contract later.
+    """
+    from urllib.parse import urlparse
+
+    url = (body.url or "").strip()
+    if not url.startswith(("http://", "https://")):
+        raise HTTPException(400, "url must be http(s)")
+    origin = f"{urlparse(url).scheme}://{urlparse(url).netloc}"
+    actions = body.actions or [
+        {"type": "navigate", "url": url},
+        {"type": "extract_text", "selector": "body"},
+        {"type": "screenshot"},
+    ]
+    allowed = {o.strip() for o in settings.computer_allowed_origins.split(",") if o.strip()}
+    try:
+        plan = ComputerPlan(origin=origin, actions=tuple(actions)).validate(
+            allowed or {origin}, _BROWSE_ACTIONS)
+    except PermissionError as exc:
+        raise HTTPException(403, str(exc))
+    headless = os.environ.get("NOESEK_COMPUTER_BROWSER_HEADED", "") != "1"
+    executor = PlaywrightExecutor(timeout_ms=body.timeout_ms, headless=headless)
+    try:
+        result = await execute_plan_for(plan, executor)
+    except BrowserBackendError as exc:
+        raise HTTPException(502, str(exc))
+    for step in result["steps"]:
+        if isinstance(step.get("text"), str) and len(step["text"]) > _TEXT_CAP:
+            step["text"] = step["text"][:_TEXT_CAP]
+            step["text_truncated"] = True
+    return result
+
+
+async def execute_plan_for(plan, executor):
+    """Self-approval seam: the on-box server is the operator."""
+    from ..core.computer_use import execute_plan
+    return await execute_plan(plan, plan.digest, executor)
 
 
 @app.get("/healthz")
