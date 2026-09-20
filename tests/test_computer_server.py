@@ -217,3 +217,56 @@ async def test_oauth_callback_completes_flow(monkeypatch, tmp_path):
         # state is single-use
         replay = await c.get("/connectors/callback", params={"code": "abc", "state": state})
         assert replay.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_proactive_flow_and_idle_withholding(monkeypatch, tmp_path):
+    from noesek import proactive
+
+    store = proactive.ProactiveStore(tmp_path / "proactive.json")
+    monkeypatch.setattr(proactive, "default_store", lambda: store)
+
+    conversations = {}
+    FakeSession, fake_get_or_create = _stub_session(conversations)
+    monkeypatch.setattr(server, "Session", FakeSession)
+    monkeypatch.setattr(server, "get_or_create_conversation", fake_get_or_create)
+
+    replies = iter(["IDLE", "ordered the thing"])
+    seen_texts = []
+
+    async def fake_handle(cid, text, external_id=None):
+        seen_texts.append(text)
+        return types.SimpleNamespace(text=next(replies))
+
+    monkeypatch.setattr(server, "get_controller", lambda: types.SimpleNamespace(handle=fake_handle))
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        act = await c.post("/proactive/activate",
+                           json={"chat_id": "ethan-main", "goal": "watch the build", "interval_seconds": 60})
+        assert act.status_code == 200
+        assert act.json()["active"] is True and act.json()["interval_seconds"] == 60
+        assert oct((tmp_path / "proactive.json").stat().st_mode)[-3:] == "600"
+
+        # due immediately after activate
+        assert store.due_chats() == ["ethan-main"]
+
+        # first tick: controller goes IDLE -> withheld, not acted
+        t1 = await c.post("/proactive/tick", json={"chat_id": "ethan-main"})
+        assert t1.status_code == 200
+        assert t1.json() == {"chat_id": "ethan-main", "acted": False, "reply": ""}
+        assert "watch the build" in seen_texts[0]
+
+        # second tick: controller acts -> reply surfaces
+        t2 = await c.post("/proactive/tick", json={"chat_id": "ethan-main"})
+        assert t2.json()["acted"] is True and t2.json()["reply"] == "ordered the thing"
+
+        # rescheduled into the future after each tick
+        assert store.due_chats() == []
+
+        pause = await c.post("/proactive/pause", json={"chat_id": "ethan-main"})
+        assert pause.status_code == 200
+        paused_tick = await c.post("/proactive/tick", json={"chat_id": "ethan-main"})
+        assert paused_tick.status_code == 404
+
+        listing = await c.get("/proactive")
+        assert listing.json()["chats"]["ethan-main"]["active"] is False
