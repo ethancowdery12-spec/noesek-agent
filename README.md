@@ -112,25 +112,25 @@ upstream attribution and license review.
 
 ---
 
-## Windows install - v2.1.2
+## Windows install - v2.1.3
 
 Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes the `noesek` command. Open a new terminal after installation, then run `noesek`.
 
 ### PowerShell
 
 ```powershell
-$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.2/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '041b7434dac1a47138ed9fc99661c86f4cdddca65471255ae1f17727a4834908'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.2/8-noesek-agent-v2.1.2.tar.gz' -ExpectedSha256 '3a3b5e38c9c53215a0c1022702f28cefda2a895de161678a5d526f9121b0cb00'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
+$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
 ```
 
 ### Command Prompt (CMD)
 
 ```bat
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.2/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '041b7434dac1a47138ed9fc99661c86f4cdddca65471255ae1f17727a4834908'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.2/8-noesek-agent-v2.1.2.tar.gz' -ExpectedSha256 '3a3b5e38c9c53215a0c1022702f28cefda2a895de161678a5d526f9121b0cb00'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
 ```
 
-Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v2.1.2
+Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v2.1.3
 
 ## Release hashes
 
-- PowerShell installer SHA-256: `041b7434dac1a47138ed9fc99661c86f4cdddca65471255ae1f17727a4834908`
-- Source archive SHA-256: `3a3b5e38c9c53215a0c1022702f28cefda2a895de161678a5d526f9121b0cb00`
+- PowerShell installer SHA-256: `fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1`
+- Source archive SHA-256: `c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4`
