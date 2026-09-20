@@ -52,6 +52,31 @@ async def send_text(to: str, text: str):
             r = await c.post(url, json=payload, headers=headers); r.raise_for_status(); out.append(r.json())
     return {"sent": len(out), "responses": out}
 
+async def send_document(to: str, filename: str, data: bytes, mime: str = "application/octet-stream", caption: str = ""):
+    """Push a file natively: upload to /media, then a document message.
+
+    WhatsApp requires the two-step dance - the media id from the upload goes
+    into the document payload. Without credentials this is a dry run, same
+    contract as send_text.
+    """
+    if not settings.whatsapp_access_token or not settings.whatsapp_phone_number_id:
+        return {"dry_run": True, "filename": filename, "bytes": len(data)}
+    base = f"https://graph.facebook.com/v22.0/{settings.whatsapp_phone_number_id}"
+    headers = {"Authorization": f"Bearer {settings.whatsapp_access_token}"}
+    async with httpx.AsyncClient(timeout=60) as c:
+        up = await c.post(f"{base}/media", headers=headers,
+                          data={"messaging_product": "whatsapp"},
+                          files={"file": (filename, data, mime)})
+        up.raise_for_status()
+        media_id = up.json()["id"]
+        doc = {"messaging_product": "whatsapp", "to": to, "type": "document",
+               "document": {"id": media_id, "filename": filename}}
+        if caption:
+            doc["document"]["caption"] = caption[:1024]
+        r = await c.post(f"{base}/messages", json=doc, headers=headers)
+        r.raise_for_status()
+        return {"sent": True, "media_id": media_id, "filename": filename}
+
 outbound.register("whatsapp", send_text)
 
 async def _reply(sender: str, text: str):

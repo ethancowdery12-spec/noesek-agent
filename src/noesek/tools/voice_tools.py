@@ -18,5 +18,9 @@ def speak_handler(conversation_id: int):
             meta = await voice.synthesize(inp.text, inp.name)
         except (voice.VoiceError, filestore.FileStoreError) as exc:
             return {"error": str(exc)}
-        return {"created": True, "download": f"/files/{meta['name']}", **meta}
+        from .delivery import deliver_file
+        note = await deliver_file(conversation_id, meta["name"],
+                                  filestore.read_file(meta["name"]), "audio/wav",
+                                  caption=inp.text[:200])
+        return {"created": True, "download": f"/files/{meta['name']}", **(note or {}), **meta}
     return h
