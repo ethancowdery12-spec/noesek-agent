@@ -189,3 +189,22 @@ def test_chat_session_token_estimate():
     s = ui.ChatSession("u")
     s.note_exchange("a" * 40, "b" * 40)
     assert s.tokens_used == 20
+
+
+def test_session_model_falls_back_to_llm_settings(monkeypatch):
+    monkeypatch.delenv("NOESEK_MODEL", raising=False)
+    monkeypatch.setenv("NOESEK_LLM_MODEL", "claude-sonnet-4-20250514")
+    assert ui.ChatSession().model == "claude-sonnet-4-20250514"
+
+
+def test_session_model_env_override_wins(monkeypatch):
+    monkeypatch.setenv("NOESEK_MODEL", "explicit-model")
+    monkeypatch.setenv("NOESEK_LLM_MODEL", "settings-model")
+    assert ui.ChatSession().model == "explicit-model"
+
+
+def test_session_model_unknown_when_unconfigured(monkeypatch, tmp_path):
+    monkeypatch.delenv("NOESEK_MODEL", raising=False)
+    monkeypatch.delenv("NOESEK_LLM_MODEL", raising=False)
+    monkeypatch.chdir(tmp_path)  # no .env in cwd
+    assert ui.ChatSession().model == "unknown"
