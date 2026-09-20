@@ -390,7 +390,13 @@ class ChatSession:
 
     def __init__(self, user: str = "cli-user", *, model: str | None = None):
         self.user = user
-        self.model = model or os.environ.get("NOESEK_MODEL", "unknown")
+        if model is None:
+            model = os.environ.get("NOESEK_MODEL") or None
+        if model is None:
+            # Fresh read so current env/.env configuration is honored.
+            from .config import Settings
+            model = Settings().llm_model or None
+        self.model = model or "unknown"
         self.context_length = int(os.environ.get("NOESEK_CONTEXT_LENGTH", "0")) or None
         self.started_at = time.monotonic()
         self.tokens_used = 0

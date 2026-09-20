@@ -1,7 +1,0 @@
-{"dir": "client->agent", "msg": {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {"protocolVersion": 1, "clientCapabilities": {}}}}
-{"dir": "agent->client", "msg": {"jsonrpc": "2.0", "id": 1, "result": {"protocolVersion": 1, "agentInfo": {"name": "noesek", "title": "Noesek Agent", "version": "1.4.0"}}}}
-{"dir": "client->agent", "msg": {"jsonrpc": "2.0", "id": 2, "method": "session/new", "params": {"cwd": "/tmp", "mcpServers": []}}}
-{"dir": "agent->client", "msg": {"jsonrpc": "2.0", "id": 2, "result": {"sessionId": "1"}}}
-{"dir": "client->agent", "msg": {"jsonrpc": "2.0", "id": 3, "method": "session/prompt", "params": {"sessionId": "1", "prompt": [{"type": "text", "text": "ping"}]}}}
-{"dir": "agent->client", "msg": {"jsonrpc": "2.0", "method": "session/update", "params": {"sessionId": "1", "update": {"content": {"text": "echo: ping", "type": "text"}, "sessionUpdate": "agent_message_chunk"}}}}
-{"dir": "agent->client", "msg": {"jsonrpc": "2.0", "id": 3, "result": {"stopReason": "end_turn"}}}
