@@ -336,6 +336,11 @@ def _completion(shell):
     if shell=='zsh':return f"#compdef noesek\n_arguments '1:command:({words})'"
     return f"_noesek() {{ COMPREPLY=($(compgen -W '{words}' -- \"${{COMP_WORDS[1]}}\")); }}\ncomplete -F _noesek noesek"
 def main(argv=None):
+    effective=list(argv) if argv is not None else sys.argv[1:]
+    if not effective:
+        # v3 full fork: bare `noesek` boots the complete vendored upstream CLI
+        # with Noesek branding (see upstream_boot). Subcommands stay on this surface.
+        from .upstream_boot import main as _boot;return _boot()
     parser=build_parser();args=parser.parse_args(argv);m=_manifest()
     if getattr(args,'compat_report',False):_emit(_compat_report(m),True);return 0
     if getattr(args,'version',False):print(f'noesek {__version__}');return 0
