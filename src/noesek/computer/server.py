@@ -36,6 +36,7 @@ from .. import connectors
 from .. import proactive
 from .. import vault
 from .. import filestore
+from .. import voice
 
 log = logging.getLogger("noesek.computer")
 
@@ -459,6 +460,23 @@ async def files_get(name: str):
         raise HTTPException(404, str(exc))
     return Response(content=data, media_type="application/octet-stream",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+class VoiceIn(BaseModel):
+    text: str
+    name: str = "voice-note.wav"
+
+
+@app.post("/voice/say")
+async def voice_say(body: VoiceIn):
+    """Synthesize a voice note (offline TTS) into the files outbox."""
+    try:
+        meta = await voice.synthesize(body.text, body.name)
+    except voice.VoiceError as exc:
+        raise HTTPException(400, str(exc))
+    except Exception as exc:  # bad file name etc.
+        raise HTTPException(400, str(exc))
+    return {"created": True, "download": f"/files/{meta['name']}", **meta}
 
 
 @app.get("/healthz")
