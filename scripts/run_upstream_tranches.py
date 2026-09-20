@@ -43,7 +43,7 @@ def discover(paths_part):
 
 
 def run_file(path, kexpr):
-    cmd = [sys.executable, "-m", "pytest", path, "-q", "--no-header", "-p", "no:cacheprovider"]
+    cmd = [sys.executable, "-m", "pytest", path, "-q", "--no-header"]
     if kexpr:
         cmd += ["-k", kexpr]
     started = time.time()

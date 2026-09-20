@@ -58,9 +58,6 @@ jobs:
           cd vendor/hermes-agent
           uv sync --locked --python 3.11 --extra all --extra dev --extra anthropic --extra mistral --extra fal --extra modal --extra daytona --extra hindsight --extra parallel-web
           sudo apt-get install -y ripgrep
-      - name: Install Playwright Chromium (browser leg only)
-        if: matrix.name == 'tools-browser'
-        run: vendor/hermes-agent/.venv/bin/python -m playwright install --with-deps chromium
       - name: Run tranche
         run: vendor/hermes-agent/.venv/bin/python scripts/run_upstream_tranches.py "${{ matrix.spec }}" 2>&1 | tee tranche-${{ matrix.name }}.log
       - uses: actions/upload-artifact@v4
