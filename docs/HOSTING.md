@@ -22,13 +22,20 @@ Winner: **Render free web service** - 750 instance-hours/month covers one
 - **Ephemeral disk:** a redeploy wipes the database and connector grants.
   Fine for a trial. Render's paid persistent disk (~$1/GB) is the upgrade path
   when you want it permanent.
+- **512 MB RAM:** the image ships Chromium + offline voice (espeak-ng TTS,
+  vosk STT). All of it fits, but a heavy browse while a voice note
+  transcribes can push the limit; if the service ever OOM-restarts, the
+  boot sweep requeues interrupted tasks automatically and the $7 starter
+  plan (512 MB -> more headroom is the paid jump) removes the ceiling.
 
 ## What runs where
 
 The Render service binds `0.0.0.0:$PORT` and serves the same endpoints as the
 WSL2 install: `/chat`, `/computer/screenshot`, `/computer/browse`,
-`/computer/input`, `/connectors/*`, `/proactive/*`. Chromium is preinstalled
-in the image, so browsing works out of the box. Set
+`/computer/input`, `/connectors/*`, `/proactive/*`, `/vault`, `/files`,
+`/voice/say`. Chromium, offline TTS (espeak-ng) and offline voice-note
+transcription (vosk small-en) are preinstalled in the image, so browsing and
+voice notes work out of the box. Set
 `NOESEK_CONNECTOR_GOOGLE_CLIENT_ID` / `..._SECRET` (and GitHub's) in the
 Render dashboard when you create the OAuth apps; use
 `https://your-app.onrender.com/connectors/callback` as the redirect URI.
