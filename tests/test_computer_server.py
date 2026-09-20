@@ -137,3 +137,45 @@ async def test_browse_rejects_bad_url_and_disallowed_origin(monkeypatch):
         assert blocked.status_code == 403
         ok = await c.post("/computer/browse", json={"url": "https://allowed.example/page"})
         assert ok.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_connectors_list_and_token_flow(monkeypatch, tmp_path):
+    from noesek import connectors
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    monkeypatch.setenv("NOESEK_CONNECTOR_GITHUB_CLIENT_ID", "cid-123")
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r = await c.get("/connectors", params={"chat_id": "ethan-main"})
+        assert r.status_code == 200
+        by_name = {x["name"]: x for x in r.json()["connectors"]}
+        assert set(by_name) == {"github", "google"}
+        assert by_name["github"]["configured"] is True
+        assert by_name["google"]["configured"] is False
+        assert by_name["github"]["connected"] is False
+
+        noauth = await c.post("/connectors/google/auth-start", json={"chat_id": "ethan-main"})
+        assert noauth.status_code == 400  # no client id configured
+
+        start = await c.post("/connectors/github/auth-start", json={"chat_id": "ethan-main"})
+        assert start.status_code == 200
+        url = start.json()["authorize_url"]
+        assert url.startswith("https://github.com/login/oauth/authorize?")
+        assert "client_id=cid-123" in url and "state=ethan-main%3A" in url
+
+        dep = await c.post("/connectors/github/token",
+                           json={"chat_id": "ethan-main", "access_token": "tok-1"})
+        assert dep.status_code == 200
+
+        r2 = await c.get("/connectors", params={"chat_id": "ethan-main"})
+        assert {x["name"]: x for x in r2.json()["connectors"]}["github"]["connected"] is True
+        # token file is private and chat-scoped
+        assert oct((tmp_path / "connectors.json").stat().st_mode)[-3:] == "600"
+        assert store.get("github", "ethan-main")["access_token"] == "tok-1"
+        assert store.get("github", "someone-else") is None
+
+        unknown = await c.post("/connectors/nope/token",
+                               json={"chat_id": "x", "access_token": "y"})
+        assert unknown.status_code == 404
