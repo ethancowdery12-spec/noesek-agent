@@ -82,6 +82,8 @@ def main() -> int:
     boot_env()
     _patch_prog()
     _activate_skin()
+    from .core.upstream_safety import install as _install_safety
+    _install_safety()
     from hermes_cli.main import main as upstream_main
     result = upstream_main()
     return int(result) if isinstance(result, int) else 0
