@@ -31,14 +31,14 @@ Legend: yes / partial / no. "Noesek" = the Noesek computer at v3.2.0 + merged po
 | Approval / safety contract | yes (plan/digest, origin allowlists) | yes | yes | yes (check-in preferences) | partial |
 | Long-running async work (hours+) | partial (tasks queue; no month-long harness yet) | yes | yes (cloud envs) | yes (works after laptop closed) | yes (hours to months) |
 
-## What we're missing (the honest gap list), in implementation order
+## What we were missing (the honest gap list) - status: 1-6 SHIPPED 2026-09-20
 
-1. **Desktop input endpoint** (`/computer/input` - xdotool click/type/key on the virtual display). Every competitor with computer use has full control; we only have look, not touch. Small, high value.
-2. **Secrets vault on the VM** - one 0600 store + endpoints, so OAuth client secrets and API keys stop living in env vars. Instinct has this; every serious agent box needs it.
-3. **Write/send connector actions behind the approval contract** (gmail_send first). Read-only was a design pause, not a moat. Plan/digest approval already exists - sends ride it, default ask-first.
-4. **File creation & delivery** (`/files` - author markdown/docx, serve back a download link). Claude Docs/Slides and Perplexity document generation set the bar; this is how the computer hands work back.
-5. **Voice notes** (`/voice/say` offline TTS first - piper/espeak-ng, no API cost; STT ingest later). Instinct, Claude, Perplexity all talk.
-6. **Long-running task harness** - our queue runs tasks; Perplexity runs workflows for months. Gap is durability guarantees (checkpoint/resume), not concept.
+1. **Desktop input endpoint** - SHIPPED in #57: (`/computer/input` - xdotool click/type/key on the virtual display). Every competitor with computer use has full control; we only have look, not touch. Small, high value.
+2. **Secrets vault on the VM** - SHIPPED in #59: one 0600 store + endpoints, so OAuth client secrets and API keys stop living in env vars. Instinct has this; every serious agent box needs it.
+3. **Write/send connector actions behind the approval contract** - SHIPPED in #60 (gmail_send, EXTERNAL risk). Read-only was a design pause, not a moat. Plan/digest approval already exists - sends ride it, default ask-first.
+4. **File creation & delivery** - SHIPPED in #61 (`create_file` + `/files` downloads; channel-native push is the follow-up). Claude Docs/Slides and Perplexity document generation set the bar; this is how the computer hands work back.
+5. **Voice notes** - SHIPPED in #62 (`/voice/say` + `speak` tool, espeak-ng offline TTS; STT ingest later). Instinct, Claude, Perplexity all talk.
+6. **Long-running task harness** - SHIPPED in #63 (startup recovery sweep: interrupted tasks requeue, spent-attempt zombies fail). Remaining ceiling: Perplexity runs workflows for months. Gap is durability guarantees (checkpoint/resume), not concept.
 7. **Multi-model orchestration** - DOCUMENTED DIVERGENCE, not a gap to fill: Ethan locked single-provider, no fallback. Perplexity's multi-model harness is their signature; ours is cost discipline on one key. Revisit only if Ethan unlocks it.
 8. **Own mobile app** - v4.2 research item; WhatsApp covers the channel meanwhile.
 
