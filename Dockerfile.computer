@@ -1,0 +1,22 @@
+# Noesek computer, cloud-hosted (Render free tier and friends).
+# Same server as the WSL2 VM install; Render injects $PORT.
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+RUN apt-get update -qq \
+ && apt-get install -y -qq --no-install-recommends \
+    xvfb scrot xdotool fonts-liberation curl ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY src ./src
+RUN pip install . \
+ && playwright install --with-deps chromium
+
+RUN useradd -r -u 10001 noesek && mkdir -p /home/noesek && chown noesek /home/noesek
+USER noesek
+ENV HOME=/home/noesek
+
+# Render sets PORT; locally defaults to 8780.
+CMD ["sh", "-c", "NOESEK_COMPUTER_PORT=${PORT:-8780} NOESEK_COMPUTER_HOST=0.0.0.0 noesek-computer"]
