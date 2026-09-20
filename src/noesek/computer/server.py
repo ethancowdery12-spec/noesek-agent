@@ -197,7 +197,32 @@ async def auth_start(name: str, body: AuthStartIn):
     if not c.client_id():
         raise HTTPException(400, f"NOESEK_CONNECTOR_{name.upper()}_CLIENT_ID is not set")
     url, state = connectors.build_authorize_url(c, body.chat_id, body.redirect_uri)
+    connectors.default_store().put_state(state, name, body.chat_id, body.redirect_uri)
     return {"authorize_url": url, "state": state}
+
+
+@app.get("/connectors/callback")
+async def oauth_callback(code: str = "", state: str = ""):
+    """Browser redirect target: verify state, exchange code, store the grant."""
+    from fastapi.responses import HTMLResponse
+
+    if not code or not state:
+        raise HTTPException(400, "code and state are required")
+    store = connectors.default_store()
+    pending = store.pop_state(state)
+    if pending is None:
+        raise HTTPException(400, "unknown or expired state")
+    c = connectors.get(pending["connector"])
+    if c is None:
+        raise HTTPException(400, "unknown connector in state")
+    try:
+        token = await connectors.exchange_code(c, code, pending.get("redirect_uri") or "")
+    except connectors.ConnectorError as exc:
+        raise HTTPException(502, str(exc))
+    store.put(c.name, pending["chat_id"], token, c.scopes)
+    return HTMLResponse(
+        f"<html><body style='font-family:sans-serif'>Connected {c.name} for chat "
+        f"<b>{pending['chat_id']}</b>. You can close this tab.</body></html>")
 
 
 @app.post("/connectors/{name}/token")

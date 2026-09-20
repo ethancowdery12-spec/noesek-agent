@@ -179,3 +179,41 @@ async def test_connectors_list_and_token_flow(monkeypatch, tmp_path):
         unknown = await c.post("/connectors/nope/token",
                                json={"chat_id": "x", "access_token": "y"})
         assert unknown.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_oauth_callback_completes_flow(monkeypatch, tmp_path):
+    from noesek import connectors
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    monkeypatch.setenv("NOESEK_CONNECTOR_GITHUB_CLIENT_ID", "cid-123")
+    monkeypatch.setenv("NOESEK_CONNECTOR_GITHUB_CLIENT_SECRET", "sec-xyz")
+
+    seen = {}
+
+    async def fake_exchange(connector, code, redirect_uri):
+        seen["code"] = code
+        seen["redirect_uri"] = redirect_uri
+        return "tok-live"
+
+    monkeypatch.setattr(connectors, "exchange_code", fake_exchange)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        start = await c.post("/connectors/github/auth-start",
+                             json={"chat_id": "ethan-main",
+                                   "redirect_uri": "http://127.0.0.1:8780/connectors/callback"})
+        state = start.json()["state"]
+
+        bad = await c.get("/connectors/callback", params={"code": "abc", "state": "bogus"})
+        assert bad.status_code == 400
+
+        cb = await c.get("/connectors/callback", params={"code": "abc", "state": state})
+        assert cb.status_code == 200
+        assert "Connected github" in cb.text
+        assert seen == {"code": "abc", "redirect_uri": "http://127.0.0.1:8780/connectors/callback"}
+        assert store.get("github", "ethan-main")["access_token"] == "tok-live"
+
+        # state is single-use
+        replay = await c.get("/connectors/callback", params={"code": "abc", "state": state})
+        assert replay.status_code == 400
