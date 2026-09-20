@@ -4,6 +4,12 @@ Upstream intent: drive the ACP stdio wire with a fixture model (never paid
 inference), record the wire transcript, and measure empty-session database
 state. Noesek target: `python -m noesek.compat.acp_server` with the
 NOESEK_ACP_ECHO fixture seam - the Noesek ACP agent serves real stdio JSON-RPC.
+
+The server's stderr is drained on a daemon thread: the pipe is never read
+otherwise, and enough startup logging fills the 64 KiB pipe buffer and blocks
+the server mid-startup - the initialize RPC then times out with a live,
+silent server process. On any failure the drained stderr tail is emitted for
+diagnosis.
 """
 import json
 import os
@@ -11,11 +17,17 @@ import selectors
 import sqlite3
 import subprocess
 import sys
+import threading
 import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _common import emit, env_for, out_dir
+
+
+def drain_stderr(proc, sink):
+    for line in proc.stderr:
+        sink.append(line.rstrip("\n"))
 
 
 def rpc(proc, sel, transcript, method, params, rid, timeout=180):
@@ -44,6 +56,8 @@ def main():
     proc = subprocess.Popen([sys.executable, "-m", "noesek.compat.acp_server"],
                             stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                             stderr=subprocess.PIPE, text=True, env=env)
+    stderr_lines = []
+    threading.Thread(target=drain_stderr, args=(proc, stderr_lines), daemon=True).start()
     sel = selectors.DefaultSelector(); sel.register(proc.stdout, selectors.EVENT_READ)
     transcript = []
     db = home / "noesek.db"
@@ -57,6 +71,13 @@ def main():
                    {"sessionId": sess["sessionId"],
                     "prompt": [{"type": "text", "text": "ping"}]}, 3)
         assert resp["stopReason"] == "end_turn", resp
+    except Exception as exc:
+        proc.kill(); proc.wait()
+        emit("error", error=f"{type(exc).__name__}: {exc}",
+             stderr_tail=stderr_lines[-40:],
+             transcript_messages=len(transcript),
+             transcript_path=str(out / "wire-transcript.jsonl"))
+        return
     finally:
         proc.kill(); proc.wait()
     (out / "wire-transcript.jsonl").write_text(
