@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "noesek-agent"
-version = "3.0.1"
+version = "3.1.0"
 description = "Self-hostable WhatsApp-first hybrid AI agent runtime"
 readme = "README.md"
 license = {text = "MIT"}
@@ -69,6 +69,7 @@ noesek = "noesek.cli_surface:main"
 noesek-tui = "noesek.tui:main"
 noesek-agent = "noesek.upstream_boot:main_run_agent"
 noesek-acp = "noesek.upstream_boot:main_acp"
+noesek-computer = "noesek.computer.server:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
