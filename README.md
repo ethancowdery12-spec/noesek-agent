@@ -112,25 +112,25 @@ upstream attribution and license review.
 
 ---
 
-## Windows install - v2.1.3
+## Windows install - v3.0.0
 
 Requires Python 3.11 or newer. The installer verifies pinned SHA-256 hashes, uses a non-admin isolated environment, preserves existing configuration, uses atomic activation, adds its command directory to the user PATH, and exposes the `noesek` command. Open a new terminal after installation, then run `noesek`.
 
 ### PowerShell
 
 ```powershell
-$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
+$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '95f0fbc793dedc6aa663d2f4d83a3a293f92cf4aaf0423712b91192b3a4a5a58'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/8-noesek-agent-v3.0.0.tar.gz' -ExpectedSha256 '183bf6795d0c3a0c948716044d5e78f488ae39cd3ea6572fcece7c60ccf6065b'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c
 ```
 
 ### Command Prompt (CMD)
 
 ```bat
-powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
+powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '95f0fbc793dedc6aa663d2f4d83a3a293f92cf4aaf0423712b91192b3a4a5a58'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/8-noesek-agent-v3.0.0.tar.gz' -ExpectedSha256 '183bf6795d0c3a0c948716044d5e78f488ae39cd3ea6572fcece7c60ccf6065b'; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
 ```
 
-Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v2.1.3
+Release: https://github.com/ethancowdery12-spec/noesek-agent/releases/tag/v3.0.0
 
 ## Release hashes
 
-- PowerShell installer SHA-256: `fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1`
-- Source archive SHA-256: `c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4`
+- PowerShell installer SHA-256: `95f0fbc793dedc6aa663d2f4d83a3a293f92cf4aaf0423712b91192b3a4a5a58`
+- Source archive SHA-256: `183bf6795d0c3a0c948716044d5e78f488ae39cd3ea6572fcece7c60ccf6065b`
