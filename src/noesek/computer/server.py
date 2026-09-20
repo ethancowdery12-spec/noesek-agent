@@ -33,6 +33,7 @@ from ..db import Session, init_db, migrate, get_or_create_conversation
 from ..core.browser_backend import PlaywrightExecutor, BrowserBackendError
 from ..core.computer_use import ComputerPlan
 from .. import connectors
+from .. import proactive
 
 log = logging.getLogger("noesek.computer")
 
@@ -64,6 +65,7 @@ async def _startup() -> None:
     await init_db()
     await migrate()
     _ensure_display()
+    asyncio.create_task(_proactive_sweep())
 
 
 class ChatIn(BaseModel):
@@ -235,6 +237,76 @@ async def store_token(name: str, body: TokenIn):
         raise HTTPException(400, "chat_id and access_token are required")
     connectors.default_store().put(name, body.chat_id, body.access_token, c.scopes)
     return {"ok": True, "connector": name, "chat_id": body.chat_id}
+
+
+class ProactiveIn(BaseModel):
+    chat_id: str
+    goal: str = ""
+    interval_seconds: int = proactive.DEFAULT_INTERVAL_SECONDS
+
+
+class ProactiveChatIn(BaseModel):
+    chat_id: str
+
+
+async def _run_tick(chat_id: str) -> dict:
+    """One bounded wake for a chat. IDLE replies are withheld from the chat."""
+    store = proactive.default_store()
+    entry = store.get(chat_id)
+    if entry is None or not entry.get("active"):
+        raise HTTPException(404, "chat is not proactive-active")
+    async with Session() as s:
+        conv = await get_or_create_conversation(s, "local", chat_id)
+        await s.commit()
+        cid = conv.id
+    result = await get_controller().handle(cid, proactive.nudge_text(entry.get("goal", "")))
+    acted = result.text.strip() != proactive.IDLE
+    store.reschedule(chat_id)
+    return {"chat_id": chat_id, "acted": acted, "reply": result.text if acted else ""}
+
+
+@app.post("/proactive/tick")
+async def proactive_tick(body: ProactiveChatIn):
+    if not body.chat_id:
+        raise HTTPException(400, "chat_id is required")
+    return await _run_tick(body.chat_id)
+
+
+@app.post("/proactive/activate")
+async def proactive_activate(body: ProactiveIn):
+    if not body.chat_id:
+        raise HTTPException(400, "chat_id is required")
+    entry = proactive.default_store().activate(body.chat_id, body.goal, body.interval_seconds)
+    return {"chat_id": body.chat_id, **entry}
+
+
+@app.post("/proactive/pause")
+async def proactive_pause(body: ProactiveChatIn):
+    if not proactive.default_store().pause(body.chat_id):
+        raise HTTPException(404, "chat was not proactive-active")
+    return {"chat_id": body.chat_id, "active": False}
+
+
+@app.get("/proactive")
+async def proactive_list():
+    return {"chats": proactive.default_store().all()}
+
+
+async def _proactive_sweep() -> None:
+    """Idle engine: wake due chats forever. Quiet unless a chat acts."""
+    interval = float(os.environ.get("NOESEK_COMPUTER_PROACTIVE_SWEEP", "30"))
+    while True:
+        await asyncio.sleep(interval)
+        try:
+            for chat_id in proactive.default_store().due_chats():
+                try:
+                    outcome = await _run_tick(chat_id)
+                    if outcome["acted"]:
+                        log.info("proactive tick acted for %s", chat_id)
+                except Exception:
+                    log.exception("proactive tick failed for %s", chat_id)
+        except Exception:
+            log.exception("proactive sweep failed")
 
 
 @app.get("/healthz")
