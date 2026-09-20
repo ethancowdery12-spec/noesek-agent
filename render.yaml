@@ -1,0 +1,15 @@
+# One-click Render blueprint: the Noesek computer on the free tier.
+services:
+  - type: web
+    name: noesek-computer
+    runtime: docker
+    dockerfilePath: ./Dockerfile.computer
+    plan: free
+    healthCheckPath: /healthz
+    envVars:
+      - key: NOESEK_LLM_API_KEY
+        sync: false  # prompted at deploy time - the only secret it needs
+      - key: NOESEK_LLM_BASE_URL
+        value: https://api.deepseek.com/v1
+      - key: NOESEK_LLM_MODEL
+        value: deepseek-chat
