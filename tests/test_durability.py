@@ -2,8 +2,19 @@
 
 import pytest
 
+from sqlalchemy import delete
+
 from noesek.db import Conversation, Session, Task, init_db, migrate
 from noesek.jobs import recover_interrupted
+
+
+@pytest.fixture(autouse=True)
+async def _clean_tasks():
+    yield
+    async with Session() as s:
+        await s.execute(delete(Task))
+        await s.execute(delete(Conversation))
+        await s.commit()
 
 
 async def _mk_task(status, attempts=0, max_attempts=3):
