@@ -32,6 +32,7 @@ from ..config import settings
 from ..db import Session, init_db, migrate, get_or_create_conversation
 from ..core.browser_backend import PlaywrightExecutor, BrowserBackendError
 from ..core.computer_use import ComputerPlan
+from .. import connectors
 
 log = logging.getLogger("noesek.computer")
 
@@ -155,6 +156,60 @@ async def execute_plan_for(plan, executor):
     """Self-approval seam: the on-box server is the operator."""
     from ..core.computer_use import execute_plan
     return await execute_plan(plan, plan.digest, executor)
+
+
+class AuthStartIn(BaseModel):
+    chat_id: str
+    redirect_uri: str = "http://127.0.0.1:8780/connectors/callback"
+
+
+class TokenIn(BaseModel):
+    chat_id: str
+    access_token: str
+
+
+@app.get("/connectors")
+async def list_connectors(chat_id: str = ""):
+    """What can be connected, and which chats hold a grant."""
+    store = connectors.default_store()
+    out = []
+    for c in connectors.all_connectors():
+        entry = {
+            "name": c.name,
+            "tools": list(c.tools),
+            "scopes": list(c.scopes),
+            "configured": bool(c.client_id()),
+        }
+        if chat_id:
+            entry["connected"] = store.get(c.name, chat_id) is not None
+        out.append(entry)
+    return {"connectors": out}
+
+
+@app.post("/connectors/{name}/auth-start")
+async def auth_start(name: str, body: AuthStartIn):
+    """Build the browser consent URL; state binds the grant to the chat."""
+    c = connectors.get(name)
+    if c is None:
+        raise HTTPException(404, f"unknown connector {name!r}")
+    if not body.chat_id:
+        raise HTTPException(400, "chat_id is required")
+    if not c.client_id():
+        raise HTTPException(400, f"NOESEK_CONNECTOR_{name.upper()}_CLIENT_ID is not set")
+    url, state = connectors.build_authorize_url(c, body.chat_id, body.redirect_uri)
+    return {"authorize_url": url, "state": state}
+
+
+@app.post("/connectors/{name}/token")
+async def store_token(name: str, body: TokenIn):
+    """Deposit a token for a chat (from the vault or a completed exchange)."""
+    c = connectors.get(name)
+    if c is None:
+        raise HTTPException(404, f"unknown connector {name!r}")
+    if not body.chat_id or not body.access_token:
+        raise HTTPException(400, "chat_id and access_token are required")
+    connectors.default_store().put(name, body.chat_id, body.access_token, c.scopes)
+    return {"ok": True, "connector": name, "chat_id": body.chat_id}
 
 
 @app.get("/healthz")
