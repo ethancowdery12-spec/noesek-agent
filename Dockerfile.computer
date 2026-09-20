@@ -23,7 +23,8 @@ ENV NOESEK_VOSK_MODEL=/opt/vosk-model-small-en-us-0.15
 
 RUN useradd -r -u 10001 noesek && mkdir -p /home/noesek && chown noesek /home/noesek
 USER noesek
-ENV HOME=/home/noesek
+ENV HOME=/home/noesek \
+    NOESEK_DATABASE_URL=sqlite+aiosqlite:////home/noesek/noesek.db
 
 # Render sets PORT; locally defaults to 8780.
 CMD ["sh", "-c", "NOESEK_COMPUTER_PORT=${PORT:-8780} NOESEK_COMPUTER_HOST=0.0.0.0 noesek-computer"]
