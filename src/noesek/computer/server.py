@@ -309,6 +309,23 @@ async def _proactive_sweep() -> None:
             log.exception("proactive sweep failed")
 
 
+@app.get("/connectors/google/gmail/messages")
+async def gmail_messages(chat_id: str, max_results: int = 5):
+    """First real connector tool: read the chat's Gmail via its stored grant."""
+    from ..connectors import google as gtool
+
+    if not chat_id:
+        raise HTTPException(400, "chat_id is required")
+    grant = connectors.default_store().get("google", chat_id)
+    if grant is None:
+        raise HTTPException(403, "no google grant for this chat - run auth-start first")
+    try:
+        messages = await gtool.list_messages(grant["access_token"], max_results)
+    except gtool.GrantMissing as exc:
+        raise HTTPException(403, str(exc))
+    return {"chat_id": chat_id, "count": len(messages), "messages": messages}
+
+
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "version": __version__, "display": os.environ.get("DISPLAY", "")}
