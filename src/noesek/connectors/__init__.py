@@ -51,6 +51,7 @@ register(Connector(
     authorize_url="https://accounts.google.com/o/oauth2/v2/auth",
     token_url="https://oauth2.googleapis.com/token",
     scopes=("https://www.googleapis.com/auth/gmail.readonly",
+            "https://www.googleapis.com/auth/gmail.send",
             "https://www.googleapis.com/auth/calendar.readonly"),
     tools=("gmail", "calendar"),
 ))

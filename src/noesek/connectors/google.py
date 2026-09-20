@@ -48,6 +48,34 @@ async def list_messages(token: str, max_results: int = 5) -> list[dict]:
         return out
 
 
+async def send_message(token: str, to: str, subject: str, body: str) -> dict:
+    """Send one plain-text email through the Gmail API.
+
+    The grant needs the gmail.send scope; older readonly grants get a 403
+    from Google and must re-auth. Builds the RFC822 message client-side and
+    posts base64url, so no message content ever touches a log line here.
+    """
+    import base64
+    import httpx
+
+    if not to or "@" not in to:
+        raise ValueError("recipient must be an email address")
+    raw = (f"To: {to}\r\nSubject: {subject}\r\n"
+           f"Content-Type: text/plain; charset=utf-8\r\n\r\n{body}")
+    encoded = base64.urlsafe_b64encode(raw.encode()).decode()
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(f"{GMAIL_API}/messages/send",
+                                 json={"raw": encoded},
+                                 headers={"Authorization": f"Bearer {token}"})
+        if resp.status_code == 401:
+            raise GrantMissing("google token was rejected (expired or revoked)")
+        if resp.status_code == 403:
+            raise GrantMissing("grant lacks gmail.send - reconnect Google to add it")
+        resp.raise_for_status()
+        data = resp.json()
+        return {"id": data.get("id", ""), "thread_id": data.get("threadId", "")}
+
+
 CALENDAR_API = "https://www.googleapis.com/calendar/v3"
 
 
