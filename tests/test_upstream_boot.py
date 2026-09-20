@@ -56,3 +56,12 @@ def test_vendored_tree_has_no_noesek_edits():
         except OSError:
             pass
     assert not offenders, offenders[:5]
+
+
+def test_vendored_state_lives_under_noesek_home(boot, tmp_path, monkeypatch):
+    # S5: the vendored runtime's home resolution follows NOESEK_HOME end to end.
+    home = boot.boot_env()
+    import hermes_constants
+    assert hermes_constants.get_hermes_home() == home
+    from hermes_cli.skin_engine import _skins_dir
+    assert _skins_dir() == home / "skins"
