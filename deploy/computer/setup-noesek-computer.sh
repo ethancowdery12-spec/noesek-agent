@@ -4,7 +4,7 @@
 # configures DeepSeek, and starts the computer as a background service.
 set -euo pipefail
 
-NOESEK_VERSION="${NOESEK_VERSION:-3.2.1}"
+NOESEK_VERSION="${NOESEK_VERSION:-3.2.2}"
 TARBALL_URL="https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v${NOESEK_VERSION}/8-noesek-agent-v${NOESEK_VERSION}.tar.gz"
 TARBALL_SHA256="${NOESEK_TARBALL_SHA256:-}"
 if [ -z "$TARBALL_SHA256" ]; then
