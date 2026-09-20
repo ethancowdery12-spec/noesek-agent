@@ -94,3 +94,46 @@ async def test_healthz():
         r = await c.get("/healthz")
         assert r.status_code == 200
         assert r.json()["ok"] is True
+
+
+class _FakeExecutor:
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    async def run(self, plan):
+        return {
+            "origin": plan.origin,
+            "digest": plan.digest,
+            "steps": [
+                {"step": 0, "type": "navigate", "url": plan.actions[0].get("url"), "title": "T"},
+                {"step": 1, "type": "extract_text", "selector": "body", "text": "x" * 9000},
+                {"step": 2, "type": "screenshot", "png_base64": "aGVsbG8="},
+            ],
+        }
+
+
+@pytest.mark.asyncio
+async def test_browse_builds_validated_plan_and_truncates(monkeypatch):
+    monkeypatch.setattr(server, "PlaywrightExecutor", _FakeExecutor)
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r = await c.post("/computer/browse", json={"url": "https://example.com/"})
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["origin"] == "https://example.com"
+    assert data["steps"][0]["title"] == "T"
+    assert len(data["steps"][1]["text"]) == 8000
+    assert data["steps"][1]["text_truncated"] is True
+    assert data["steps"][2]["png_base64"] == "aGVsbG8="
+
+
+@pytest.mark.asyncio
+async def test_browse_rejects_bad_url_and_disallowed_origin(monkeypatch):
+    monkeypatch.setattr(server, "PlaywrightExecutor", _FakeExecutor)
+    monkeypatch.setattr(server.settings, "computer_allowed_origins", "https://allowed.example")
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        bad = await c.post("/computer/browse", json={"url": "ftp://x"})
+        assert bad.status_code == 400
+        blocked = await c.post("/computer/browse", json={"url": "https://evil.example/"})
+        assert blocked.status_code == 403
+        ok = await c.post("/computer/browse", json={"url": "https://allowed.example/page"})
+        assert ok.status_code == 200
