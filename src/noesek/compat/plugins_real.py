@@ -18,11 +18,11 @@ class PluginRegistry:
         (self.ledger.home / "plugins").mkdir(parents=True, exist_ok=True)
 
     def plugins_dir(self) -> Path | None:
-        from ..vendor.hermes.plugins import plugin_loader
+        from plugins import plugin_loader
         return plugin_loader.user_plugins_dir()
 
     def discover(self) -> list[dict]:
-        from ..vendor.hermes.plugins import plugin_loader
+        from plugins import plugin_loader
         root = self.plugins_dir()
         if root is None:
             return []

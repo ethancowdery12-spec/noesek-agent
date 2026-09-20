@@ -14,13 +14,13 @@ import os
 from pathlib import Path
 from types import SimpleNamespace
 
-from ..vendor.hermes.gateway.authz_mixin import GatewayAuthorizationMixin
-from ..vendor.hermes.gateway.config import Platform
-from ..vendor.hermes.gateway.pairing import PairingStore
-from ..vendor.hermes.gateway.session import SessionSource
-from ..vendor.hermes.gateway.whatsapp_identity import (
+from gateway.authz_mixin import GatewayAuthorizationMixin
+from gateway.config import Platform
+from gateway.pairing import PairingStore
+from gateway.session import SessionSource
+from gateway.whatsapp_identity import (
     canonical_whatsapp_identifier, normalize_whatsapp_identifier, to_whatsapp_jid)
-from ..vendor.hermes.hermes_constants import set_hermes_home_override
+from hermes_constants import set_hermes_home_override
 
 __all__ = ["NoesekAuthorizationGate", "canonical_whatsapp_identifier",
            "normalize_whatsapp_identifier", "to_whatsapp_jid"]

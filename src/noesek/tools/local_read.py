@@ -12,7 +12,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from ..config import settings
-from ..vendor.hermes.tools.path_security import has_traversal_component, validate_within_dir
+from tools.path_security import has_traversal_component, validate_within_dir
 
 MAX_BYTES = 200_000
 

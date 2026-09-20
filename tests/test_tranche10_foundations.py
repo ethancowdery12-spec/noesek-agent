@@ -86,7 +86,7 @@ def test_postmortem_from_incident(tmp_path, monkeypatch):
     monkeypatch.setenv("NOESEK_HOME", str(tmp_path))
     monkeypatch.setenv("HERMES_HOME", str(tmp_path))
     from noesek.cli_ops import postmortem
-    from noesek.vendor.hermes.cron import incidents
+    from cron import incidents
     inc_id, _ = incidents.upsert_incident("job-9", "Traceback: boom", job_name="nightly")
     text = postmortem(inc_id)
     assert "# Postmortem: job-9" in text and "boom" in text and "## Root cause" in text

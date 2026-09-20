@@ -21,7 +21,7 @@ class SkillStore:
 
     @staticmethod
     def list(category: str | None = None) -> list[dict]:
-        from ..vendor.hermes.tools import skills_tool
+        from tools import skills_tool
         result = json.loads(skills_tool.skills_list(category=category))
         if not result.get("success"):
             raise RuntimeError(result.get("error", "skills_list failed"))
@@ -29,7 +29,7 @@ class SkillStore:
 
     @staticmethod
     def view(name: str) -> dict:
-        from ..vendor.hermes.tools import skills_tool
+        from tools import skills_tool
         result = skills_tool.skill_view(name)
         result = json.loads(result) if isinstance(result, str) else result
         if isinstance(result, dict) and not result.get("success", True):
@@ -38,5 +38,5 @@ class SkillStore:
 
     @staticmethod
     def check() -> bool:
-        from ..vendor.hermes.tools import skills_tool
+        from tools import skills_tool
         return bool(skills_tool.check_skills_requirements())

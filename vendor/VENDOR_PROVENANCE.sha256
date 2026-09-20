@@ -6,7 +6,7 @@ license: MIT (see vendor/hermes-agent/LICENSE)
 imported: 2026-09-20T00:48:42Z
 file_count: 14189
 
-# sha256 per file (relative to vendor/hermes-agent/)
+
 7428cb3e558f0530ab616b9ccc6e6966a674327ecadb059d28e81dd8bdadcf09  .coderabbit.yaml
 1f5e1fe142c82d8f646f4905d2450b0611b15afb3768704950a3d3fd8a436409  .dockerignore
 1a26b15cb54749fcea33a6835ae1ede40d0b9a8a576244c4419093fdecd60e8c  .env.example
@@ -3489,6 +3489,7 @@ b54dd3de14fc10f98cfac8a2c82fe5350ae785b812b3674060fcbc1513fca314  contributors/e
 d5fc6dc2e5b01ee603d068f8f75a546c19342a0da744026d8f39258cd4f49a02  contributors/emails/Zioywishing@users.noreply.github.com
 32b03eeafc5b7f9238acebcd952380c76ff0d4cb3071e376b7a0232b3242f88f  contributors/emails/Zoeille@users.noreply.github.com
 f734adaa1ef854bf2ada24883e06b8329a613c10dafbdbf13117846c47765723  contributors/emails/ZundamonnoVRChatkaisetu@users.noreply.github.com
+fc55fa56011f029b25f5acf7b423e08faf94e53bdf3b5be34b72c08fe316f1a7  contributors/emails/[email protected]
 af6b6b4ad1a07f81829c3e1e563f06f01f716dc8da1670055a5c1fe5b344be14  contributors/emails/a.dltorreruiz@gmail.com
 5b860f5f3a01c0a1e5b4ab5dee94f2d2e434b6aff299e02b98099712365d9585  contributors/emails/a.neyman17@gmail.com
 62237f69927c72e35a26752eb14b4306db04ee4694ade0093a1e74ef862b80cb  contributors/emails/a.weiker@sap.com
@@ -3793,6 +3794,7 @@ b0aca56976ef37d7412cdeaf2347a112acb3a11c2b8813f6fbb2af587e959078  contributors/e
 8823ccbf7e128a8c14375f28a7081026ed71feb29d12295be15c0d89c0987727  contributors/emails/elmar@conradie.co.za
 09ca7b387356c3eaeb44467a1e560ee97d77c4dd536b4ca566627ccda7d8a203  contributors/emails/eloktev@users.noreply.github.com
 76d848ee64488425b37510b55772d89b8cc3569cc21baed0c442c6e23ab52637  contributors/emails/emad.alsaba@gmail.com
+05f4658e07613a994169121937a9038403718ae78d9c17e2375f4538baa3a4da  contributors/emails/email = 615759+mkoistinen@users.noreply.github.com
 afa488ede729da818d3843dbba8296cff37b8d9750e2bd2ee32b35d3d08e2de0  contributors/emails/eman1369a@gmail.com
 834bec437d90b1036aeb51e920ad593504b98eb9eb413abb6076c2bfc5d64ed8  contributors/emails/emanuele.cornaggia@gmail.com
 36a719b705dee021656489569a973366190c601ef2a9500b832ecdcff0e49ebd  contributors/emails/emilio.jesus.lasheras.romero@nttdata.com
