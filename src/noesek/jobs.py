@@ -80,7 +80,7 @@ async def run_one(deliver=None) -> bool:
         ledger().finish(attempt["id"], success=False, error=err)
         if (task.payload or {}).get("kind") == "cron":
             try:
-                from .vendor.hermes.cron import jobs as _cron_jobs
+                from cron import jobs as _cron_jobs
                 if task.attempts >= (task.max_attempts or settings.task_max_attempts):
                     _cron_jobs.mark_job_run(task.payload["job_id"], success=False, error=err)
                 if task.payload.get("execution_id"):
@@ -108,7 +108,7 @@ async def run_one(deliver=None) -> bool:
     ledger().finish(attempt["id"], success=True)
     if (task.payload or {}).get("kind") == "cron":
         try:
-            from .vendor.hermes.cron import jobs as _cron_jobs
+            from cron import jobs as _cron_jobs
             _cron_jobs.mark_job_run(task.payload["job_id"], success=True)
             if task.payload.get("execution_id"):
                 ledger().finish(task.payload["execution_id"], success=True)

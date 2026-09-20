@@ -19,4 +19,4 @@ def test_manifest_is_current(tmp_path):
     after = json.loads(out.read_text())
     assert before == after
     assert after["probe_count"] == len(after["probes"])
-    assert after["hermes_commit"] == "c712f06dcdd24053a4118f38d2090ac53137ecfc"
+    assert after["hermes_commit"] == "d7b836ab1c0cddaafc109ed24c9a83b6191cdc88"

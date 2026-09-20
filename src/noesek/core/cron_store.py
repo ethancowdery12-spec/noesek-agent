@@ -11,8 +11,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-from ..vendor.hermes.hermes_constants import set_hermes_home_override
-from ..vendor.hermes.cron import delivery_queue, executions, incidents, occurrences
+from hermes_constants import set_hermes_home_override
+from cron import delivery_queue, executions, incidents, occurrences
 
 
 def default_home() -> Path:
@@ -60,7 +60,10 @@ class CronLedger:
     # --- incidents ---
     @staticmethod
     def record_failure(job_id: str, error: str, *, job_name: str | None = None) -> tuple[str, bool]:
-        return incidents.upsert_incident(str(job_id), error, job_name=job_name)
+        # Our safety layer: scrub generic key=value secrets before the vendored
+        # ledger persists the error (upstream's redactor misses token=... shapes).
+        from .redact import redact_sensitive_text
+        return incidents.upsert_incident(str(job_id), redact_sensitive_text(error, force=True), job_name=job_name)
 
     @staticmethod
     def list_incidents(state: str | None = None) -> list[dict]:
@@ -88,35 +91,35 @@ class CronJobStore:
 
     @staticmethod
     def create(prompt: str, schedule: str, **kw) -> dict:
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return jobs.create_job(prompt, schedule, **kw)
 
     @staticmethod
     def get(job_id: str) -> dict | None:
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return jobs.get_job(str(job_id))
 
     @staticmethod
     def list() -> list[dict]:
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return jobs.list_jobs()
 
     @staticmethod
     def pause(job_id: str, reason: str | None = None) -> dict | None:
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return jobs.pause_job(str(job_id), reason=reason)
 
     @staticmethod
     def resume(job_id: str) -> dict | None:
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return jobs.resume_job(str(job_id))
 
     @staticmethod
     def remove(job_id: str) -> bool:
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return bool(jobs.remove_job(str(job_id)))
 
     @staticmethod
     def claim_for_fire(job_id: str, **kw):
-        from ..vendor.hermes.cron import jobs
+        from cron import jobs
         return jobs.claim_job_for_fire(str(job_id), **kw)

@@ -1,5 +1,5 @@
 {
-  "hermes_commit": "c712f06dcdd24053a4118f38d2090ac53137ecfc",
+  "hermes_commit": "d7b836ab1c0cddaafc109ed24c9a83b6191cdc88",
   "probe_count": 68,
   "verdict_counts": {
     "run": 0,
@@ -308,7 +308,7 @@
         "gateway",
         "run_agent"
       ],
-      "sources_sha256": "fc9d3521613fe40b2bf59ca41e7b4df79d4bc7839f8b92baebaf43cc72d583ad"
+      "sources_sha256": "4642b47c628dd76541a8cca0a4bb8427674ccd498fc22b02b18ed631078790f3"
     },
     {
       "probe": "gemini_type_array_probe.py",
@@ -332,7 +332,7 @@
         "gateway",
         "hermes_cli"
       ],
-      "sources_sha256": "7c31f2734063f145571a13e85f540282dbbed9c3f37c471a8852fd90fb6b076c"
+      "sources_sha256": "b005260083557fc91ebbda0f19c882b3f2757d66c0c2bf1f4a677d2d37f4c41f"
     },
     {
       "probe": "kanban_graph_identity.py",

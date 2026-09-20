@@ -122,7 +122,7 @@ def main() -> int:
             "sources_sha256": digest.hexdigest(),
         })
     manifest = {
-        "hermes_commit": "c712f06dcdd24053a4118f38d2090ac53137ecfc",
+        "hermes_commit": "d7b836ab1c0cddaafc109ed24c9a83b6191cdc88",
         "probe_count": len(probes),
         "verdict_counts": {
             v: sum(1 for p in probes if p["verdict"] == v)

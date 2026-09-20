@@ -20,7 +20,7 @@ async def dispatch_due(conversation_id: int, home=None) -> list[dict]:
     per job. Returns the dispatched job records. Idempotent across processes via
     the vendored claim fencing."""
     CronLedger(home)
-    from ..vendor.hermes.cron import jobs
+    from cron import jobs
     dispatched = []
     for job in jobs.get_due_jobs():
         if jobs.is_terminal_job(job):

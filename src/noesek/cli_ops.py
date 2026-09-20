@@ -138,7 +138,7 @@ def _iso(value: Any) -> str | None:
 
 def postmortem(incident_id: str) -> str:
     """Local markdown postmortem from the vendored incident store - no model calls."""
-    from .vendor.hermes.cron import incidents
+    from cron import incidents
     inc = incidents.get_incident(incident_id)
     if not inc:
         raise KeyError(incident_id)

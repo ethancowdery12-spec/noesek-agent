@@ -16,7 +16,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 
 from .local_read import allowed_root
-from ..vendor.hermes.tools.path_security import has_traversal_component, validate_within_dir
+from tools.path_security import has_traversal_component, validate_within_dir
 
 MAX_BYTES = 400_000
 MAP_MAX_CHARS = 12_000

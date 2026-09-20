@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..vendor.hermes.tools.approval_detection import (
+from tools.approval_detection import (
     _check_sudo_stdin_guard, detect_dangerous_command, detect_hardline_command)
 
 

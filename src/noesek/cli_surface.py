@@ -95,7 +95,7 @@ def _extras(args):
             _emit(asyncio.run(search_memories(args.query,args.limit)),as_json);return 0
     if cmd=='incidents':
         sub=getattr(args,'incidents_command',None)
-        from .vendor.hermes.cron import incidents as _inc
+        from cron import incidents as _inc
         if sub=='list' or sub is None:_emit(_inc.list_incidents(),as_json);return 0
         if sub=='postmortem':
             row=_inc.get_incident(args.incident_id)
@@ -121,7 +121,7 @@ def _roots(kind):
     return [home/kind,Path.cwd()/kind]
 
 def _cron(args,path,as_json):
-    from .vendor.hermes.cron import jobs, executions, incidents, notepad
+    from cron import jobs, executions, incidents, notepad
     action=path[1] if len(path)>1 else 'list'
     ref=getattr(args,'job_id',None)
     if action=='list':_emit(jobs.list_jobs(include_disabled=True),as_json);return 0
@@ -269,7 +269,7 @@ def _run(args):
         if act=='clear-pending':_emit({'cleared':gate.pairing_store.clear_pending(getattr(args,'platform',None))},as_json);return 0
         return _unsupported(path)
     if path==('cron','incidents'):
-        from .vendor.hermes.cron import incidents
+        from cron import incidents
         _emit(incidents.list_incidents(),as_json);return 0
     if path==('sessions','rename'):
         _emit(asyncio.run(cli_ops.session_rename(int(getattr(args,'session_id')),getattr(args,'title'))),as_json);return 0

@@ -12,24 +12,52 @@ requires-python = ">=3.11"
 # Exact pins, following the upstream supply-chain pinning policy (see THIRD_PARTY_NOTICES.md):
 # no ranges; bump deliberately after review. Full transitive lock: requirements-lock.txt
 dependencies = [
-  "fastapi==0.141.1",
-  "uvicorn[standard]==0.53.0",
-  "httpx==0.28.1",
-  "pydantic==2.13.5",
-  "pydantic-settings==2.15.0",
-  "sqlalchemy[asyncio]==2.0.54",
-  "aiosqlite==0.22.1",
-  "pyyaml==6.0.3",
-  "opentelemetry-sdk==1.44.0",
-  "mcp==2.2.0",
-  "croniter==6.2.4",
   "agent-client-protocol==0.12.1",
-  "playwright==1.56.0",
+  "aiohttp==3.13.5",
+  "aiosqlite==0.22.1",
+  "certifi==2026.5.20",
+  "concurrent-log-handler==0.9.29; sys_platform == 'win32'",
+  "croniter==6.2.4",
+  "cryptography==50.0.0",
   "docker==7.1.0",
   "e2b==2.9.0",
-  "slack-sdk==3.39.0",
-  "aiohttp==3.13.5",
+  "fastapi==0.141.1",
+  "fire==0.7.1",
+  "firecrawl-anydoc==0.2.4",
+  "httpx==0.28.1",
+  "jinja2==3.1.6",
+  "Markdown==3.10.2",
+  "mcp==2.2.0",
+  "nemo-relay>=0.8.3,<0.9; (sys_platform == 'darwin' and platform_machine == 'arm64') or (sys_platform == 'linux' and platform_machine == 'x86_64' and 'android' not in platform_release) or (sys_platform == 'linux' and platform_machine == 'aarch64' and 'android' not in platform_release) or (sys_platform == 'win32' and platform_machine == 'AMD64') or (sys_platform == 'win32' and platform_machine == 'ARM64')",
+  "openai==2.24.0",
+  "opentelemetry-sdk==1.44.0",
+  "packaging==26.0",
+  "pathspec==1.1.1",
+  "Pillow==12.3.0",
+  "pillow-heif>=1.4.0,<2",
+  "playwright==1.56.0",
   "prompt_toolkit==3.0.52",
+  "psutil==7.2.2",
+  "ptyprocess>=0.7.0,<1; sys_platform != 'win32'",
+  "pydantic==2.13.5",
+  "pydantic-settings==2.15.0",
+  "PyJWT[crypto]==2.13.0",
+  "python-dotenv==1.2.2",
+  "python-multipart>=0.0.9,<1",
+  "pywin32>=306,<312; sys_platform == 'win32'",
+  "pywinpty>=2.0.0,<3; sys_platform == 'win32'",
+  "pyyaml==6.0.3",
+  "requests==2.33.0",
+  "rich==14.3.3",
+  "ruamel.yaml==0.18.17",
+  "slack-sdk==3.39.0",
+  "snowballstemmer==3.1.1",
+  "sqlalchemy[asyncio]==2.0.54",
+  "tenacity==9.1.4",
+  "tzdata==2025.3; sys_platform == 'win32'",
+  "urllib3>=2.7.0,<3",
+  "uvicorn[standard]==0.53.0",
+  "websockets==15.0.1",
 ]
 
 [project.optional-dependencies]
@@ -39,13 +67,61 @@ test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1"]
 [project.scripts]
 noesek = "noesek.cli_surface:main"
 noesek-tui = "noesek.tui:main"
+noesek-agent = "run_agent:main"
+noesek-acp = "acp_adapter.entry:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 pythonpath = ["src"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/noesek"]
+packages = ["src/noesek", "vendor/hermes-agent/agent", "vendor/hermes-agent/tools", "vendor/hermes-agent/hermes_cli", "vendor/hermes-agent/gateway", "vendor/hermes-agent/tui_gateway", "vendor/hermes-agent/cron", "vendor/hermes-agent/acp_adapter", "vendor/hermes-agent/plugins", "vendor/hermes-agent/providers"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"vendor/hermes-agent/batch_runner.py" = "batch_runner.py"
+"vendor/hermes-agent/cli.py" = "cli.py"
+"vendor/hermes-agent/hermes_bootstrap.py" = "hermes_bootstrap.py"
+"vendor/hermes-agent/hermes_constants.py" = "hermes_constants.py"
+"vendor/hermes-agent/hermes_logging.py" = "hermes_logging.py"
+"vendor/hermes-agent/hermes_startup_watchdog.py" = "hermes_startup_watchdog.py"
+"vendor/hermes-agent/hermes_state.py" = "hermes_state.py"
+"vendor/hermes-agent/hermes_state_common.py" = "hermes_state_common.py"
+"vendor/hermes-agent/hermes_state_compression.py" = "hermes_state_compression.py"
+"vendor/hermes-agent/hermes_state_dbfile.py" = "hermes_state_dbfile.py"
+"vendor/hermes-agent/hermes_state_errors.py" = "hermes_state_errors.py"
+"vendor/hermes-agent/hermes_state_fts.py" = "hermes_state_fts.py"
+"vendor/hermes-agent/hermes_state_gateway.py" = "hermes_state_gateway.py"
+"vendor/hermes-agent/hermes_state_guard.py" = "hermes_state_guard.py"
+"vendor/hermes-agent/hermes_state_holders.py" = "hermes_state_holders.py"
+"vendor/hermes-agent/hermes_state_ids.py" = "hermes_state_ids.py"
+"vendor/hermes-agent/hermes_state_lockguard.py" = "hermes_state_lockguard.py"
+"vendor/hermes-agent/hermes_state_maintenance.py" = "hermes_state_maintenance.py"
+"vendor/hermes-agent/hermes_state_messages.py" = "hermes_state_messages.py"
+"vendor/hermes-agent/hermes_state_portability.py" = "hermes_state_portability.py"
+"vendor/hermes-agent/hermes_state_profile_repair.py" = "hermes_state_profile_repair.py"
+"vendor/hermes-agent/hermes_state_readpool.py" = "hermes_state_readpool.py"
+"vendor/hermes-agent/hermes_state_registry.py" = "hermes_state_registry.py"
+"vendor/hermes-agent/hermes_state_repair.py" = "hermes_state_repair.py"
+"vendor/hermes-agent/hermes_state_rewind.py" = "hermes_state_rewind.py"
+"vendor/hermes-agent/hermes_state_schema.py" = "hermes_state_schema.py"
+"vendor/hermes-agent/hermes_state_search.py" = "hermes_state_search.py"
+"vendor/hermes-agent/hermes_state_sessions.py" = "hermes_state_sessions.py"
+"vendor/hermes-agent/hermes_state_telegram.py" = "hermes_state_telegram.py"
+"vendor/hermes-agent/hermes_state_timeline.py" = "hermes_state_timeline.py"
+"vendor/hermes-agent/hermes_state_titles.py" = "hermes_state_titles.py"
+"vendor/hermes-agent/hermes_state_usage.py" = "hermes_state_usage.py"
+"vendor/hermes-agent/hermes_state_user_copy.py" = "hermes_state_user_copy.py"
+"vendor/hermes-agent/hermes_state_wal.py" = "hermes_state_wal.py"
+"vendor/hermes-agent/hermes_time.py" = "hermes_time.py"
+"vendor/hermes-agent/mcp_serve.py" = "mcp_serve.py"
+"vendor/hermes-agent/mini_swe_runner.py" = "mini_swe_runner.py"
+"vendor/hermes-agent/model_tools.py" = "model_tools.py"
+"vendor/hermes-agent/registration_lifecycle.py" = "registration_lifecycle.py"
+"vendor/hermes-agent/run_agent.py" = "run_agent.py"
+"vendor/hermes-agent/toolset_distributions.py" = "toolset_distributions.py"
+"vendor/hermes-agent/toolsets.py" = "toolsets.py"
+"vendor/hermes-agent/trajectory_compressor.py" = "trajectory_compressor.py"
+"vendor/hermes-agent/utils.py" = "utils.py"
 
 [tool.setuptools.package-data]
 noesek = ["data/*.json", "data/*.txt"]

@@ -18,7 +18,7 @@ def main():
     import os
     os.environ.update({"NOESEK_HOME": str(home), "HERMES_HOME": str(home)})
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
-    from noesek.vendor.hermes.cron import executions, incidents
+    from cron import executions, incidents
 
     try:
         raise RuntimeError("provider setup failed: connection refused")
