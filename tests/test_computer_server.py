@@ -348,3 +348,38 @@ async def test_github_tool_reads_with_stored_grant(monkeypatch, tmp_path):
         r = await c.get("/connectors/github/notifications", params={"chat_id": "ethan-main"})
         assert r.status_code == 200
         assert r.json()["notifications"][0]["repo"] == "ethan/noesek-agent"
+
+
+@pytest.mark.asyncio
+async def test_computer_input_commands(monkeypatch):
+    monkeypatch.setenv("DISPLAY", ":99")
+    monkeypatch.setattr(server.shutil, "which", lambda x: "/usr/bin/xdotool")
+
+    calls = []
+
+    class FakeProc:
+        returncode = 0
+
+        async def communicate(self):
+            return (b"", b"")
+
+    async def fake_exec(*cmd, **kwargs):
+        calls.append(cmd)
+        return FakeProc()
+
+    monkeypatch.setattr(server.asyncio, "create_subprocess_exec", fake_exec)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        bad = await c.post("/computer/input", json={"action": "nuke"})
+        assert bad.status_code == 400
+        missing = await c.post("/computer/input", json={"action": "type"})
+        assert missing.status_code == 400
+        ok = await c.post("/computer/input", json={"action": "type", "text": "hi there"})
+        assert ok.status_code == 200 and ok.json()["ok"] is True
+        assert calls[-1][:2] == ("xdotool", "type") and calls[-1][-1] == "hi there"
+        ok2 = await c.post("/computer/input", json={"action": "click", "x": 10, "y": 20, "button": 1})
+        assert ok2.status_code == 200
+        assert calls[-1] == ("xdotool", "mousemove", "10", "20", "click", "1")
+        ok3 = await c.post("/computer/input", json={"action": "key", "keys": "ctrl+s"})
+        assert ok3.status_code == 200
+        assert calls[-1] == ("xdotool", "key", "--", "ctrl+s")
