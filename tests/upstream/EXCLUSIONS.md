@@ -16,8 +16,7 @@ in CI artifacts and summarized in `UPSTREAM_SUITE_RESULTS.md`.
   into `a-f`, `g-m`, and `n-z`
 - root `tests/hermes_cli` tests split into `a-m` and `n-z`
 - `tests/tools/environments`; non-browser root tool tests split into `a-e`,
-  `f-j`, `k-m`, and `n-z`; browser/camofox tests run separately with Playwright
-  Chromium
+  `f-j`, `k-m`, and `n-z`; browser/camofox tests run separately; tests that need a live browser backend stay skipped by upstream fixtures
 
 ## Top-level paths not selected
 
@@ -40,6 +39,9 @@ fork compatibility inventory:
 - root-level `tests/test_*.py` - repository-level harness tests, outside the
   package-focused tranche inventory
 
-Individual failures inside selected tranches are not exclusions. They remain
-visible in `TRANCHE_RESULTS.json`, full CI logs, and the aggregate report so
-future parity work starts from a reproducible baseline.
+Individual failures inside selected tranches are not silently excluded. They remain
+visible in `TRANCHE_RESULTS.json`, full CI logs, and the aggregate report.
+The three final failures are pinned-snapshot test-fixture drift: update-command
+tests patch `gateway.run.__file__` after the unchanged upstream implementation
+moved the handler, including its `Path(__file__)` check, to
+`gateway.slash_commands`. Both clean-process attempts reproduce the mismatch.
