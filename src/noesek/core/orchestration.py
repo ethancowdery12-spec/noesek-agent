@@ -26,7 +26,7 @@ CONTROLLER_TOOLS = frozenset({
     "remember", "recall", "forget", "supersede_memory", "search_tools",
     "create_task", "list_tasks", "cancel_task",
     "delegate_task",
-    "gmail_read", "calendar_read", "github_notifications",
+    "gmail_read", "gmail_send", "calendar_read", "github_notifications",
 })
 
 

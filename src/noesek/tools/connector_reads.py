@@ -52,3 +52,27 @@ def calendar_read_handler(conversation_id: int):
 
 def github_notifications_handler(conversation_id: int):
     return connector_read_handler(conversation_id, "github", ghtool.list_notifications)
+
+
+class GmailSendInput(BaseModel):
+    to: str = Field(min_length=3, max_length=320)
+    subject: str = Field(default="", max_length=998)
+    body: str = Field(min_length=1, max_length=50000)
+
+
+def gmail_send_handler(conversation_id: int):
+    """Send one email via the chat's Google grant. Registered at EXTERNAL
+    risk, so the controller's approval contract (digest + 'approve N')
+    always gates it before anything leaves the box."""
+    async def h(inp: GmailSendInput):
+        chat_id, grant = await _chat_grant(conversation_id, "google")
+        if grant is None:
+            return {"error": "google is not connected for this chat",
+                    "connect": f"POST /connectors/google/auth-start with chat_id={chat_id!r}, "
+                               "open the returned URL, approve once"}
+        try:
+            sent = await gtool.send_message(grant["access_token"], inp.to, inp.subject, inp.body)
+        except _GRANT_ERRORS as exc:
+            return {"error": str(exc)}
+        return {"sent": True, "to": inp.to, "subject": inp.subject, **sent}
+    return h
