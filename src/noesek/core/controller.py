@@ -79,6 +79,8 @@ class Controller:
         r.register(ToolSpec("gmail_send","Send one plain-text email from the chat's connected Google account. Always requires user approval before sending.",GmailSendInput,Risk.EXTERNAL,gmail_send_handler(conversation_id),timeout_seconds=t))
         from ..tools.file_tools import CreateFileInput, create_file_handler
         r.register(ToolSpec("create_file","Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",CreateFileInput,Risk.WRITE,create_file_handler(conversation_id),timeout_seconds=t))
+        from ..tools.voice_tools import SpeakInput, speak_handler
+        r.register(ToolSpec("speak","Create a voice note (offline text-to-speech) the user can download as a WAV.",SpeakInput,Risk.WRITE,speak_handler(conversation_id),timeout_seconds=t))
         return r
 
     def _delegate_handler(self, conversation_id: int):
