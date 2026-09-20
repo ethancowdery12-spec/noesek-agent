@@ -179,22 +179,48 @@ def _regexes():
 
 
 class _BrandingStream:
-    """Transparent write-through wrapper applying Noesek output branding."""
+    """Transparent write-through wrapper applying Noesek output branding.
+
+    Renderers (rich, prompt_toolkit) split styled lines into segments, so a
+    token can straddle two write() calls ("~/." then "hermes/skills/"). The
+    last _HOLD chars of each chunk are held back and prepended to the next;
+    flush() always drains them, so prompts and final output are never lost.
+    """
+
+    _HOLD = 32  # longest pattern span: quote + "hermes" + longest subcommand
 
     def __init__(self, inner):
         self._inner = inner
+        self._pending = ""
+
+    def _rewrite(self, text):
+        if "hermes" not in text and "Hermes" not in text:
+            return text
+        cmd, product, bare, home, standalone = _regexes()
+        text = cmd.sub("noesek", text)
+        text = product.sub("Noesek Agent", text)
+        text = bare.sub("Noesek Agent", text)
+        text = home.sub(".noesek", text)
+        text = standalone.sub("noesek", text)
+        return text
 
     def write(self, text):
-        if isinstance(text, str) and ("hermes" in text or "Hermes" in text):
-            cmd, product, bare, home, standalone = _regexes()
-            text = cmd.sub("noesek", text)
-            text = product.sub("Noesek Agent", text)
-            text = bare.sub("Noesek Agent", text)
-            text = home.sub(".noesek", text)
-            text = standalone.sub("noesek", text)
-        return self._inner.write(text)
+        if not isinstance(text, str):
+            return self._inner.write(text)
+        # Rewrite the combined text FIRST so a renderer split can never fall
+        # inside a pattern, then hold back a tail so a token still incomplete
+        # at the chunk end can be finished by the next write.
+        text = self._rewrite(self._pending + text)
+        if len(text) <= self._HOLD:
+            self._pending = text
+            return 0
+        head, self._pending = text[:-self._HOLD], text[-self._HOLD:]
+        return self._inner.write(head)
 
     def flush(self):
+        if self._pending:
+            pending, self._pending = self._pending, ""
+            self._inner.write(self._rewrite(pending))
         return self._inner.flush()
 
     def __getattr__(self, name):

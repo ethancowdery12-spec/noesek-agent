@@ -95,6 +95,7 @@ def test_branding_stream_rewrites_commands_only(boot):
     stream = boot._BrandingStream(buf)
     stream.write("Run `hermes model` or 'hermes setup'. Hermes Agent v0.21.3. "
                  "See NousResearch/hermes-agent, hermes_cli.main, HERMES_HOME, ~/.hermes.")
+    stream.flush()
     out = buf.getvalue()
     assert "`noesek model`" in out and "'noesek setup'" in out
     assert "Noesek Agent v0.21.3" in out
@@ -113,3 +114,15 @@ def test_acp_auth_methods_rebranded(boot):
         for field in ("id", "name", "description"):
             value = getattr(m, field, "")
             assert "hermes" not in str(value).lower(), (field, value)
+
+
+def test_branding_stream_survives_split_writes(boot):
+    import io
+    buf = io.StringIO()
+    stream = boot._BrandingStream(buf)
+    stream.write("Re-scan ~/.")
+    stream.write("hermes/skills/ for `her")
+    stream.write("mes model` users")
+    stream.flush()
+    out = buf.getvalue()
+    assert "~/.noesek/skills/" in out and "`noesek model`" in out
