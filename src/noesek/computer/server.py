@@ -67,6 +67,10 @@ app.include_router(telegram_router)
 async def _startup() -> None:
     await init_db()
     await migrate()
+    from ..jobs import recover_interrupted
+    recovered = await recover_interrupted()
+    if recovered["requeued"] or recovered["failed"]:
+        log.warning("task durability sweep: %s", recovered)
     _ensure_display()
     asyncio.create_task(_proactive_sweep())
 

@@ -20,6 +20,37 @@ BACKOFF_BASE_SECONDS = 5
 def backoff_seconds(attempts: int) -> float:
     return BACKOFF_BASE_SECONDS * (2 ** max(0, attempts - 1))
 
+async def recover_interrupted() -> dict:
+    """Requeue tasks left 'running' by a dead process.
+
+    The queue is the durability layer: tasks, attempts, and backoff live in
+    the DB, so a restart only loses the in-flight execution. On boot every
+    zombie 'running' row goes back to 'pending' (its next run uses the
+    normal backoff), unless it already spent its attempts - those settle as
+    failed instead of looping forever. On hosts with ephemeral disks (Render
+    free tier) the DB itself is lost on redeploy; that ceiling is documented
+    in docs/HOSTING.md.
+    """
+    async with Session() as s:
+        zombies = (await s.execute(select(Task).where(Task.status == "running"))).scalars().all()
+        requeued, failed = 0, 0
+        for t in zombies:
+            if t.attempts >= (t.max_attempts or settings.task_max_attempts):
+                t.status = "failed"
+                t.finished_at = now()
+                t.last_error = "interrupted by a process restart on its final attempt"
+                failed += 1
+            else:
+                t.status = "pending"
+                t.last_error = "interrupted by a process restart; requeued"
+                requeued += 1
+        await s.commit()
+    if requeued or failed:
+        log.warning("recovered interrupted tasks: %d requeued, %d failed", requeued, failed)
+        inc("noesek_tasks_recovered_total")
+    return {"requeued": requeued, "failed": failed}
+
+
 async def _watch_cancellation(task_id: int, token) -> None:
     """Poll the task row and propagate a cancel request into the running worker."""
     while not token.cancelled:
