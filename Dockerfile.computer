@@ -11,6 +11,8 @@ RUN apt-get update -qq \
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
+# The wheel force-includes the vendored runtime (hatchling fails without it).
+COPY vendor ./vendor
 RUN pip install .[stt] \
  && playwright install --with-deps chromium
 
