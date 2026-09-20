@@ -60,7 +60,10 @@ class CronLedger:
     # --- incidents ---
     @staticmethod
     def record_failure(job_id: str, error: str, *, job_name: str | None = None) -> tuple[str, bool]:
-        return incidents.upsert_incident(str(job_id), error, job_name=job_name)
+        # Our safety layer: scrub generic key=value secrets before the vendored
+        # ledger persists the error (upstream's redactor misses token=... shapes).
+        from .redact import redact_sensitive_text
+        return incidents.upsert_incident(str(job_id), redact_sensitive_text(error, force=True), job_name=job_name)
 
     @staticmethod
     def list_incidents(state: str | None = None) -> list[dict]:

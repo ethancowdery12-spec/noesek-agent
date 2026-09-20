@@ -72,7 +72,7 @@ noesek-acp = "acp_adapter.entry:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-pythonpath = ["src", "vendor/hermes-agent"]
+pythonpath = ["src"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/noesek", "vendor/hermes-agent/agent", "vendor/hermes-agent/tools", "vendor/hermes-agent/hermes_cli", "vendor/hermes-agent/gateway", "vendor/hermes-agent/tui_gateway", "vendor/hermes-agent/cron", "vendor/hermes-agent/acp_adapter", "vendor/hermes-agent/plugins", "vendor/hermes-agent/providers"]

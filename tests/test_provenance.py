@@ -34,7 +34,7 @@ def test_manifest_header_pins_commit():
 
 def test_manifest_is_complete_over_the_tree():
     rows = _manifest_rows()
-    on_disk = {str(p.relative_to(VENDOR)) for p in VENDOR.rglob("*") if p.is_file()}
+    on_disk = {str(p.relative_to(VENDOR)) for p in VENDOR.rglob("*") if p.is_file() and "__pycache__" not in p.parts}
     assert set(rows) == on_disk
     assert len(rows) == 14189
 
