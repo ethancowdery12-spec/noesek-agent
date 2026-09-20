@@ -34,6 +34,7 @@ from ..core.browser_backend import PlaywrightExecutor, BrowserBackendError
 from ..core.computer_use import ComputerPlan
 from .. import connectors
 from .. import proactive
+from .. import vault
 
 log = logging.getLogger("noesek.computer")
 
@@ -397,6 +398,49 @@ async def computer_input(body: InputIn):
     if proc.returncode != 0:
         raise HTTPException(502, f"input failed: {(err or b'').decode()[:200]}")
     return {"ok": True, "action": body.action}
+
+
+class VaultIn(BaseModel):
+    name: str
+    value: str
+
+
+@app.get("/vault")
+async def vault_list():
+    """Names + metadata only. Values are never listed."""
+    return {"secrets": vault.default_store().names()}
+
+
+@app.post("/vault")
+async def vault_put(body: VaultIn):
+    try:
+        vault.default_store().put(body.name, body.value)
+    except vault.VaultError as exc:
+        raise HTTPException(400, str(exc))
+    return {"ok": True, "name": body.name}
+
+
+@app.get("/vault/{name}")
+async def vault_get(name: str):
+    """Single-name read for agent form fills. Localhost-only server."""
+    try:
+        entry = vault.default_store().get(name)
+    except vault.VaultError as exc:
+        raise HTTPException(400, str(exc))
+    if entry is None:
+        raise HTTPException(404, "no such secret")
+    return {"name": name, "value": entry["value"], "stored_at": entry["stored_at"]}
+
+
+@app.delete("/vault/{name}")
+async def vault_delete(name: str):
+    try:
+        removed = vault.default_store().delete(name)
+    except vault.VaultError as exc:
+        raise HTTPException(400, str(exc))
+    if not removed:
+        raise HTTPException(404, "no such secret")
+    return {"ok": True, "name": name}
 
 
 @app.get("/healthz")
