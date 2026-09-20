@@ -71,6 +71,11 @@ class Controller:
         r.register(ToolSpec("list_tasks","List this conversation's background tasks and their status.",ListTasksInput,Risk.READ,list_tasks_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("cancel_task","Cancel a pending background task by id.",CancelTaskInput,Risk.WRITE,cancel_task_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("delegate_task","Delegate an instruction to a specialized background worker (researcher, coder, operator, evaluator).",DelegateInput,Risk.WRITE,self._delegate_handler(conversation_id),timeout_seconds=t))
+        from ..tools.connector_reads import (ConnectorReadInput, gmail_read_handler,
+                                             calendar_read_handler, github_notifications_handler)
+        r.register(ToolSpec("gmail_read","Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",ConnectorReadInput,Risk.READ,gmail_read_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("calendar_read","List upcoming events on the chat's primary Google Calendar.",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("github_notifications","List unread GitHub notifications for the chat's connected GitHub account.",ConnectorReadInput,Risk.READ,github_notifications_handler(conversation_id),timeout_seconds=t))
         return r
 
     def _delegate_handler(self, conversation_id: int):
