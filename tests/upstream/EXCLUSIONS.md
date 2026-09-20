@@ -1,40 +1,45 @@
 # Upstream suite exclusions (v3 S6)
 
-The upstream-suite workflow runs the vendored upstream hermes-agent test suite
-(vendor/hermes-agent/tests at pinned commit d7b836ab, MIT (c) 2025 Nous
-Research) in place, in tranches. No vendored file is ever edited; exclusions
-are expressed as tranche selection and `-k` filters, recorded here.
+The upstream-suite workflow inventories the unchanged vendored upstream test
+suite (`vendor/hermes-agent/tests` at pinned commit `d7b836ab`, MIT, copyright
+Nous Research) in 23 parallel tranches. No vendored test is edited or silently
+skipped. Path/glob selection, `-k` expressions, and every outcome are preserved
+in CI artifacts and summarized in `UPSTREAM_SUITE_RESULTS.md`.
 
-## Tranches run (10 legs)
+## Tranches run (23 legs)
 
-- `tests/cron`, `tests/gateway`, `tests/plugins`, `tests/agent`,
-  `tests/hermes_cli`, `tests/tui_gateway`, `tests/acp_adapter`, `tests/skills`
-- `tests/tools` split in two: `not browser and not camofox` (core) and
-  `browser or camofox` (needs Playwright Chromium / camofox browser infra;
-  the workflow installs Chromium for this leg, camofox-dependent tests may
-  still fail and are recorded as infra exclusions)
+- `tests/cron`, `tests/skills`, `tests/plugins`, `tests/tui_gateway`, and
+  `tests/acp_adapter`
+- `tests/agent/lsp`, `tests/agent/transports`, and root agent tests split into
+  `a-f`, `g-m`, and `n-z`
+- `tests/gateway/platforms`, `tests/gateway/relay`, and root gateway tests split
+  into `a-f`, `g-m`, and `n-z`
+- root `tests/hermes_cli` tests split into `a-m` and `n-z`
+- `tests/tools/environments`; non-browser root tool tests split into `a-e`,
+  `f-j`, `k-m`, and `n-z`; browser/camofox tests run separately with Playwright
+  Chromium
 
-## Excluded top-level dirs (with reason)
+## Top-level paths not selected
 
-- `tests/docker` - requires a Docker daemon and image builds
-- `tests/e2e`, `tests/integration` - require live external services / network
-- `tests/manual` - human-driven, not automated
-- `tests/perf_guards` - timing-sensitive perf gates, flaky under shared CI
-- `tests/desktop`, `tests/computer_use`, `tests/dashboard` - require a display
-  server / GUI stack
-- `tests/website`, `tests/verify`, `tests/ci` - repo-maintenance helpers, not
-  runtime tests
-- `tests/install` - exercises the upstream installer end to end (Noesek ships
-  its own installer; vendored one is intentionally not run)
-- `tests/evals`, `tests/conformance` - require live model API access
+These paths require infrastructure or a mode that is outside this deterministic
+fork compatibility inventory:
+
+- `tests/docker` - Docker daemon and image builds
+- `tests/e2e`, `tests/integration` - live external services or network
+- `tests/manual` - human-driven
+- `tests/perf_guards` - timing-sensitive performance gates on shared CI
+- `tests/desktop`, `tests/computer_use`, `tests/dashboard` - display/GUI stack
+- `tests/website`, `tests/verify`, `tests/ci` - upstream repository-maintenance
+  helpers, not runtime behavior
+- `tests/install` - upstream end-to-end installer; Noesek has its own installer
+- `tests/evals`, `tests/conformance` - live model API access
 - `tests/providers`, `tests/monitoring`, `tests/honcho_plugin`,
   `tests/openviking_plugin`, `tests/hermes_state`, `tests/scripts`,
-  `tests/fakes`, `tests/fixtures` - pending triage; most need external
-  services or fixture harnesses (candidates for later tranches)
-- root-level `tests/test_*.py` - pending triage (candidates for a later
-  tranche)
+  `tests/fakes`, `tests/fixtures` - external-service or dedicated fixture
+  harnesses not provisioned by this workflow
+- root-level `tests/test_*.py` - repository-level harness tests, outside the
+  package-focused tranche inventory
 
-Individual failing tests inside a run tranche are NOT edited or skipped in
-source; they are reported in TRANCHE_RESULTS.json / CI artifacts. If a failure
-is traced to non-vendored infrastructure, it is added to this file with the
-reason.
+Individual failures inside selected tranches are not exclusions. They remain
+visible in `TRANCHE_RESULTS.json`, full CI logs, and the aggregate report so
+future parity work starts from a reproducible baseline.
