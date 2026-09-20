@@ -324,3 +324,27 @@ async def test_calendar_tool_reads_with_stored_grant(monkeypatch, tmp_path):
         assert r.status_code == 200
         ev = r.json()["events"][0]
         assert ev["summary"] == "Tennis with Sam" and ev["location"] == "Buena Vista"
+
+
+@pytest.mark.asyncio
+async def test_github_tool_reads_with_stored_grant(monkeypatch, tmp_path):
+    from noesek import connectors
+    from noesek.connectors import github as ghtool
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    store.put("github", "ethan-main", "tok-gh", ("repo",))
+
+    async def fake_notes(token, max_results):
+        return [{"id": "n1", "repo": "ethan/noesek-agent", "title": "CI green",
+                 "type": "CheckSuite", "reason": "ci_activity",
+                 "updated_at": "2026-09-20T15:00:00Z"}]
+
+    monkeypatch.setattr(ghtool, "list_notifications", fake_notes)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        no_grant = await c.get("/connectors/github/notifications", params={"chat_id": "nobody"})
+        assert no_grant.status_code == 403
+        r = await c.get("/connectors/github/notifications", params={"chat_id": "ethan-main"})
+        assert r.status_code == 200
+        assert r.json()["notifications"][0]["repo"] == "ethan/noesek-agent"

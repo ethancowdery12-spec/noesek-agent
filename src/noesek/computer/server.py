@@ -343,6 +343,23 @@ async def calendar_events(chat_id: str, max_results: int = 5):
     return {"chat_id": chat_id, "count": len(events), "events": events}
 
 
+@app.get("/connectors/github/notifications")
+async def github_notifications(chat_id: str, max_results: int = 10):
+    """Unread GitHub notifications via the chat-scoped grant."""
+    from ..connectors import github as ghtool
+
+    if not chat_id:
+        raise HTTPException(400, "chat_id is required")
+    grant = connectors.default_store().get("github", chat_id)
+    if grant is None:
+        raise HTTPException(403, "no github grant for this chat - run auth-start first")
+    try:
+        notes = await ghtool.list_notifications(grant["access_token"], max_results)
+    except ghtool.GrantMissing as exc:
+        raise HTTPException(403, str(exc))
+    return {"chat_id": chat_id, "count": len(notes), "notifications": notes}
+
+
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "version": __version__, "display": os.environ.get("DISPLAY", "")}
