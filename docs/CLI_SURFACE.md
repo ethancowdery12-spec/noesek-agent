@@ -11,7 +11,10 @@ The command grammar is generated from a pinned manifest
 so every documented spelling parses exactly. Execution always stays in Noesek:
 each command path either has a real Noesek adapter or exits 3 with a clear
 "no safe execution adapter yet" message and never falls through to a surprise
-behavior. Commands parsed but not yet adapted are the only gaps.
+behavior. Commands parsed but not yet adapted are the only gaps. The two
+onboarding commands, `noesek setup` and `noesek model`, execute the vendored
+wizard/provider picker under the Noesek layer (Noesek home, skin, branded
+output, safety shim).
 
 Noesek-native additions beyond the manifest surface: `worker`, `acp-serve`,
 `providers`, `memories search`, and `incidents list|postmortem`.

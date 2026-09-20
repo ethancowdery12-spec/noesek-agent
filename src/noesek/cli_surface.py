@@ -341,6 +341,11 @@ def main(argv=None):
         # v3 full fork: bare `noesek` boots the complete vendored upstream CLI
         # with Noesek branding (see upstream_boot). Subcommands stay on this surface.
         from .upstream_boot import main as _boot;return _boot()
+    if effective[0] in ('setup', 'model'):
+        # Onboarding commands execute in the vendored wizard/picker (full fork),
+        # under the Noesek home, skin, branding, and safety shim.
+        from .upstream_boot import run_vendored
+        return run_vendored(effective)
     parser=build_parser();args=parser.parse_args(argv);m=_manifest()
     if getattr(args,'compat_report',False):_emit(_compat_report(m),True);return 0
     if getattr(args,'version',False):print(f'noesek {__version__}');return 0
