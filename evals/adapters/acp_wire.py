@@ -31,22 +31,50 @@ def drain_stderr(proc, sink):
 
 
 def rpc(proc, sel, transcript, method, params, rid, timeout=180):
+    """One JSON-RPC round trip.
+
+    Reads the agent's stdout with os.read on the raw fd, never the buffered
+    text wrapper: when the server flushes a session/update notification and
+    the final response in one write, a buffered reader coalesces both into
+    user space while select() waits on an empty fd - the response sits
+    unread and the call times out with a live server (the CI flake seen in
+    #42, #57, #64, #65). An explicit byte buffer makes buffered coalescing
+    harmless.
+    """
     line = json.dumps({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
     proc.stdin.write(line + "\n"); proc.stdin.flush()
     transcript.append({"dir": "client->agent", "msg": json.loads(line)})
+    fd = proc.stdout.fileno()
+    buf = getattr(rpc, "_bufs", {}).get(fd, b"")
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        for key, _ in sel.select(timeout=1):
-            raw = proc.stdout.readline()
-            if not raw:
+        if b"\n" not in buf:
+            if not sel.select(timeout=1):
+                continue
+            chunk = os.read(fd, 65536)
+            if not chunk:
                 raise RuntimeError("agent closed stdout")
-            msg = json.loads(raw)
-            transcript.append({"dir": "agent->client", "msg": msg})
-            if msg.get("id") == rid:
-                if "error" in msg:
-                    raise RuntimeError(f"{method}: {msg['error']}")
-                return msg["result"]
+            buf += chunk
+            continue
+        raw, buf = buf.split(b"\n", 1)
+        if not raw.strip():
+            continue
+        msg = json.loads(raw.decode())
+        transcript.append({"dir": "agent->client", "msg": msg})
+        if msg.get("id") == rid:
+            _stash_buf(fd, buf)
+            if "error" in msg:
+                raise RuntimeError(f"{method}: {msg['error']}")
+            return msg["result"]
+    _stash_buf(fd, buf)
     raise TimeoutError(method)
+
+
+def _stash_buf(fd, buf):
+    """Bytes read past the last full line belong to the next rpc call."""
+    if not hasattr(rpc, "_bufs"):
+        rpc._bufs = {}
+    rpc._bufs[fd] = buf
 
 
 def main():
@@ -58,7 +86,7 @@ def main():
                             stderr=subprocess.PIPE, text=True, env=env)
     stderr_lines = []
     threading.Thread(target=drain_stderr, args=(proc, stderr_lines), daemon=True).start()
-    sel = selectors.DefaultSelector(); sel.register(proc.stdout, selectors.EVENT_READ)
+    sel = selectors.DefaultSelector(); sel.register(proc.stdout.fileno(), selectors.EVENT_READ)
     transcript = []
     db = home / "noesek.db"
     try:
