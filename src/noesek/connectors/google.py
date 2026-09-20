@@ -46,3 +46,37 @@ async def list_messages(token: str, max_results: int = 5) -> list[dict]:
                 "snippet": data.get("snippet", ""),
             })
         return out
+
+
+CALENDAR_API = "https://www.googleapis.com/calendar/v3"
+
+
+async def list_events(token: str, max_results: int = 5) -> list[dict]:
+    """Upcoming primary-calendar events: id, summary, start, end, location."""
+    import httpx
+    from datetime import datetime, timezone
+
+    max_results = max(1, min(int(max_results), 20))
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(
+            f"{CALENDAR_API}/calendars/primary/events",
+            params={
+                "maxResults": max_results,
+                "singleEvents": "true",
+                "orderBy": "startTime",
+                "timeMin": datetime.now(timezone.utc).isoformat(),
+            },
+            headers={"Authorization": f"Bearer {token}"})
+        if resp.status_code == 401:
+            raise GrantMissing("google token was rejected (expired or revoked)")
+        resp.raise_for_status()
+        out = []
+        for ev in resp.json().get("items", []):
+            out.append({
+                "id": ev.get("id", ""),
+                "summary": ev.get("summary", ""),
+                "start": (ev.get("start") or {}).get("dateTime") or (ev.get("start") or {}).get("date", ""),
+                "end": (ev.get("end") or {}).get("dateTime") or (ev.get("end") or {}).get("date", ""),
+                "location": ev.get("location", ""),
+            })
+        return out

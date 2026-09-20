@@ -326,6 +326,23 @@ async def gmail_messages(chat_id: str, max_results: int = 5):
     return {"chat_id": chat_id, "count": len(messages), "messages": messages}
 
 
+@app.get("/connectors/google/calendar/events")
+async def calendar_events(chat_id: str, max_results: int = 5):
+    """Upcoming events on the chat's primary calendar via its stored grant."""
+    from ..connectors import google as gtool
+
+    if not chat_id:
+        raise HTTPException(400, "chat_id is required")
+    grant = connectors.default_store().get("google", chat_id)
+    if grant is None:
+        raise HTTPException(403, "no google grant for this chat - run auth-start first")
+    try:
+        events = await gtool.list_events(grant["access_token"], max_results)
+    except gtool.GrantMissing as exc:
+        raise HTTPException(403, str(exc))
+    return {"chat_id": chat_id, "count": len(events), "events": events}
+
+
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "version": __version__, "display": os.environ.get("DISPLAY", "")}

@@ -299,3 +299,28 @@ async def test_gmail_tool_reads_with_stored_grant(monkeypatch, tmp_path):
         assert r.status_code == 200
         assert r.json()["messages"][0]["subject"] == "tennis?"
         assert seen == {"token": "tok-g", "max": 3}
+
+
+@pytest.mark.asyncio
+async def test_calendar_tool_reads_with_stored_grant(monkeypatch, tmp_path):
+    from noesek import connectors
+    from noesek.connectors import google as gtool
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    store.put("google", "ethan-main", "tok-g", ("calendar.readonly",))
+
+    async def fake_events(token, max_results):
+        return [{"id": "e1", "summary": "Tennis with Sam",
+                 "start": "2026-09-20T15:00:00-05:00", "end": "2026-09-20T16:00:00-05:00",
+                 "location": "Buena Vista"}]
+
+    monkeypatch.setattr(gtool, "list_events", fake_events)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        no_grant = await c.get("/connectors/google/calendar/events", params={"chat_id": "nobody"})
+        assert no_grant.status_code == 403
+        r = await c.get("/connectors/google/calendar/events", params={"chat_id": "ethan-main"})
+        assert r.status_code == 200
+        ev = r.json()["events"][0]
+        assert ev["summary"] == "Tennis with Sam" and ev["location"] == "Buena Vista"
