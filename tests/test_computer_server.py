@@ -1,0 +1,96 @@
+"""Computer runtime: local chat channel maps chat_id -> session -> reply.
+
+Hermetic: stubs at the server-module attribute level. No env changes,
+no module reloads, no real database.
+"""
+from __future__ import annotations
+
+import types
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+
+from noesek.computer import server
+
+
+def _stub_session(conversations):
+    class FakeConv:
+        def __init__(self, cid):
+            self.id = cid
+
+    class FakeSession:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *a):
+            return False
+
+        async def commit(self):
+            pass
+
+    async def fake_get_or_create(session, channel, external_id):
+        key = (channel, external_id)
+        if key not in conversations:
+            conversations[key] = FakeConv(len(conversations) + 1)
+        return conversations[key]
+
+    return FakeSession, fake_get_or_create
+
+
+@pytest.mark.asyncio
+async def test_chat_creates_session_and_replies(monkeypatch):
+    conversations = {}
+    FakeSession, fake_get_or_create = _stub_session(conversations)
+    monkeypatch.setattr(server, "Session", FakeSession)
+    monkeypatch.setattr(server, "get_or_create_conversation", fake_get_or_create)
+
+    seen = {}
+
+    class FakeResult:
+        text = "hello back"
+
+    async def fake_handle(cid, text, external_id=None):
+        seen["cid"] = cid
+        seen["text"] = text
+        return FakeResult()
+
+    monkeypatch.setattr(server, "get_controller", lambda: types.SimpleNamespace(handle=fake_handle))
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r1 = await c.post("/chat", json={"chat_id": "ethan-1", "text": "hi"})
+        assert r1.status_code == 200, r1.text
+        body = r1.json()
+        assert body["reply"] == "hello back"
+        assert body["chat_id"] == "ethan-1"
+        r2 = await c.post("/chat", json={"chat_id": "ethan-1", "text": "again"})
+        assert r2.json()["conversation_id"] == body["conversation_id"]
+        r3 = await c.post("/chat", json={"chat_id": "ethan-2", "text": "hi"})
+        assert r3.json()["conversation_id"] != body["conversation_id"]
+        assert seen["text"] == "hi"
+
+
+@pytest.mark.asyncio
+async def test_chat_requires_fields(monkeypatch):
+    conversations = {}
+    FakeSession, fake_get_or_create = _stub_session(conversations)
+    monkeypatch.setattr(server, "Session", FakeSession)
+    monkeypatch.setattr(server, "get_or_create_conversation", fake_get_or_create)
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        assert (await c.post("/chat", json={"chat_id": "", "text": "hi"})).status_code == 400
+        assert (await c.post("/chat", json={"chat_id": "x", "text": "  "})).status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_screenshot_503_without_display(monkeypatch):
+    monkeypatch.delitem(__import__("os").environ, "DISPLAY", raising=False)
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r = await c.get("/computer/screenshot")
+        assert r.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_healthz():
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r = await c.get("/healthz")
+        assert r.status_code == 200
+        assert r.json()["ok"] is True

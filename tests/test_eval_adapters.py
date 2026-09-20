@@ -10,7 +10,18 @@ REPO = Path(__file__).resolve().parents[1]
 def test_all_adapters_pass():
     proc = subprocess.run([sys.executable, str(REPO / "evals" / "run_adapters.py")],
                           capture_output=True, text=True, timeout=600)
-    assert proc.returncode == 0, proc.stdout[-2000:] + proc.stderr[-2000:]
+    if proc.returncode != 0:
+        # Surface failing adapters' full verdicts (incl. stderr_tail) - the
+        # one-line summary alone made an ACP startup hang undiagnosable in CI.
+        detail = ""
+        try:
+            results = json.loads((REPO / "evals" / "adapter-results.json").read_text())
+            bad = {p: r["result"] for p, r in results["adapters"].items()
+                   if r["result"].get("verdict") not in ("pass", "skip", "feature-absent")}
+            detail = json.dumps(bad, indent=2)[-3500:]
+        except Exception:
+            pass
+        raise AssertionError(proc.stdout[-2000:] + proc.stderr[-2000:] + "\n" + detail)
     results = json.loads((REPO / "evals" / "adapter-results.json").read_text())
     assert len(results["adapters"]) == 15
     verdicts = {p: r["result"]["verdict"] for p, r in results["adapters"].items()}
