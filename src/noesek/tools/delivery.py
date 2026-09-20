@@ -13,8 +13,11 @@ from ..db import Conversation, Session
 async def deliver_file(conversation_id: int, name: str, data: bytes, mime: str,
                        caption: str = "") -> dict | None:
     """Try a native push. Returns a delivery note dict, or None for link-only."""
-    async with Session() as s:
-        conv = await s.get(Conversation, conversation_id)
+    try:
+        async with Session() as s:
+            conv = await s.get(Conversation, conversation_id)
+    except Exception:
+        return None  # unresolvable conversation -> link-only delivery
     if conv is None or conv.channel != "whatsapp":
         return None
     try:
