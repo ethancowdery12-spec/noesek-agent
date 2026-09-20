@@ -77,6 +77,8 @@ class Controller:
         r.register(ToolSpec("calendar_read","List upcoming events on the chat's primary Google Calendar.",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("github_notifications","List unread GitHub notifications for the chat's connected GitHub account.",ConnectorReadInput,Risk.READ,github_notifications_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("gmail_send","Send one plain-text email from the chat's connected Google account. Always requires user approval before sending.",GmailSendInput,Risk.EXTERNAL,gmail_send_handler(conversation_id),timeout_seconds=t))
+        from ..tools.file_tools import CreateFileInput, create_file_handler
+        r.register(ToolSpec("create_file","Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",CreateFileInput,Risk.WRITE,create_file_handler(conversation_id),timeout_seconds=t))
         return r
 
     def _delegate_handler(self, conversation_id: int):

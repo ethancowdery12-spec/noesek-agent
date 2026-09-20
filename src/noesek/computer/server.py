@@ -35,6 +35,7 @@ from ..core.computer_use import ComputerPlan
 from .. import connectors
 from .. import proactive
 from .. import vault
+from .. import filestore
 
 log = logging.getLogger("noesek.computer")
 
@@ -441,6 +442,23 @@ async def vault_delete(name: str):
     if not removed:
         raise HTTPException(404, "no such secret")
     return {"ok": True, "name": name}
+
+
+@app.get("/files")
+async def files_list():
+    """Metadata for every agent-created file. Never contents."""
+    return {"files": filestore.list_files()}
+
+
+@app.get("/files/{name}")
+async def files_get(name: str):
+    """Download one agent-created file."""
+    try:
+        data = filestore.read_file(name)
+    except filestore.FileStoreError as exc:
+        raise HTTPException(404, str(exc))
+    return Response(content=data, media_type="application/octet-stream",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 @app.get("/healthz")
