@@ -67,8 +67,8 @@ test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1"]
 [project.scripts]
 noesek = "noesek.cli_surface:main"
 noesek-tui = "noesek.tui:main"
-noesek-agent = "run_agent:main"
-noesek-acp = "acp_adapter.entry:main"
+noesek-agent = "noesek.upstream_boot:main_run_agent"
+noesek-acp = "noesek.upstream_boot:main_acp"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
