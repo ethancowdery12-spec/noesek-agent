@@ -26,3 +26,12 @@ def test_unsupported_is_explicit(capsys):
 def test_completion_contains_full_top_level():
  text=cli_surface._completion('bash')
  assert 'gateway' in text and 'sessions' in text and 'computer-use' in text
+
+def test_setup_and_model_route_to_vendored(monkeypatch):
+ calls=[]
+ import noesek.upstream_boot as ub
+ monkeypatch.setattr(ub,'run_vendored',lambda argv: calls.append(argv) or 0)
+ import importlib, noesek.cli_surface as cs
+ assert cs.main(['setup','--non-interactive'])==0
+ assert cs.main(['model'])==0
+ assert calls==[['setup','--non-interactive'],['model']]
