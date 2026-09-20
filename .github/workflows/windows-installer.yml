@@ -18,10 +18,10 @@ jobs:
           $root = Join-Path $env:RUNNER_TEMP 'Noesek Test With Spaces'
           $bin = Join-Path $root 'Command Bin'
           $script = Join-Path $env:RUNNER_TEMP 'install.ps1'
-          curl.exe -fL --proto '=https' --tlsv1.2 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1' -o $script
+          curl.exe -fL --proto '=https' --tlsv1.2 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/7-install.ps1' -o $script
           if ($LASTEXITCODE -ne 0) { throw 'installer download failed' }
-          if ((Get-FileHash $script -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1') { throw 'installer checksum mismatch' }
-          & $script -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4' -InstallRoot $root -BinDir $bin -NoPathUpdate
+          if ((Get-FileHash $script -Algorithm SHA256).Hash.ToLower() -ne '95f0fbc793dedc6aa663d2f4d83a3a293f92cf4aaf0423712b91192b3a4a5a58') { throw 'installer checksum mismatch' }
+          & $script -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/8-noesek-agent-v3.0.0.tar.gz' -ExpectedSha256 '183bf6795d0c3a0c948716044d5e78f488ae39cd3ea6572fcece7c60ccf6065b' -InstallRoot $root -BinDir $bin -NoPathUpdate
           & (Join-Path $bin 'noesek.cmd') --version
           $env:NOESEK_LLM_BASE_URL = 'http://127.0.0.1:9/v1'
           $env:NOESEK_LLM_API_KEY = 'not-a-real-key'
@@ -37,18 +37,18 @@ jobs:
           Set-Content -LiteralPath (Join-Path $root 'config\sentinel.txt') -Value 'keep-me'
           $before = Get-Content -Raw (Join-Path $bin 'active.txt')
           $script = Join-Path $env:RUNNER_TEMP 'install.ps1'
-          curl.exe -fL --proto '=https' --tlsv1.2 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1' -o $script
+          curl.exe -fL --proto '=https' --tlsv1.2 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/7-install.ps1' -o $script
           if ($LASTEXITCODE -ne 0) { throw 'installer download failed' }
-          if ((Get-FileHash $script -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1') { throw 'installer checksum mismatch' }
-          & $script -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4' -InstallRoot $root -BinDir $bin -NoPathUpdate
+          if ((Get-FileHash $script -Algorithm SHA256).Hash.ToLower() -ne '95f0fbc793dedc6aa663d2f4d83a3a293f92cf4aaf0423712b91192b3a4a5a58') { throw 'installer checksum mismatch' }
+          & $script -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/8-noesek-agent-v3.0.0.tar.gz' -ExpectedSha256 '183bf6795d0c3a0c948716044d5e78f488ae39cd3ea6572fcece7c60ccf6065b' -InstallRoot $root -BinDir $bin -NoPathUpdate
           if ((Get-Content -Raw (Join-Path $root 'config\sentinel.txt')).Trim() -ne 'keep-me') { throw 'configuration was not preserved' }
           $active = Get-Content -Raw (Join-Path $bin 'active.txt')
           $env:NOESEK_RELEASE_SHA256 = ('0' * 64)
-          try { & $script -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 ('0' * 64) -InstallRoot $root -BinDir $bin -NoPathUpdate; throw 'bad checksum unexpectedly succeeded' } catch { if ($_.Exception.Message -notmatch 'checksum mismatch') { throw } }
+          try { & $script -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/8-noesek-agent-v3.0.0.tar.gz' -ExpectedSha256 ('0' * 64) -InstallRoot $root -BinDir $bin -NoPathUpdate; throw 'bad checksum unexpectedly succeeded' } catch { if ($_.Exception.Message -notmatch 'checksum mismatch') { throw } }
           Remove-Item Env:NOESEK_RELEASE_SHA256
           if ((Get-Content -Raw (Join-Path $bin 'active.txt')) -ne $active) { throw 'failed install changed active marker' }
           & (Join-Path $bin 'noesek.cmd') --version
       - name: Exact CMD one-liner
         shell: cmd
         run: >-
-          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne 'fc01b250849044cc735d864680b9698ba5b4144bd2cc39bd2bce09317f2144c1'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v2.1.3/8-noesek-agent-v2.1.3.tar.gz' -ExpectedSha256 'c06c3c24f1c1fc729e159b4e88c3d034c64445c05f802275cbd1257d2d8b3ee4' -NoPathUpdate; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
+          powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference='Stop'; $u='https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/7-install.ps1'; $p=Join-Path $env:TEMP ('noesek-'+[guid]::NewGuid()+'.ps1'); curl.exe -fL --proto '=https' --tlsv1.2 $u -o $p; if($LASTEXITCODE -ne 0){throw 'installer download failed'}; if((Get-FileHash $p -Algorithm SHA256).Hash.ToLower() -ne '95f0fbc793dedc6aa663d2f4d83a3a293f92cf4aaf0423712b91192b3a4a5a58'){throw 'installer checksum mismatch'}; & $p -ReleaseUrl 'https://github.com/ethancowdery12-spec/noesek-agent/releases/download/v3.0.0/8-noesek-agent-v3.0.0.tar.gz' -ExpectedSha256 '183bf6795d0c3a0c948716044d5e78f488ae39cd3ea6572fcece7c60ccf6065b' -NoPathUpdate; $c=$LASTEXITCODE; Remove-Item $p -Force; exit $c"
