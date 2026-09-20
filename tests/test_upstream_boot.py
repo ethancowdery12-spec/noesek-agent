@@ -56,3 +56,15 @@ def test_vendored_tree_has_no_noesek_edits():
         except OSError:
             pass
     assert not offenders, offenders[:5]
+
+
+def test_vendored_state_lives_under_noesek_home(boot, tmp_path, monkeypatch):
+    # S5: the vendored runtime's home resolution follows NOESEK_HOME end to end.
+    import hermes_constants
+    # Other tests may leave a context-local home override behind; clear it so
+    # we assert the env mapping, not leftover state.
+    monkeypatch.setattr(hermes_constants, "_HERMES_HOME_OVERRIDE", __import__("contextvars").ContextVar("_HERMES_HOME_OVERRIDE", default=hermes_constants._UNSET))
+    home = boot.boot_env()
+    assert hermes_constants.get_hermes_home() == home
+    from hermes_cli.skin_engine import _skins_dir
+    assert _skins_dir() == home / "skins"
