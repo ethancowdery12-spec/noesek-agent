@@ -246,6 +246,7 @@ def main() -> int:
     _patch_banner_label()
     _activate_skin()
     _install_output_branding()
+    _patch_command_copy()
     from .core.upstream_safety import install as _install_safety
     _install_safety()
     from hermes_cli.main import main as upstream_main
@@ -270,6 +271,30 @@ def main_acp() -> int:
     from acp_adapter.entry import main as acp_main
     result = acp_main()
     return int(result) if isinstance(result, int) else 0
+
+
+def _patch_command_copy() -> None:
+    """Rebrand the vendored slash-command registry's static descriptions.
+
+    The interactive renderer (prompt_toolkit) writes /help rows through its
+    own output channel, so the stream filter cannot cover them; the strings
+    are static registry data, so fix the data itself at boot.
+    """
+    from hermes_cli import commands as _commands
+
+    def fix(text: str) -> str:
+        return (text.replace("~/.hermes", "~/.noesek").replace(".hermes/", ".noesek/")
+                .replace("`hermes ", "`noesek ").replace("'hermes ", "'noesek ")
+                .replace('"hermes ', '"noesek ').replace("Hermes Agent", "Noesek Agent"))
+
+    for table in (_commands.COMMANDS,):
+        for key, value in list(table.items()):
+            if isinstance(value, str) and ("hermes" in value or "Hermes" in value):
+                table[key] = fix(value)
+    for category, table in _commands.COMMANDS_BY_CATEGORY.items():
+        for key, value in list(table.items()):
+            if isinstance(value, str) and ("hermes" in value or "Hermes" in value):
+                table[key] = fix(value)
 
 
 def _patch_acp_identity() -> None:

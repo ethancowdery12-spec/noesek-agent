@@ -126,3 +126,13 @@ def test_branding_stream_survives_split_writes(boot):
     stream.flush()
     out = buf.getvalue()
     assert "~/.noesek/skills/" in out and "`noesek model`" in out
+
+
+def test_command_registry_descriptions_rebranded(boot):
+    boot.boot_env()
+    boot._patch_command_copy()
+    from hermes_cli import commands
+    for table in (commands.COMMANDS, *commands.COMMANDS_BY_CATEGORY.values()):
+        for desc in table.values():
+            assert ".hermes" not in desc, desc
+    assert any("~/.noesek/skills/" in d for t in commands.COMMANDS_BY_CATEGORY.values() for d in t.values())
