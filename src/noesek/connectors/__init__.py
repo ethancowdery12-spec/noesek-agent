@@ -94,6 +94,57 @@ class TokenStore:
     def connected_chats(self, connector: str) -> list[str]:
         return sorted(self._load().get(connector, {}))
 
+    def put_state(self, state: str, connector: str, chat_id: str, redirect_uri: str = "") -> None:
+        data = self._load()
+        states = data.setdefault("_states", {})
+        # drop expired while we are here
+        now = int(time.time())
+        for k in [k for k, v in states.items() if now - v.get("issued_at", 0) > 3600]:
+            del states[k]
+        states[state] = {"connector": connector, "chat_id": chat_id,
+                         "redirect_uri": redirect_uri, "issued_at": now}
+        self._save(data)
+
+    def pop_state(self, state: str, max_age_seconds: int = 3600) -> dict | None:
+        data = self._load()
+        states = data.get("_states", {})
+        entry = states.get(state)
+        if entry is None:
+            return None
+        if int(time.time()) - entry.get("issued_at", 0) > max_age_seconds:
+            return None
+        del states[state]
+        self._save(data)
+        return entry
+
+
+class ConnectorError(RuntimeError):
+    pass
+
+
+async def exchange_code(connector: Connector, code: str, redirect_uri: str) -> str:
+    """Swap an auth code for an access token. Secret comes from env only."""
+    import httpx
+
+    secret = os.environ.get(f"NOESEK_CONNECTOR_{connector.name.upper()}_CLIENT_SECRET", "")
+    if not connector.client_id() or not secret:
+        raise ConnectorError(f"{connector.name}: client id/secret env vars are not set")
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(connector.token_url, data={
+            "client_id": connector.client_id(),
+            "client_secret": secret,
+            "code": code,
+            "redirect_uri": redirect_uri,
+            "grant_type": "authorization_code",
+        }, headers={"Accept": "application/json"})
+    if resp.status_code != 200:
+        raise ConnectorError(f"{connector.name}: token exchange failed ({resp.status_code})")
+    data = resp.json()
+    token = data.get("access_token")
+    if not token:
+        raise ConnectorError(f"{connector.name}: no access_token in response")
+    return token
+
 
 def build_authorize_url(connector: Connector, chat_id: str, redirect_uri: str) -> tuple[str, str]:
     """(url, state) for Ethan's browser consent; state binds the grant to the chat."""
