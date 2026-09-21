@@ -47,6 +47,19 @@ PROBES = [
      "SQL built with an f-string (injection risk)"),
     ("bind-all", "low", r"[\"']0\.0\.0\.0[\"']",
      "binds on all interfaces (0.0.0.0)"),
+    # P9 batch (roadmap item 29): defensive patterns cherry-picked from
+    # mukul975/Anthropic-Cybersecurity-Skills (Apache-2.0) - OWASP-mapped
+    # injection, crypto, and misconfiguration checks; regexes are our own.
+    ("jwt-none", "high", r"(?i)algorithms?\s*[=:]\s*\[?\s*[\"']none[\"']",
+     "JWT 'none' algorithm accepted (signature bypass)"),
+    ("path-concat-open", "medium", r"\bopen\s*\(\s*[^,\")]*\+",
+     "file path built by string concatenation (path-traversal risk)"),
+    ("insecure-temp", "medium", r"\btempfile\.mktemp\s*\(",
+     "tempfile.mktemp is race-prone (use NamedTemporaryFile)"),
+    ("weak-hash", "medium", r"\bhashlib\.(?:md5|sha1)\s*\(",
+     "weak hash (md5/sha1) - fine for checksums, never for security"),
+    ("debug-enabled", "low", r"\bdebug\s*=\s*True\b",
+     "debug mode enabled in code"),
 ]
 
 # Lines that look like probes but are not real findings.

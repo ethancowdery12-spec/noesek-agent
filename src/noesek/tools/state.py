@@ -6,11 +6,13 @@ from ..db import Session, Memory, Task
 
 class RememberInput(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
-    kind: str = Field(default="note", description="note, fact, preference, or episode")
+    kind: str = Field(default="note", description="note, fact, preference, episode, handoff, or lesson")
 class SupersedeInput(BaseModel):
     memory_id: int = Field(ge=1)
     content: str = Field(min_length=1, max_length=2000)
     kind: str | None = Field(default=None, description="defaults to the superseded memory's kind")
+class HandoffInput(BaseModel):
+    content: str = Field(min_length=1, max_length=2000, description="session handoff recap for future sessions")
 class RecallInput(BaseModel): query: str = Field(min_length=1, max_length=500); limit: int = Field(default=5, ge=1, le=20)
 class ForgetInput(BaseModel): memory_id: int = Field(ge=1)
 class CreateTaskInput(BaseModel):
@@ -45,6 +47,12 @@ def supersede_handler(conversation_id: int):
             old.active = False; old.superseded_by = new.id; await s.commit()
         await deindex_memory(old.id); await index_memory(new.id, new.content)
         return {"superseded": True, "old_memory_id": old.id, "memory_id": new.id, "kind": new.kind}
+    return f
+
+def handoff_handler(conversation_id: int):
+    """agentmemory idea (Apache-2.0): an explicit handoff skill - a recap the next session always sees."""
+    async def f(inp: HandoffInput):
+        return await memory_handler(conversation_id)(RememberInput(content=inp.content, kind="handoff"))
     return f
 
 def recall_handler(conversation_id: int):

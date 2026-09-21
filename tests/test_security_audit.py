@@ -69,3 +69,18 @@ def test_security_audit_registered_on_controller():
     import inspect
     import noesek.core.controller as C
     assert '"security_audit"' in inspect.getsource(C)
+
+
+def test_p9_cybersec_probes(tmp_path):
+    """Roadmap item 29 probes: JWT none-alg, path concat, mktemp, weak hash, debug."""
+    _write(tmp_path, "svc.py",
+           "jwt.decode(tok, key, algorithms=['none'])\n"
+           "f = open(base + name)\n"
+           "p = tempfile.mktemp()\n"
+           "h = hashlib.md5(data)\n"
+           "app.run(debug=True)\n")
+    out = scan_source_tree(tmp_path)
+    probes = {f["probe"] for f in out}
+    assert {"jwt-none", "path-concat-open", "insecure-temp", "weak-hash", "debug-enabled"} <= probes
+    sev = {f["probe"]: f["severity"] for f in out}
+    assert sev["jwt-none"] == "high"

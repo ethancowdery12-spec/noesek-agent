@@ -128,7 +128,8 @@ async def screenshot():
     """PNG of the machine's display. The computer is a tool."""
     if not os.environ.get("DISPLAY") or not shutil.which("scrot"):
         raise HTTPException(503, "no display or scrot unavailable")
-    path = tempfile.mktemp(suffix=".png")
+    fd, path = tempfile.mkstemp(suffix=".png")  # mkstemp: no mktemp race (security_audit insecure-temp)
+    os.close(fd)
     proc = await asyncio.create_subprocess_exec(
         "scrot", "-o", path,
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
