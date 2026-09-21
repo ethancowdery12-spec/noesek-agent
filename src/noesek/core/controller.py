@@ -6,7 +6,7 @@ from sqlalchemy import select
 from .approval_engine import assess_tool_arguments
 from .context import assemble
 from .loop_guard import LoopGuard, classify_exception
-from .memory_v2 import wrap_untrusted
+from .content_guard import guard_untrusted
 from .steering import consume_steering
 from .policy import evaluate_policy, parse_rules
 from .llm import configured_llm, provider_name
@@ -208,7 +208,7 @@ class Controller:
                     for item in result.get("results",[]) if isinstance(result,dict) else []:
                         if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
                     if isinstance(result, dict) and result.get("url"): citations.append(result["url"])
-                    messages.append({"role":"tool","tool_call_id":call.id,"content":wrap_untrusted(json.dumps(result,ensure_ascii=False), call.name)})
+                    messages.append({"role":"tool","tool_call_id":call.id,"content":guard_untrusted(json.dumps(result,ensure_ascii=False), call.name)})
         except Exception as e:
             await spine.emit(TURN_FAILED, {"error": type(e).__name__}, strict=False)
             raise
