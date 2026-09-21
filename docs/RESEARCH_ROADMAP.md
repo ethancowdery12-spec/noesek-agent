@@ -15,7 +15,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 ## P1 - Safety first
 
-- [ ] **1. llms.txt / web-content prompt-injection safeguards.** VERIFIED threat class (no single repo - this is a build item). His note: "AI agents will install malware from websites because they'll read the LLMs.txt, LLMs.full.txt, or any files on a website and they'll trust it. If that file tells it to download stuff, they'll just do it." Build: all fetched web content (incl. llms.txt) is untrusted DATA - never executed, never triggers downloads/installs/tool calls; sanitize before it reaches the model context; explicit allowlist for any follow-up action a page suggests. **Status: TODO (top priority).**
+- [x] **1. llms.txt / web-content prompt-injection safeguards.** VERIFIED threat class (no single repo - this is a build item). His note: "AI agents will install malware from websites because they'll read the LLMs.txt, LLMs.full.txt, or any files on a website and they'll trust it. If that file tells it to download stuff, they'll just do it." Built: `core/content_guard.py` - tier-1 download-and-execute payloads redacted inline, tier-2 lures flagged with a model-facing notice, all tool results + /computer/browse text covered. **Status: DONE Sep 20 (#77).**
 
 ## P2 - Document & multimodal ingest
 
