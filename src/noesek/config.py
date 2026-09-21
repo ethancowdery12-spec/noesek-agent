@@ -46,6 +46,8 @@ class Settings(BaseSettings):
     embed_api_key: str = ""
     embed_model: str = ""
     embed_dim: int = 256
+    # Graph memory: deterministic entity/relationship extraction (core.memory_graph)
+    graph_memory_enabled: bool = True
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 1_000_000
     # Context
