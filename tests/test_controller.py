@@ -71,3 +71,72 @@ async def test_max_steps_stop(db):
     c = Controller(llm=llm, registry_factory=search_factory([]), max_steps=2)
     r = await c.handle(cid, "loop")
     assert "maximum tool steps" in r.text
+
+
+# --- Sep 21 live-acceptance regressions ---
+
+async def test_approval_lifecycle_marked_persisted_and_visible(db):
+    """Approval prompts AND outcomes are [system]-marked and stay in the transcript;
+    assemble() injects the authoritative live approval state (approval-confabulation fix)."""
+    from noesek.core.context import assemble
+    cid = await _conv()
+    async def handler(inp): return {"ok": True}
+    def factory(c2):
+        r = ToolRegistry(); r.register(ToolSpec("write_thing", "d", W, Risk.WRITE, handler)); return r
+    c = Controller(llm=ScriptedLLM([tool_reply("write_thing", {"v": 1})]), registry_factory=factory)
+    r = await c.handle(cid, "do the write")
+    assert r.pending_approval_id is not None and r.text.startswith("[system] Approval required")
+    out = await c.decide_approval(cid, r.pending_approval_id, True)
+    assert out.text.startswith("[system]") and "executed" in out.text
+    async with Session() as s:
+        texts = [m.content for m in (await s.execute(select(Message).where(Message.conversation_id == cid).order_by(Message.id))).scalars().all()]
+    assert any(t.startswith("[system] Approval required") for t in texts), texts
+    assert any(t.startswith("[system] Approval #") and "executed" in t for t in texts), texts
+    async with Session() as s:
+        assembled = await assemble(s, cid, query="x")
+    sysmsg = assembled[0]["content"]
+    assert "Live approval state" in sysmsg and "write_thing" in sysmsg and "executed" in sysmsg
+
+async def test_rejected_approval_also_persisted(db):
+    cid = await _conv()
+    async def handler(inp): return {"ok": True}
+    def factory(c2):
+        r = ToolRegistry(); r.register(ToolSpec("write_thing", "d", W, Risk.WRITE, handler)); return r
+    c = Controller(llm=ScriptedLLM([tool_reply("write_thing", {"v": 1})]), registry_factory=factory)
+    r = await c.handle(cid, "do the write")
+    out = await c.decide_approval(cid, r.pending_approval_id, False)
+    assert out.text.startswith("[system] Rejected")
+    async with Session() as s:
+        texts = [m.content for m in (await s.execute(select(Message).where(Message.conversation_id == cid))).scalars().all()]
+    assert any(t.startswith("[system] Rejected approval #") for t in texts)
+
+async def test_error_streak_stop_text_hides_tool_details(db):
+    """Loop-guard stop text must not leak tool names or raw exceptions (narration rule)."""
+    cid = await _conv()
+    async def bad(inp): raise RuntimeError("raw-internal-detail")
+    def factory(c2):
+        r = ToolRegistry(); r.register(ToolSpec("fragile_tool", "d", Q, Risk.READ, bad)); return r
+    llm = ScriptedLLM([tool_reply("fragile_tool", {"q": f"v{i}"}, call_id=f"e{i}") for i in range(4)] + [text_reply("done")])
+    c = Controller(llm=llm, registry_factory=factory)
+    r = await c.handle(cid, "go")
+    assert "did not work" in r.text
+    assert "fragile_tool" not in r.text and "raw-internal-detail" not in r.text and "Exception" not in r.text
+
+async def test_identical_loop_stop_text_hides_tool_details(db):
+    cid = await _conv()
+    async def ok(inp): return {"results": []}
+    def factory(c2):
+        r = ToolRegistry(); r.register(ToolSpec("search", "d", Q, Risk.READ, ok)); return r
+    llm = ScriptedLLM([tool_reply("search", {"q": "same"}, call_id=f"s{i}") for i in range(4)] + [text_reply("done")])
+    c = Controller(llm=llm, registry_factory=factory)
+    r = await c.handle(cid, "go")
+    assert "repeating the same action" in r.text and "search" not in r.text.split("repeating")[0]
+
+def test_switch_model_description_reflects_live_catalog(db):
+    from noesek.core.llm import allowed_models, model_catalog
+    c = Controller(llm=ScriptedLLM([]))
+    spec = c.registry(1).get("switch_model")
+    assert model_catalog()["chat"] in spec.description
+    assert "configured:" in spec.description
+    for m in allowed_models():
+        assert m in spec.description
