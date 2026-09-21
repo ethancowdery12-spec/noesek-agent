@@ -70,6 +70,15 @@ async def rank_memories_async(conversation_id: int, query: str, memories: list[M
             n = len(merged)
             base = {m.id: (n - i) / n for i, m in enumerate(merged)}
             merged = sorted(merged, key=lambda m: base[m.id] + scores.get(m.id, 0.0), reverse=True)
+    if settings.graph_memory_enabled and query.strip() and merged:
+        from .memory_graph import graph_boost
+        boosts = await graph_boost(conversation_id, query)
+        if boosts:
+            # entity-neighborhood boost layered after vector fusion; half weight,
+            # stable sort keeps prior order on ties.
+            n = len(merged)
+            base = {m.id: (n - i) / n for i, m in enumerate(merged)}
+            merged = sorted(merged, key=lambda m: base[m.id] + 0.5 * boosts.get(m.id, 0.0), reverse=True)
     return merged
 
 async def assemble(session, conversation_id: int, query: str = "", limit: int | None = None,

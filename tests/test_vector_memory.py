@@ -12,9 +12,15 @@ from noesek.tools.state import ForgetInput, RememberInput, forget_handler, memor
 
 
 @pytest.fixture
-def vec_on(monkeypatch):
+async def vec_on(db, monkeypatch):
+    """memory_vectors is raw-SQL (outside Base.metadata); wipe between tests."""
     monkeypatch.setattr(settings, "vector_memory_enabled", True)
     monkeypatch.setattr(settings, "embed_provider", "local")
+    from noesek.core.memory_vector import vectors_available
+    await vectors_available()
+    async with Session() as s:
+        await s.execute(text("DELETE FROM memory_vectors"))
+        await s.commit()
     return settings
 
 
