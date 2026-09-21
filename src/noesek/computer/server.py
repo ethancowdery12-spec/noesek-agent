@@ -70,12 +70,31 @@ app.include_router(telegram_router)
 async def _startup() -> None:
     await init_db()
     await migrate()
-    from ..jobs import recover_interrupted
+    from ..channels import outbound
+    from ..jobs import recover_interrupted, task_worker
     recovered = await recover_interrupted()
     if recovered["requeued"] or recovered["failed"]:
         log.warning("task durability sweep: %s", recovered)
     _ensure_display()
+    # Without this the job queue never drains on the computer service:
+    # delegate_task enqueues work that nothing executes (found by live test).
+    app.state.task_worker_stop = asyncio.Event()
+    app.state.task_worker = asyncio.create_task(
+        task_worker(app.state.task_worker_stop, deliver=outbound.deliver))
     asyncio.create_task(_proactive_sweep())
+
+
+@app.on_event("shutdown")
+async def _shutdown() -> None:
+    stop = getattr(app.state, "task_worker_stop", None)
+    worker = getattr(app.state, "task_worker", None)
+    if stop is not None:
+        stop.set()
+    if worker is not None:
+        try:
+            await worker
+        except Exception:
+            pass
 
 
 class ChatIn(BaseModel):
