@@ -154,10 +154,15 @@ async def browse(body: BrowseIn):
         result = await execute_plan_for(plan, executor)
     except BrowserBackendError as exc:
         raise HTTPException(502, str(exc))
+    from ..core.content_guard import scan_untrusted
     for step in result["steps"]:
-        if isinstance(step.get("text"), str) and len(step["text"]) > _TEXT_CAP:
-            step["text"] = step["text"][:_TEXT_CAP]
-            step["text_truncated"] = True
+        if isinstance(step.get("text"), str):
+            rep = scan_untrusted(step["text"])
+            if not rep.clean:
+                step["content_flags"] = [f["pattern"] for f in rep.flags] + [r["pattern"] for r in rep.redactions]
+            if len(step["text"]) > _TEXT_CAP:
+                step["text"] = step["text"][:_TEXT_CAP]
+                step["text_truncated"] = True
     return result
 
 
