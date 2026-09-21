@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select
 from ..core.memory_v2 import MEMORY_KINDS, deindex_memory, fts_search_ids, index_memory
 from ..core.memory_vector import deindex_vector, index_vector
+from ..core.memory_graph import deindex_graph, index_graph
 from ..db import Session, Conversation, Memory, Task
 
 class RememberInput(BaseModel):
@@ -36,7 +37,7 @@ def memory_handler(conversation_id: int):
         async with Session() as s:
             m = Memory(conversation_id=conversation_id, content=inp.content, kind=inp.kind, source="conversation")
             s.add(m); await s.commit()
-        await index_memory(m.id, m.content); await index_vector(m.id, conversation_id, m.content)
+        await index_memory(m.id, m.content); await index_vector(m.id, conversation_id, m.content); await index_graph(m.id, conversation_id, m.content)
         return {"stored": True, "memory_id": m.id, "kind": m.kind}
     return f
 
@@ -54,6 +55,7 @@ def supersede_handler(conversation_id: int):
             old.active = False; old.superseded_by = new.id; await s.commit()
         await deindex_memory(old.id); await index_memory(new.id, new.content)
         await deindex_vector(old.id); await index_vector(new.id, conversation_id, new.content)
+        await deindex_graph(old.id); await index_graph(new.id, conversation_id, new.content)
         return {"superseded": True, "old_memory_id": old.id, "memory_id": new.id, "kind": new.kind}
     return f
 
@@ -118,7 +120,7 @@ def forget_handler(conversation_id: int):
             m = (await s.execute(select(Memory).where(Memory.id==inp.memory_id, Memory.conversation_id==conversation_id, Memory.active==True))).scalar_one_or_none()
             if not m: return {"error": f"Memory #{inp.memory_id} not found in this conversation"}
             m.active = False; await s.commit()
-        await deindex_memory(inp.memory_id); await deindex_vector(inp.memory_id)
+        await deindex_memory(inp.memory_id); await deindex_vector(inp.memory_id); await deindex_graph(inp.memory_id)
         return {"forgotten": True, "memory_id": inp.memory_id}
     return f
 
