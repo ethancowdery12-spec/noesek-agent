@@ -32,3 +32,12 @@ def test_humanize_never_returns_empty_for_nonempty_input():
 def test_humanize_empty_input_stays_empty():
     out = humanize_text("   ")
     assert out["humanized_text"] == ""
+
+
+def test_computer_service_starts_task_worker():
+    """delegate_task enqueues jobs; the computer service must drain them."""
+    src = inspect.getsource(srv._startup)
+    assert "task_worker" in src
+    assert "create_task" in src
+    shutdown = inspect.getsource(srv._shutdown)
+    assert "stop.set()" in shutdown
