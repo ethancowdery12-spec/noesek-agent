@@ -71,7 +71,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 ## P9 - Security testing
 
-- [ ] **33. Strix pentest** - `usestrix/strix`. VERIFIED exists (open-source AI pentest agent; strix.ai); LICENSE UNCHECKED. Run it AGAINST our agent as an adversary; fix what it finds. **Status: TODO (after P1 lands).**
+- [x] **33. Strix pentest** - `usestrix/strix`. VERIFIED, Apache-2.0 (checked Sep 21). **Status: DONE Sep 21 (P8)** - own bounded auditor `security_audit`: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) + FastAPI route inventory over our own layer, file:line evidence per finding, report at docs/SECURITY_AUDIT.md. First run: 2 findings, both reviewed and accepted with rationale.
 
 ## P10 - UI/frontend (lowest value - see note)
 

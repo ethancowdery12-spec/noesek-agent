@@ -25,6 +25,7 @@ from ..tools.research import SearchInput, search_web
 from ..tools.prompt_opt import OptimizePromptInput, optimize_prompt
 from ..tools.humanize import HumanizeInput, humanize
 from ..tools.adversarial import AdversarialReviewInput, adversarial_review
+from ..tools.security_audit import SecurityAuditInput, security_audit
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.state import (
     CancelTaskInput, CreateTaskInput, ForgetInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput,
@@ -76,6 +77,7 @@ class Controller:
         r.register(ToolSpec("delegate_task","Delegate an instruction to a specialized background worker (researcher, coder, operator, evaluator).",DelegateInput,Risk.WRITE,self._delegate_handler(conversation_id),timeout_seconds=t))
         from ..tools.connector_reads import (ConnectorReadInput, GmailSendInput, gmail_read_handler,
                                              gmail_send_handler, calendar_read_handler, github_notifications_handler)
+        r.register(ToolSpec("security_audit","Run a bounded security audit over our own source layer: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) plus route inventory; findings carry file:line evidence.",SecurityAuditInput,Risk.READ,security_audit,timeout_seconds=t))
         r.register(ToolSpec("adversarial_review","Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",AdversarialReviewInput,Risk.READ,adversarial_review,timeout_seconds=t))
         r.register(ToolSpec("humanize","Rewrite AI-sounding text so it reads like a person wrote it: strips filler and em dashes, swaps dead-weight verbs, flags inflated vocabulary. Does not change facts.",HumanizeInput,Risk.READ,humanize,timeout_seconds=t))
         r.register(ToolSpec("optimize_prompt","Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",OptimizePromptInput,Risk.READ,optimize_prompt,timeout_seconds=t))
