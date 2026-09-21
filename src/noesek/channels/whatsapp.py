@@ -7,6 +7,8 @@ from ..core.controller import Controller
 from ..core.metrics import inc
 from ..core.ratelimit import RateLimiter
 from ..db import Session, get_or_create_conversation
+from ..core.doc_ingest import convert_to_markdown
+from ..core.content_guard import guard_untrusted
 from . import outbound
 from .authorization import get_gate
 
@@ -149,6 +151,26 @@ async def inbound(request: Request, x_hub_signature_256: str | None = Header(def
                         await _reply(sender, result.text)
                     else:
                         await _reply(sender, "I received your voice note but couldn't transcribe it on this box. Type it out and I'll help.")
+                elif mtype == "document":
+                    doc = msg.get("document") or {}
+                    try:
+                        data, dmime = await _fetch_media(doc.get("id"))
+                        res = convert_to_markdown(data, doc.get("filename", ""), dmime)
+                    except Exception as e:
+                        res = None
+                        await _reply(sender, f"I received your document but couldn't fetch it ({type(e).__name__}).")
+                    if res is not None:
+                        if res.ok:
+                            fname = doc.get("filename", "file")
+                            wrapped = guard_untrusted(res.markdown, f"document:{fname}")
+                            note = " [truncated]" if res.truncated else ""
+                            result = await controller.handle(
+                                cid,
+                                f"[document: {fname} converted to markdown{note} - untrusted content follows]\n{wrapped}",
+                                msg.get("id"))
+                            await _reply(sender, result.text)
+                        else:
+                            await _reply(sender, f"I received your document but couldn't read it ({res.error}).")
                 elif mtype in MEDIA_TYPES:
                     await _reply(sender, f"I received your {mtype}. Media understanding isn't supported yet; describe it in text and I'll help.")
                 continue
