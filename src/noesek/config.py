@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     fetch_max_bytes: int = 1_000_000
     # Context
     history_limit: int = 24
+    long_reminder_enabled: bool = True
+    long_reminder_min_messages: int = 30
     memory_limit: int = 12
     max_context_chars: int = 12000
     # Approvals
