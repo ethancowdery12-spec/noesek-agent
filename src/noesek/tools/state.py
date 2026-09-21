@@ -13,6 +13,10 @@ class SupersedeInput(BaseModel):
     kind: str | None = Field(default=None, description="defaults to the superseded memory's kind")
 class SwitchModelInput(BaseModel):
     model: str = Field(min_length=1, max_length=128, description="a configured model name, or 'default' to clear this chat's override")
+class LibraryDocsInput(BaseModel):
+    library: str = Field(min_length=1, max_length=128, description="library or framework name, e.g. 'next.js' or 'sqlalchemy'")
+    question: str = Field(min_length=1, max_length=500, description="what you need from its docs")
+    max_chars: int = Field(default=4000, ge=500, le=12000)
 class HandoffInput(BaseModel):
     content: str = Field(min_length=1, max_length=2000, description="session handoff recap for future sessions")
 class RecallInput(BaseModel): query: str = Field(min_length=1, max_length=500); limit: int = Field(default=5, ge=1, le=20)
@@ -49,6 +53,27 @@ def supersede_handler(conversation_id: int):
             old.active = False; old.superseded_by = new.id; await s.commit()
         await deindex_memory(old.id); await index_memory(new.id, new.content)
         return {"superseded": True, "old_memory_id": old.id, "memory_id": new.id, "kind": new.kind}
+    return f
+
+def library_docs_handler():
+    """Context7 via MCP (roadmap item 12): resolve-library-id -> query-docs."""
+    async def f(inp: LibraryDocsInput):
+        from ..core.mcp_client import call_tool_text, mcp_servers, mcp_session, top_library_id
+        servers = mcp_servers()
+        if not servers:
+            return {"error": "no MCP servers configured (Context7 disabled and NOESEK_MCP_EXTRA_SERVERS empty)"}
+        try:
+            async with mcp_session(servers[0]) as session:
+                resolved = await call_tool_text(session, "resolve-library-id",
+                                                {"query": inp.question, "libraryName": inp.library})
+                lib_id = top_library_id(resolved)
+                if not lib_id:
+                    return {"error": f"no Context7 match for '{inp.library}'", "candidates": resolved[:600]}
+                docs = await call_tool_text(session, "query-docs",
+                                            {"libraryId": lib_id, "query": inp.question})
+        except Exception as e:  # network/SDK failures surface as a clean tool error
+            return {"error": f"Context7 request failed: {type(e).__name__}: {str(e)[:200]}"}
+        return {"library_id": lib_id, "docs": docs[: inp.max_chars], "server": servers[0].name}
     return f
 
 def handoff_handler(conversation_id: int):
