@@ -53,6 +53,12 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
     memories = (await session.execute(select(Memory).where(Memory.conversation_id==conversation_id, Memory.active==True).order_by(Memory.created_at.desc()).limit(settings.memory_limit * 4))).scalars().all()
     history = (await session.execute(select(Message).where(Message.conversation_id==conversation_id).order_by(Message.created_at.desc()).limit(limit))).scalars().all()[::-1]
     picked = await rank_memories_async(conversation_id, query, list(memories), settings.memory_limit)
+    # agentmemory idea (Apache-2.0): the latest session handoff is always visible, not query-dependent.
+    latest_handoff = (await session.execute(select(Memory).where(
+        Memory.conversation_id==conversation_id, Memory.active==True, Memory.kind=="handoff"
+    ).order_by(Memory.created_at.desc()).limit(1))).scalar_one_or_none()
+    if latest_handoff and latest_handoff.id not in {p.id for p in picked}:
+        picked = ([latest_handoff] + picked)[:settings.memory_limit]
     mem = "\n".join(f"- [{m.kind}#{m.id}] {m.content}" for m in picked)
     system = SYSTEM + (f"\nRelevant durable memory:\n{mem}" if mem else "")
     total_messages = await session.scalar(select(func.count(Message.id)).where(Message.conversation_id==conversation_id)) or 0
