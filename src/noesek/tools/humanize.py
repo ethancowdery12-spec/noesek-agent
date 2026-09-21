@@ -141,6 +141,11 @@ def humanize_text(raw: str) -> dict:
     # Clean up whitespace left by removals.
     out = re.sub(r"[ \t]+\n", "\n", out)
     out = re.sub(r"\n{3,}", "\n\n", out).strip()
+    if not out and raw.strip():
+        out = raw.strip()
+        applied.clear()
+        flags.append({"pattern": "all-filler input",
+                      "suggestion": "the whole text matched filler patterns, so it was left untouched rather than emptied"})
 
     return {
         "humanized_text": out,
