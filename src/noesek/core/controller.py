@@ -22,6 +22,7 @@ from .types import Risk, TurnResult
 from ..config import settings
 from ..db import Approval, Message, Session, Task, now, record_trace
 from ..tools.research import SearchInput, search_web
+from ..tools.prompt_opt import OptimizePromptInput, optimize_prompt
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.state import (
     CancelTaskInput, CreateTaskInput, ForgetInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput,
@@ -73,6 +74,7 @@ class Controller:
         r.register(ToolSpec("delegate_task","Delegate an instruction to a specialized background worker (researcher, coder, operator, evaluator).",DelegateInput,Risk.WRITE,self._delegate_handler(conversation_id),timeout_seconds=t))
         from ..tools.connector_reads import (ConnectorReadInput, GmailSendInput, gmail_read_handler,
                                              gmail_send_handler, calendar_read_handler, github_notifications_handler)
+        r.register(ToolSpec("optimize_prompt","Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",OptimizePromptInput,Risk.READ,optimize_prompt,timeout_seconds=t))
         r.register(ToolSpec("gmail_read","Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",ConnectorReadInput,Risk.READ,gmail_read_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("calendar_read","List upcoming events on the chat's primary Google Calendar.",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("github_notifications","List unread GitHub notifications for the chat's connected GitHub account.",ConnectorReadInput,Risk.READ,github_notifications_handler(conversation_id),timeout_seconds=t))
