@@ -35,7 +35,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 - [x] **10. OpenResearch** - `alphaXiv/OpenResearch`. VERIFIED, MIT, 5.5k stars. **Status: DONE Sep 20 (P4)** - multi-query fan-out idea landed as the `deep_research` tool on the researcher worker (expand question -> parallel searches -> dedupe -> concurrent fetch -> cited evidence pack).
 - [x] **11. ARIS (Auto-Research-In-Sleep)** - `wanshuiyin/Auto-claude-code-research-in-sleep`. VERIFIED, MIT, 16k stars. **Status: DONE Sep 20** - fan-out half landed with P4 (#83, `deep_research`); adversarial review half landed with P7 (`adversarial_review`).
-- [x] **12. Context7** - `upstash/context7`. LICENSE VERIFIED MIT (Sep 21). **Status: VERDICT Sep 21: NO ADOPTION** - Context7 serves up-to-date library docs over MCP; noesek is not a repo-scale coding assistant injecting library docs into prompts, and we ship no MCP client. Revisit if MCP support ever lands.
+- [x] **12. Context7** - `upstash/context7`. LICENSE VERIFIED MIT (Sep 21). **Status: DONE Sep 21 (Ethan ordered MCP same day, superseding the morning's no-adoption verdict)** - MCP client core landed in `core/mcp_client.py` (official `mcp` SDK over Streamable HTTP, zero new deps - the SDK was already pinned); Context7 remote endpoint (`https://mcp.context7.com/mcp`, stateless) is the first server; `library_docs` controller tool runs resolve-library-id -> query-docs; provider-extensible via NOESEK_MCP_EXTRA_SERVERS JSON; optional NOESEK_CONTEXT7_API_KEY for higher rate limits.
 
 ## P5 - Prompt tooling
 
