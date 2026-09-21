@@ -60,7 +60,17 @@ async def rank_memories_async(conversation_id: int, query: str, memories: list[M
     pos = {mid: i for i, mid in enumerate(ids)}
     hits = sorted([m for m in memories if m.id in pos], key=lambda m: pos[m.id])
     rest = rank_memories(query, [m for m in memories if m.id not in pos], limit)
-    return (hits + rest)[:limit]
+    merged = (hits + rest)[:limit]
+    if settings.vector_memory_enabled and query.strip() and merged:
+        from .memory_vector import vector_scores
+        scores = await vector_scores(conversation_id, query)
+        if scores:
+            # FTS/keyword order is the baseline; cosine boosts on top. Stable
+            # sort keeps the baseline order for equal fused scores.
+            n = len(merged)
+            base = {m.id: (n - i) / n for i, m in enumerate(merged)}
+            merged = sorted(merged, key=lambda m: base[m.id] + scores.get(m.id, 0.0), reverse=True)
+    return merged
 
 async def assemble(session, conversation_id: int, query: str = "", limit: int | None = None,
                    char_budget: int | None = None, spine=None) -> list[dict]:

@@ -39,6 +39,13 @@ class Settings(BaseSettings):
     mcp_context7_url: str = "https://mcp.context7.com/mcp"
     context7_api_key: str = ""  # optional Bearer for higher Context7 rate limits
     mcp_extra_servers: str = ""  # JSON {"name": {"url": "...", "api_key": "..."}}
+    # Vector memory: pluggable embedder, zero-dep local default (core.memory_vector)
+    vector_memory_enabled: bool = True
+    embed_provider: str = "local"  # local (hashed-ngram) | openai-compatible
+    embed_base_url: str = ""
+    embed_api_key: str = ""
+    embed_model: str = ""
+    embed_dim: int = 256
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 1_000_000
     # Context
