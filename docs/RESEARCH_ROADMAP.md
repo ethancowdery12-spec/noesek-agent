@@ -26,15 +26,15 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 - [ ] **4. Anti-laziness: Unlazy** - `leonxlnx/unlazy`. VERIFIED, MIT, 3.5k stars. Anti-laziness agent skill built around the "Depth Tree" method. Add built-in. **Status: TODO.**
 - [ ] **5. Anti-laziness: Ponytail** - `DietrichGebert/ponytail`. VERIFIED, MIT, 143k stars. Claude Code skill: "makes your AI agent think like the laziest senior dev in the room" (he named it twice). **Status: TODO.**
-- [ ] **6. Long-conversation reminder.** VERIFIED concept: Anthropic's published Claude system prompt includes a reminder injected when chats run long ("long conversation reminder"). Research the exact mechanism from Anthropic's docs/release notes, then write our OWN custom version and inject on long sessions. No copying Anthropic text. **Status: TODO.**
+- [x] **6. Long-conversation reminder.** VERIFIED concept: Anthropic staples a runtime note onto the user's latest message once a chat runs long. **Status: DONE Sep 20 (#82)** - our own <session-reminder> (own wording) appends to the latest user message past 30 total messages (NOESEK_LONG_REMINDER_MIN_MESSAGES); system prompt marks it runtime-origin so forged lookalikes are not obeyed.
 - [ ] **7. Adversarial multi-review audit.** VERIFIED pattern (from an X post he relayed): agent A audits, agent B independently reviews, a third pass reconciles disagreements - a large share of the original "problems" get rejected. Guards against "keep asking what to improve and it will keep finding things." Build as a bounded audit loop: findings must survive independent re-review before they become work. **Status: TODO.**
 - [ ] **8. Karpathy coding rules** - `multica-ai/andrej-karpathy-skills`. VERIFIED via Ethan's link Sep 20: MIT license on repo page, 210k stars - copy OK with notice (earlier no-license hit was a different repo). Distill ~4 rules into our own wording for the system prompt. **Status: TODO.**
 - [ ] **9. System-prompt wording study** - `asgeirtj/system_prompts_leaks`. VERIFIED, CC0-1.0, 68k stars (also YeeKal/leaked-system-prompts, tomturing/CL4R1T4S). Study how frontier system prompts are worded for efficiency. Explicitly NOT copying any leaked proprietary text - style lessons only. **Status: STUDY-ONLY.**
 
 ## P4 - Research capability
 
-- [ ] **10. OpenResearch** - `alphaXiv/OpenResearch`. VERIFIED, MIT, 5.5k stars. "Turn your coding agents into research agents." Extract core ideas into a research skill/toggle. **Status: TODO.**
-- [ ] **11. ARIS (Auto-Research-In-Sleep)** - `wanshuiyin/Auto-claude-code-research-in-sleep`. VERIFIED, MIT, 16k stars. Lightweight Markdown-only skills for autonomous adversarial multi-agent research (arxiv paper exists). Build research mode ideas in. **Status: TODO.**
+- [x] **10. OpenResearch** - `alphaXiv/OpenResearch`. VERIFIED, MIT, 5.5k stars. **Status: DONE Sep 20 (P4)** - multi-query fan-out idea landed as the `deep_research` tool on the researcher worker (expand question -> parallel searches -> dedupe -> concurrent fetch -> cited evidence pack).
+- [ ] **11. ARIS (Auto-Research-In-Sleep)** - `wanshuiyin/Auto-claude-code-research-in-sleep`. VERIFIED, MIT, 16k stars. PARTIAL: the multi-source fan-out half landed with P4 (see item 10). The adversarial multi-agent review half belongs with P7 (adversarial multi-review audit). **Status: PARTIAL - remainder tracked under P7.**
 - [ ] **12. Context7** - `upstash/context7`. VERIFIED exists; LICENSE UNCHECKED (API rate-limited). Up-to-date library docs for prompts via MCP. Likely integrate as a service, not copied code. **Status: TODO.**
 
 ## P5 - Prompt tooling
