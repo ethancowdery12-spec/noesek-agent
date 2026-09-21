@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.openai.com/v1"
     llm_api_key: str = ""
     llm_model: str = ""
+    llm_models: str = ""  # JSON role->model map, e.g. {"chat":"deepseek-chat","reasoning":"deepseek-reasoner"}; empty = defaults
     llm_timeout_seconds: float = 90.0
     llm_max_retries: int = 3
     # Tools
