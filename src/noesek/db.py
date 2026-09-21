@@ -16,6 +16,7 @@ class Conversation(Base):
     external_user_id: Mapped[str] = mapped_column(String(128), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    model_override: Mapped[str | None] = mapped_column(String(128), nullable=True)  # per-chat model (multi-model layer)
 
 class Message(Base):
     __tablename__ = "messages"
@@ -135,6 +136,7 @@ async def init_db(eng: AsyncEngine | None = None):
 _COLUMN_UPGRADES = {
     "conversations": {
         "title": "VARCHAR(200)",
+        "model_override": "VARCHAR(128)",
     },
     "memories": {
         "source": "VARCHAR(64) NOT NULL DEFAULT 'conversation'",

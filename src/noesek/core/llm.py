@@ -48,11 +48,20 @@ def _llm_error(base_url: str, model: str, status: int | None = None, kind: str =
                     base_url=base_url, model=model, status=status, kind=kind)
 
 class OpenAICompatibleLLM:
-    """OpenAI-compatible chat-completions adapter with bounded retries and clean errors."""
+    """OpenAI-compatible chat-completions adapter with bounded retries and clean errors.
+
+    model=None uses the global default (NOESEK_LLM_MODEL); a bound model
+    (multi-model layer) rides the same key and base URL - DeepSeek serves
+    several models on one endpoint this way.
+    """
+    def __init__(self, model: str | None = None):
+        self._model = model
+
     async def complete(self, messages: list[dict], tools: list[dict]) -> LLMReply:
-        if not settings.llm_api_key or not settings.llm_model:
+        model = self._model or settings.llm_model
+        if not settings.llm_api_key or not model:
             return LLMReply(content="No LLM is configured. Set NOESEK_LLM_API_KEY and NOESEK_LLM_MODEL, then try again.")
-        base_url, model = settings.llm_base_url.rstrip("/"), settings.llm_model
+        base_url = settings.llm_base_url.rstrip("/")
         body = {"model": model, "messages": messages, "tools": tools or None,
                 "tool_choice": "auto" if tools else None}
         body = {k: v for k, v in body.items() if v is not None}
@@ -153,3 +162,36 @@ class FallbackLLM:
             # move to the next configured provider
         raise last or _llm_error(settings.llm_base_url, settings.llm_model)
 
+
+
+# Multi-model layer (roadmap item 20, Ethan's call Sep 21): role-based catalog on
+# one provider today (DeepSeek serves deepseek-chat and deepseek-reasoner on the
+# same key/base URL); other providers still come from llm_provider/llm_fallbacks.
+# Switching models drops the provider's prefix cache - the next turn re-primes it.
+DEFAULT_TASK_ROLES = {"researcher": "reasoning", "evaluator": "reasoning", "adversarial": "reasoning"}
+
+
+def model_catalog() -> dict[str, str]:
+    """Role -> model map. NOESEK_LLM_MODELS (JSON) overrides the defaults."""
+    base = (settings.llm_base_url or "").lower()
+    default_reasoning = "deepseek-reasoner" if "deepseek" in base else settings.llm_model
+    catalog = {"chat": settings.llm_model, "reasoning": default_reasoning}
+    raw = (settings.llm_models or "").strip()
+    if raw:
+        try:
+            overrides = json.loads(raw)
+            if isinstance(overrides, dict):
+                catalog.update({str(k): str(v) for k, v in overrides.items() if str(v).strip()})
+        except ValueError:
+            pass  # malformed JSON keeps defaults; health checks surface an empty model
+    return catalog
+
+
+def allowed_models() -> set[str]:
+    return {m for m in model_catalog().values() if m}
+
+
+def model_for_task(task: str) -> str:
+    """Sensible default model per task type (research/eval go to the reasoner)."""
+    catalog = model_catalog()
+    return catalog.get(DEFAULT_TASK_ROLES.get(task, "chat")) or catalog["chat"]

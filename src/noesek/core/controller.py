@@ -20,7 +20,7 @@ from .turn_spine import (
 )
 from .types import Risk, TurnResult
 from ..config import settings
-from ..db import Approval, Message, Session, Task, now, record_trace
+from ..db import Conversation, Approval, Message, Session, Task, now, record_trace
 from ..tools.research import SearchInput, search_web
 from ..tools.prompt_opt import OptimizePromptInput, optimize_prompt
 from ..tools.humanize import HumanizeInput, humanize
@@ -28,8 +28,8 @@ from ..tools.adversarial import AdversarialReviewInput, adversarial_review
 from ..tools.security_audit import SecurityAuditInput, security_audit
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.state import (
-    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput,
-    cancel_task_handler, forget_handler, handoff_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, task_handler,
+    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput, SwitchModelInput,
+    cancel_task_handler, forget_handler, handoff_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, switch_model_handler, task_handler,
 )
 from ..tools.web import FetchInput, fetch_url
 
@@ -59,6 +59,7 @@ def search_tools_handler(registry: ToolRegistry):
 class Controller:
     def __init__(self, llm=None, registry_factory=None, max_steps: int = MAX_STEPS):
         self.llm = llm or configured_llm()
+        self._llm_by_model: dict[str, object] = {}  # per-chat overrides, one adapter per model
         self._registry_factory = registry_factory
         self.max_steps = max_steps
         self._policy_rules = parse_rules(settings.policy_rules)
@@ -70,6 +71,7 @@ class Controller:
         r.register(ToolSpec("remember","Store a durable user-approved fact or preference.",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("recall","Search durable memory for facts relevant to a query.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("switch_model","Switch this chat's model to another configured one (e.g. deepseek-chat <-> deepseek-reasoner), or 'default' to clear the override.",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("handoff","Store a session handoff recap; the latest handoff is always shown in this conversation's context.",HandoffInput,Risk.WRITE,handoff_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("supersede_memory","Replace one durable memory with a corrected version (old one is kept, marked superseded).",SupersedeInput,Risk.WRITE,supersede_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("create_task","Create a durable background task.",CreateTaskInput,Risk.WRITE,task_handler(conversation_id),timeout_seconds=t))
@@ -102,6 +104,15 @@ class Controller:
                 return {"delegated": True, "task_id": t.id, "worker": inp.worker}
         return f
 
+    def _llm_for_model(self, model: str | None):
+        """Per-chat model override; one cached adapter per model (OpenAI-compatible only)."""
+        if not model or settings.llm_provider.strip().lower() not in {"openai", "openai-compatible"}:
+            return self.llm
+        if model not in self._llm_by_model:
+            from .llm import OpenAICompatibleLLM
+            self._llm_by_model[model] = OpenAICompatibleLLM(model=model)
+        return self._llm_by_model[model]
+
     def _gen_ai(self) -> dict:
         """OTel GenAI semantic-convention attributes for model events."""
         return {"gen_ai.system": provider_name(settings.llm_base_url, settings.llm_provider),
@@ -124,6 +135,7 @@ class Controller:
             spine = TurnSpine(conversation_id)
             await spine.emit(TURN_STARTED, {"chars": len(text)})
             messages = await assemble(s, conversation_id, query=text, spine=spine)
+            override = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
         registry = self.registry(conversation_id); citations = []
@@ -141,7 +153,7 @@ class Controller:
                         messages.append({"role": "user", "content": f"[Steering from the user]: {note}"})
                     await spine.emit("steering", {"notes": len(notes)})
                 await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
-                reply = await self.llm.complete(messages, registry.schemas())
+                reply = await self._llm_for_model(override).complete(messages, registry.schemas())
                 await spine.emit(MODEL_RESPONSE, {**self._gen_ai(), **self._usage_attrs(reply),
                                                   "tool_calls": len(reply.tool_calls), "content_chars": len(reply.content or "")})
                 if not reply.tool_calls:

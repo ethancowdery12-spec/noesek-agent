@@ -1,5 +1,5 @@
 import json
-from ..core.llm import OpenAICompatibleLLM
+from ..core.llm import OpenAICompatibleLLM, model_for_task
 from ..core.tools import ToolRegistry, ToolSpec
 from ..core.types import Risk
 from ..tools.research import DeepResearchInput, SearchInput, deep_research, search_web
@@ -61,7 +61,7 @@ async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: in
                      budget=None, token=None, spawn_grant=None) -> dict:
     worker = WORKERS.get(worker_name)
     if not worker: return {"error": f"unknown worker: {worker_name}"}
-    llm = llm or OpenAICompatibleLLM()
+    llm = llm or OpenAICompatibleLLM(model=model_for_task(worker_name))
     registry = worker_registry(worker_name, spawn_grant=spawn_grant)
     from ..core.orchestration import CancellationToken, WorkBudget
     budget = budget or WorkBudget(max_steps=max_steps)

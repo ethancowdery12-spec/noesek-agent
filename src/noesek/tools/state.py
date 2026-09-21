@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from ..core.memory_v2 import MEMORY_KINDS, deindex_memory, fts_search_ids, index_memory
-from ..db import Session, Memory, Task
+from ..db import Session, Conversation, Memory, Task
 
 class RememberInput(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
@@ -11,6 +11,8 @@ class SupersedeInput(BaseModel):
     memory_id: int = Field(ge=1)
     content: str = Field(min_length=1, max_length=2000)
     kind: str | None = Field(default=None, description="defaults to the superseded memory's kind")
+class SwitchModelInput(BaseModel):
+    model: str = Field(min_length=1, max_length=128, description="a configured model name, or 'default' to clear this chat's override")
 class HandoffInput(BaseModel):
     content: str = Field(min_length=1, max_length=2000, description="session handoff recap for future sessions")
 class RecallInput(BaseModel): query: str = Field(min_length=1, max_length=500); limit: int = Field(default=5, ge=1, le=20)
@@ -53,6 +55,25 @@ def handoff_handler(conversation_id: int):
     """agentmemory idea (Apache-2.0): an explicit handoff skill - a recap the next session always sees."""
     async def f(inp: HandoffInput):
         return await memory_handler(conversation_id)(RememberInput(content=inp.content, kind="handoff"))
+    return f
+
+def switch_model_handler(conversation_id: int):
+    """Per-chat model switching (multi-model layer). Only catalog models are allowed."""
+    async def f(inp: SwitchModelInput):
+        from ..core.llm import allowed_models, model_catalog
+        name = inp.model.strip()
+        async with Session() as s:
+            conv = (await s.execute(select(Conversation).where(Conversation.id == conversation_id))).scalar_one_or_none()
+            if not conv: return {"error": "conversation not found"}
+            if name.lower() in {"default", "auto"}:
+                conv.model_override = None; await s.commit()
+                return {"switched": True, "model": model_catalog()["chat"],
+                        "note": "override cleared; back to the default chat model"}
+            if name not in allowed_models():
+                return {"error": f"unknown model '{name}'. Configured: {', '.join(sorted(allowed_models()))}"}
+            conv.model_override = name; await s.commit()
+        return {"switched": True, "model": name,
+                "note": "model switch drops the provider prefix cache; the next turn re-primes it"}
     return f
 
 def recall_handler(conversation_id: int):
