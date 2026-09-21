@@ -2,7 +2,8 @@
 # Same server as the WSL2 VM install; Render injects $PORT.
 FROM python:3.12-slim
 
-ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN apt-get update -qq \
  && apt-get install -y -qq --no-install-recommends \
     xvfb scrot xdotool espeak-ng ffmpeg unzip fonts-liberation curl ca-certificates \
@@ -14,7 +15,8 @@ COPY src ./src
 # The wheel force-includes the vendored runtime (hatchling fails without it).
 COPY vendor ./vendor
 RUN pip install .[stt] \
- && playwright install --with-deps chromium
+ && playwright install --with-deps chromium \
+ && chmod -R a+rX /ms-playwright
 
 # Small offline STT model (vosk small-en, ~40MB) baked into the image.
 RUN curl -fsSL https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip -o /tmp/vosk.zip \
