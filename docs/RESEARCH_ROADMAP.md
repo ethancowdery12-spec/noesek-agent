@@ -44,7 +44,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 ## P6 - Output humanization
 
-- [ ] **15. Humanizer** - `blader/humanizer`. VERIFIED, MIT, 51k stars. Agent skill removing signs of AI-generated writing. Apply to outbound text style. **Status: TODO.**
+- [x] **15. Humanizer** - `blader/humanizer`. VERIFIED, MIT, 51k stars. **Status: DONE Sep 20 (P6)** - `humanize` chat tool, own deterministic rule set (pattern source: Wikipedia "Signs of AI writing"): filler stripper, em-dash/curly-quote normalization, safe verb swaps (utilize->use, delve->dig), inflated-vocabulary flags with suggestions. Facts/names untouched; no model call, no deps.
 - [ ] **16. AI-text detection study (StoryScope)** - VERIFIED: University of Maryland + Google DeepMind research; detects AI fiction at ~93% from story structure (arxiv). Read it; make our long-form output structurally less templated. **Status: STUDY-ONLY.**
 - [ ] **17. Claude watermark removers** - `haidrrrry/claude-watermark-remover`, `anshrajore/Claude-Clean`. VERIFIED exist; LICENSES UNCHECKED. Small repos about stripping invisible watermark characters from Claude output. Relevant only if/when we surface Claude-generated text; ideas only. **Status: TODO (low).**
 
