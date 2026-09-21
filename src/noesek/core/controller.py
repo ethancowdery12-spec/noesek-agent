@@ -9,7 +9,7 @@ from .loop_guard import LoopGuard, classify_exception
 from .content_guard import guard_untrusted
 from .steering import consume_steering
 from .policy import evaluate_policy, parse_rules
-from .llm import configured_llm, provider_name
+from .llm import allowed_models, configured_llm, model_catalog, provider_name
 from .metrics import inc
 from .tools import ToolRegistry, ToolSpec
 from .turn_spine import (
@@ -71,7 +71,7 @@ class Controller:
         r.register(ToolSpec("remember","Store a durable user-approved fact or preference.",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("recall","Search durable memory for facts relevant to a query.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
-        r.register(ToolSpec("switch_model","Switch this chat's model to another configured one (e.g. deepseek-chat <-> deepseek-reasoner), or 'default' to clear the override.",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("switch_model",f"Switch this chat's model to another configured model (configured: {', '.join(sorted(allowed_models()))}), or 'default' to clear the override (back to {model_catalog()['chat']}).",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("library_docs","Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",LibraryDocsInput,Risk.READ,library_docs_handler(),timeout_seconds=t))
         r.register(ToolSpec("handoff","Store a session handoff recap; the latest handoff is always shown in this conversation's context.",HandoffInput,Risk.WRITE,handoff_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("supersede_memory","Replace one durable memory with a corrected version (old one is kept, marked superseded).",SupersedeInput,Risk.WRITE,supersede_handler(conversation_id),timeout_seconds=t))
@@ -192,7 +192,7 @@ class Controller:
                                              rationale=rationale, turn_id=spine.turn_id, canonical_args=canonical(call.arguments),
                                              expires_at=now()+timedelta(hours=settings.approval_ttl_hours))
                                 s.add(a); await s.commit()
-                            prompt = (f"Approval required #{a.id}: {call.name} with {json.dumps(call.arguments, ensure_ascii=False)}. "
+                            prompt = (f"[system] Approval required #{a.id}: {call.name} with {json.dumps(call.arguments, ensure_ascii=False)}. "
                                       f"Reply 'approve {a.id}' or 'reject {a.id}' within {settings.approval_ttl_hours:g}h.")
                             async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=prompt)); await s.commit()
                             await record_trace(conversation_id, "approval_required", {"approval_id": a.id, "tool": call.name})
@@ -208,7 +208,7 @@ class Controller:
                         if intervention and intervention[0] == "stop":
                             await spine.emit(LOOP_GUARD, {"tool": call.name, "call_id": call.id, "action": "stop", "reason": intervention[1]})
                             await spine.emit(TURN_STOPPED, {"reason": "loop_guard", "detail": intervention[1]})
-                            stop_text = f"I stopped: {intervention[1]}. Please narrow or rephrase the request."
+                            stop_text = "I stopped: I was repeating the same action without making progress. Please narrow or rephrase the request."
                             async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
                             return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
                         await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "risk": spec.risk.value,
@@ -223,7 +223,7 @@ class Controller:
                         if guard.error_streak_tripped():
                             detail = f"{guard.error_streak} tool calls failed in a row (latest: {result.get('error')} on {call.name})"
                             await spine.emit(TURN_STOPPED, {"reason": "error_streak", "detail": detail})
-                            stop_text = f"I stopped: {detail}. Please rephrase or narrow the request."
+                            stop_text = "I stopped: several tool calls in a row did not work. Please rephrase or narrow the request."
                             async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
                             return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
                     await record_trace(conversation_id, "tool_call", {"tool": call.name, "ok": not (isinstance(result, dict) and "error" in result)})
@@ -241,31 +241,40 @@ class Controller:
     async def decide_approval(self, conversation_id: int, approval_id: int, approved: bool) -> TurnResult:
         spine = TurnSpine(conversation_id)
         await spine.emit(TURN_STARTED, {"kind": "approval_decision", "approval_id": approval_id})
+
+        async def _persist(text: str) -> str:
+            """Approvals are runtime events: mark them and keep them in the transcript,
+            so later turns see resolutions, not dangling prompts."""
+            marked = f"[system] {text}"
+            async with Session() as s:
+                s.add(Message(conversation_id=conversation_id, role="assistant", content=marked))
+                await s.commit()
+            return marked
         async with Session() as s:
             a = (await s.execute(select(Approval).where(Approval.id==approval_id, Approval.conversation_id==conversation_id))).scalar_one_or_none()
-            if not a: return TurnResult(text=f"Approval #{approval_id} was not found.")
-            if a.status != "pending": return TurnResult(text=f"Approval #{approval_id} is already {a.status}.")
+            if not a: return TurnResult(text=await _persist(f"Approval #{approval_id} was not found."))
+            if a.status != "pending": return TurnResult(text=await _persist(f"Approval #{approval_id} is already {a.status}."))
             if a.expires_at and a.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
                 a.status = "expired"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_expired", {"approval_id": approval_id})
                 await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "expired"})
-                return TurnResult(text=f"Approval #{approval_id} expired. Ask again to create a fresh one.", turn_id=spine.turn_id)
+                return TurnResult(text=await _persist(f"Approval #{approval_id} expired. Ask again to create a fresh one."), turn_id=spine.turn_id)
             if not approved:
                 a.status = "rejected"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_rejected", {"approval_id": approval_id})
                 await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "rejected"})
-                return TurnResult(text=f"Rejected approval #{approval_id}.", turn_id=spine.turn_id)
+                return TurnResult(text=await _persist(f"Rejected approval #{approval_id}."), turn_id=spine.turn_id)
             if a.canonical_args and a.canonical_args != canonical(a.arguments or {}):
                 a.status = "blocked"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_blocked", {"approval_id": approval_id, "reason": "arguments changed since creation"})
                 await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "blocked", "reason": "lease integrity check failed"})
-                return TurnResult(text=f"Approval #{approval_id} cannot run: its stored arguments no longer match the lease. Ask again to create a fresh one.", turn_id=spine.turn_id)
+                return TurnResult(text=await _persist(f"Approval #{approval_id} cannot run: its stored arguments no longer match the lease. Ask again to create a fresh one."), turn_id=spine.turn_id)
             gate = assess_tool_arguments(a.arguments or {})
             if gate.blocked:
                 a.status = "blocked"; a.decided_at = now(); await s.commit()
                 await record_trace(conversation_id, "approval_blocked", {"approval_id": approval_id, "reason": gate.reason})
                 await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "blocked", "reason": gate.reason})
-                return TurnResult(text=f"Approval #{approval_id} cannot run: {gate.reason}. Hardline policy blocks it for everyone.", turn_id=spine.turn_id)
+                return TurnResult(text=await _persist(f"Approval #{approval_id} cannot run: {gate.reason}. Hardline policy blocks it for everyone."), turn_id=spine.turn_id)
             await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "approved", "tool": a.tool_name})
             await spine.emit(TOOL_CALL_REQUESTED, {"tool": a.tool_name, "approval_id": approval_id, "via_approval": True,
                                                    "arguments_json": canonical(a.arguments or {})}, strict=True)
@@ -287,7 +296,7 @@ class Controller:
                                             "ok": a.status == "executed",
                                             "error": result.get("error") if isinstance(result, dict) else None})
         await spine.emit(TURN_COMPLETED, {"outcome": a.status})
-        return TurnResult(text=f"Approval #{approval_id}: {a.status}. Result: {json.dumps(result, ensure_ascii=False)}", turn_id=spine.turn_id)
+        return TurnResult(text=await _persist(f"Approval #{approval_id}: {a.status}. Result: {json.dumps(result, ensure_ascii=False)}"), turn_id=spine.turn_id)
 
     async def pending_approvals(self, conversation_id: int) -> TurnResult:
         async with Session() as s:

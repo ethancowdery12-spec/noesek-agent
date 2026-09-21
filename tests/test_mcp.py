@@ -138,3 +138,32 @@ def test_controller_registers_library_docs():
     c = Controller(llm=ScriptedLLM([]))
     reg = c.registry(1)
     assert "library_docs" in reg._tools
+
+
+# --- Sep 21 live-acceptance regression: pinned SDK yields a 2-tuple ---
+from noesek.core import mcp_client as mc
+
+@pytest.mark.parametrize("n_streams", [2, 3])
+async def test_mcp_session_accepts_sdk_tuple_shapes(monkeypatch, n_streams):
+    """streamable_http_client yields (read, write) on the pinned SDK and
+    (read, write, get_session_id) on others - both must work."""
+    from contextlib import asynccontextmanager
+    import mcp as mcp_pkg
+    import mcp.client.streamable_http as sh
+
+    class FakeSession:
+        def __init__(self, r, w): self.streams = (r, w); self.initialized = False
+        async def __aenter__(self): return self
+        async def __aexit__(self, *a): return False
+        async def initialize(self): self.initialized = True
+
+    monkeypatch.setattr(mcp_pkg, "ClientSession", FakeSession)
+    streams = ("read", "write") + (("sid",) if n_streams == 3 else ())
+
+    @asynccontextmanager
+    async def fake_client(url, http_client=None):
+        yield streams
+
+    monkeypatch.setattr(sh, "streamable_http_client", fake_client)
+    async with mc.mcp_session(mc.MCPServer(name="t", url="http://x")) as s:
+        assert s.streams == ("read", "write") and s.initialized
