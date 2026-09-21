@@ -39,7 +39,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 ## P5 - Prompt tooling
 
-- [ ] **13. Prompt optimizer ("Prompt Master")** - `nidhinjs/prompt-master` (MIT, 13k stars) and `austinmao/prompt-master-claude` (MIT, 0 stars, same description). VERIFIED. Sloppy user prompt -> optimized prompt feature. **Status: TODO.**
+- [x] **13. Prompt optimizer ("Prompt Master")** - `nidhinjs/prompt-master` (MIT, 13k stars). VERIFIED. **Status: DONE Sep 20 (P5)** - `optimize_prompt` chat tool, own deterministic implementation of its pipeline (task-type detection -> structured Objective/Approach/Constraints/Ground-rules/Output-format rewrite, constraint extraction, grounding anchor). No extra model call, no deps.
 - [ ] **14. Prompt library** - `f/prompts.chat` (f.k.a. Awesome ChatGPT Prompts). VERIFIED, 171k stars; license NOASSERTION (original was CC0 - confirm before bundling any prompt text). Curate a small set of high-value prompts as built-in references, not the whole thing. **Status: TODO.**
 
 ## P6 - Output humanization
