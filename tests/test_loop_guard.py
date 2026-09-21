@@ -72,7 +72,7 @@ async def test_identical_retry_stops_turn_early(db):
     script = [tool_reply("search", {"q": "same"}, call_id=f"c{i}") for i in range(4)]
     c = Controller(llm=ScriptedLLM(script), registry_factory=_factory(handler=handler), max_steps=8)
     r = await c.handle(cid, "loop")
-    assert "I stopped" in r.text and "identical" in r.text
+    assert "I stopped" in r.text and "repeating the same action" in r.text and "search" not in r.text
     assert len(ran) == 1  # first call ran; repeat warned; third stopped
     kinds = [e.kind for e in await get_turn_events(r.turn_id)]
     assert turn_spine.LOOP_GUARD in kinds and kinds[-1] == turn_spine.TURN_STOPPED
@@ -84,7 +84,7 @@ async def test_error_streak_stops_turn(db):
     script = [tool_reply("search", {"q": f"q{i}"}, call_id=f"c{i}") for i in range(5)]
     c = Controller(llm=ScriptedLLM(script), registry_factory=_factory(handler=boom), max_steps=8)
     r = await c.handle(cid, "x")
-    assert "failed in a row" in r.text and "RuntimeError" in r.text
+    assert "did not work" in r.text and "RuntimeError" not in r.text and "search" not in r.text
     kinds = [e.kind for e in await get_turn_events(r.turn_id)]
     assert kinds[-1] == turn_spine.TURN_STOPPED
 
