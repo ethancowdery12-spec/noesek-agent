@@ -2,7 +2,7 @@ import json
 from ..core.llm import OpenAICompatibleLLM
 from ..core.tools import ToolRegistry, ToolSpec
 from ..core.types import Risk
-from ..tools.research import SearchInput, search_web
+from ..tools.research import DeepResearchInput, SearchInput, deep_research, search_web
 from ..tools.sandbox import CommandInput, PythonInput, run_command, run_python
 from ..tools.local_read import ReadInput, read_file
 from ..tools.coding import ApplyEditInput, RepoMapInput, SubmitInput, WriteFileInput, apply_edit, repo_map, submit, write_file
@@ -21,6 +21,7 @@ def _all_tool_specs() -> dict[str, ToolSpec]:
     return {
         "search_web": ToolSpec("search_web", "Search the public web. Results include URLs that must be cited.", SearchInput, Risk.READ, search_web),
         "fetch_url": ToolSpec("fetch_url", "Fetch a web page and return readable text with its final URL.", FetchInput, Risk.READ, fetch_url),
+        "deep_research": ToolSpec("deep_research", "Deep research: expand a question into several searches, fetch and dedupe top sources, return a cited evidence pack to synthesize from.", DeepResearchInput, Risk.READ, deep_research, timeout_seconds=90),
         "run_python": ToolSpec("run_python", "Run Python in a disposable, network-disabled Docker sandbox.", PythonInput, Risk.READ, run_python),
         "run_command": ToolSpec("run_command", "Run a shell command (build/test) in the sandbox with the workspace mounted read-only.", CommandInput, Risk.READ, run_command),
         "read_file": ToolSpec("read_file", "Read a UTF-8 text file from the allowlisted workspace root.", ReadInput, Risk.READ, read_file),

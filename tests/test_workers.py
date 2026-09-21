@@ -4,7 +4,7 @@ from noesek.workers.runner import run_worker, worker_registry
 
 def test_worker_scopes_are_read_only():
     r = worker_registry("researcher")
-    assert set(r.names()) == {"search_web", "fetch_url"}
+    assert set(r.names()) == {"search_web", "fetch_url", "deep_research"}
     r2 = worker_registry("coder")
     assert "run_python" in r2.names() and "search_web" not in r2.names()
 
@@ -26,7 +26,8 @@ async def test_worker_tool_loop_collects_citations(monkeypatch):
     def specs():
         return {"search_web": ToolSpec("search_web", "d", Q, Risk.READ, search),
                 "fetch_url": ToolSpec("fetch_url", "d", Q, Risk.READ, search),
-                "run_python": ToolSpec("run_python", "d", Q, Risk.READ, search)}
+                "run_python": ToolSpec("run_python", "d", Q, Risk.READ, search),
+                "deep_research": ToolSpec("deep_research", "d", Q, Risk.READ, search)}
     monkeypatch.setattr(runner, "_all_tool_specs", specs)
     llm = ScriptedLLM([tool_reply("search_web", {"q": "vaccines"}), text_reply("synthesis")])
     out = await run_worker("researcher", "research", llm=llm)

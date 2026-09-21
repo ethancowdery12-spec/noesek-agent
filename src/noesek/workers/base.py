@@ -11,7 +11,7 @@ class Worker:
 WORKERS = {
  "researcher": Worker("researcher",
    "Find reliable sources, preserve URLs, distinguish facts from inference, and return a cited synthesis.",
-   ("search_web", "fetch_url")),
+   ("search_web", "fetch_url", "deep_research")),
  "coder": Worker("coder",
    "Plan, implement, test, and explain code. Prefer small reversible changes. "
    "Map the repo first (repo_map), edit with apply_edit SEARCH/REPLACE hunks "
