@@ -19,8 +19,8 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 ## P2 - Document & multimodal ingest
 
-- [ ] **2. docling** - `docling-project/docling`. VERIFIED, MIT, 67k stars. "Get your documents ready for gen AI" - PDFs/DOCX/etc. to structured output, tables, code, formulas, layouts. Use for multimodal input processing. **Status: TODO.**
-- [ ] **3. markitdown** - `microsoft/markitdown`. VERIFIED, MIT, 186k stars. Converts files/office docs to clean Markdown, cuts token usage. Complement or alternative to docling; evaluate both, likely markitdown for lightweight conversion + docling for complex layouts. **Status: TODO.**
+- [x] **2. docling** - `docling-project/docling`. VERIFIED, MIT, 67k stars. "Get your documents ready for gen AI" - PDFs/DOCX/etc. to structured output, tables, code, formulas, layouts. **Status: DONE Sep 20 (#79)** - optional PDF engine behind NOESEK_DOC_ENGINE (auto/markitdown/docling).
+- [x] **3. markitdown** - `microsoft/markitdown`. VERIFIED, MIT, 186k stars. Converts files/office docs to clean Markdown, cuts token usage. **Status: DONE Sep 20 (#79)** - default engine: WhatsApp documents (PDF/DOCX/PPTX/XLSX/CSV/HTML) convert to Markdown, pass the content guard, and land in chat as text.
 
 ## P3 - Agent core quality
 
@@ -28,7 +28,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 - [ ] **5. Anti-laziness: Ponytail** - `DietrichGebert/ponytail`. VERIFIED, MIT, 143k stars. Claude Code skill: "makes your AI agent think like the laziest senior dev in the room" (he named it twice). **Status: TODO.**
 - [ ] **6. Long-conversation reminder.** VERIFIED concept: Anthropic's published Claude system prompt includes a reminder injected when chats run long ("long conversation reminder"). Research the exact mechanism from Anthropic's docs/release notes, then write our OWN custom version and inject on long sessions. No copying Anthropic text. **Status: TODO.**
 - [ ] **7. Adversarial multi-review audit.** VERIFIED pattern (from an X post he relayed): agent A audits, agent B independently reviews, a third pass reconciles disagreements - a large share of the original "problems" get rejected. Guards against "keep asking what to improve and it will keep finding things." Build as a bounded audit loop: findings must survive independent re-review before they become work. **Status: TODO.**
-- [ ] **8. Karpathy coding rules** - `multica-ai/andrej-karpathy-skills`. VERIFIED repo exists (214k stars) but NO license file detected - STUDY-ONLY. Distill ~4 rules into our own wording for the system prompt. **Status: TODO (study-only, own words).**
+- [ ] **8. Karpathy coding rules** - `multica-ai/andrej-karpathy-skills`. VERIFIED via Ethan's link Sep 20: MIT license on repo page, 210k stars - copy OK with notice (earlier no-license hit was a different repo). Distill ~4 rules into our own wording for the system prompt. **Status: TODO.**
 - [ ] **9. System-prompt wording study** - `asgeirtj/system_prompts_leaks`. VERIFIED, CC0-1.0, 68k stars (also YeeKal/leaked-system-prompts, tomturing/CL4R1T4S). Study how frontier system prompts are worded for efficiency. Explicitly NOT copying any leaked proprietary text - style lessons only. **Status: STUDY-ONLY.**
 
 ## P4 - Research capability
@@ -56,7 +56,7 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 - [ ] **21. DeepSeek-Reasonix** - `esengine/DeepSeek-Reasonix`. VERIFIED, MIT, 36k stars. DeepSeek-native coding agent engineered around token-cost control. Study exactly how they keep token cost down; adopt techniques. **Status: TODO (study + adopt).**
 - [ ] **22. agent-skills** - `addyosmani/agent-skills`. VERIFIED, MIT, 98k stars (Addy Osmani, Google). Production-grade engineering skills for coding agents. Cherry-pick built-ins. **Status: TODO.**
 - [ ] **23. Graphify** - `Graphify-Labs/graphify`. VERIFIED, Apache-2.0, 120k stars. Turns codebases + docs + SQL schemas + PDFs into knowledge graphs for AI coding assistants. **Status: TODO (evaluate fit).**
-- [ ] **24. WebMCP** - PARTIAL: `webmachinelearning/webmcp` exists (W3C/Chrome web ML community proposal, no license file detected), but it is NOT an OpenAI project as he guessed. Study the protocol idea (websites exposing tools to agents). **Status: STUDY-ONLY.**
+- [ ] **24. WebMCP** - Ethan clarified Sep 20: he means `jasonjmcghee/WebMCP` (VERIFIED, MIT, 790 stars) - turns web pages into MCP tool servers so agents can use sites as tools. Copy OK with notice. (The W3C/Chrome `webmachinelearning/webmcp` proposal is a different, related idea.) **Status: TODO, low priority - candidate MCP-sidecar idea.**
 - [ ] **25. Coldtea AGENTS.md study** - VERIFIED as a Coldtea blog analysis: "What the 100 biggest GitHub repos put in their AGENTS.md files." Read and apply to our own agent docs. **Status: STUDY-ONLY.**
 - [ ] **26. awesome-harness-engineering** - `ai-boost/awesome-harness-engineering`. VERIFIED, license NOASSERTION (awesome-list), 4.4k stars. Reference list for harness tools/patterns/evals. **Status: STUDY-ONLY.**
 
@@ -79,13 +79,13 @@ NOTE: Noesek is messaging-native (WhatsApp/Slack/Telegram/local chat) - there is
 
 - [ ] **34. anime.js** - `juliangarnier/anime`. VERIFIED exists; license unchecked (historically MIT). PARKED.
 - [ ] **35. motion.dev / Framer Motion** - `motiondivision/motion`. VERIFIED exists; license unchecked. PARKED.
-- [ ] **36. "coconut UI"** - PARTIAL/UNVERIFIED: `MVCoconut/coconut.ui` exists but is a 96-star Haxe framework - probably not what he meant. PARKED pending clarification.
+- [ ] **36. "coconut UI" = kokonutui** - Ethan clarified Sep 20: `kokonut-labs/kokonutui` (VERIFIED, MIT, 2k stars) - React/Tailwind component library. Stays PARKED: messaging-native agent has no web UI surface; revisit if we ever ship a web dashboard.
 - [ ] **37. "backlit UI"** - UNVERIFIED: nearest matches (`bklit/bklit-ui`, `bennypowers/backlit`) don't clearly match "backlit UI components." PARKED pending clarification.
 - [ ] **38. Playwright CLI** - we already ship Playwright (the /computer/browse tool). Evaluate whether the CLI form adds anything over our executor. **Status: TODO (cheap evaluation).**
 
 ## Unmatched / needs clarification
 
-- [ ] **39. "Agent Memory" repo** - UNVERIFIED. Too vague to identify (many repos by that name). If he means a specific one, need the link or author.
+- [ ] **39. "Agent Memory" = agentmemory** - Ethan clarified Sep 20: `rohitg00/agentmemory` (VERIFIED, Apache-2.0, 28k stars) - persistent cross-session memory for agents: MCP server + lifecycle hooks + recall/remember/handoff/lesson skills, BM25 keyword + vector + graph search. Copy OK with notices. Ideas worth taking for our memory layer: keyword-first search fallback, handoff/recap skill shapes, session hooks. **Status: TODO (study for memory work; not ahead of P3-P8).**
 - [ ] **40. Unnamed "browser stuff" repo** - UNVERIFIED. He said "maybe use that GitHub repo" without a name; we already run Playwright in production.
 
 ## Open mandate
