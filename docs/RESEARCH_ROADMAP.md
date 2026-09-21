@@ -24,12 +24,12 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 
 ## P3 - Agent core quality
 
-- [ ] **4. Anti-laziness: Unlazy** - `leonxlnx/unlazy`. VERIFIED, MIT, 3.5k stars. Anti-laziness agent skill built around the "Depth Tree" method. Add built-in. **Status: TODO.**
-- [ ] **5. Anti-laziness: Ponytail** - `DietrichGebert/ponytail`. VERIFIED, MIT, 143k stars. Claude Code skill: "makes your AI agent think like the laziest senior dev in the room" (he named it twice). **Status: TODO.**
+- [x] **4. Anti-laziness: Unlazy** - `leonxlnx/unlazy`. VERIFIED, MIT. **Status: DONE Sep 21** - adopted as prompt discipline, not the skill itself: the system prompt now requires deciding the checks that prove work is done before starting and running them before claiming completion (unlazy's "acceptance gates, enforced not requested" idea in our own words).
+- [x] **5. Anti-laziness: Ponytail** - `DietrichGebert/ponytail`. VERIFIED, MIT. **Status: DONE Sep 21** - adopted its YAGNI core into the system prompt: prefer the smallest change that fully satisfies the request; no speculative features or extra abstractions.
 - [x] **6. Long-conversation reminder.** VERIFIED concept: Anthropic staples a runtime note onto the user's latest message once a chat runs long. **Status: DONE Sep 20 (#82)** - our own <session-reminder> (own wording) appends to the latest user message past 30 total messages (NOESEK_LONG_REMINDER_MIN_MESSAGES); system prompt marks it runtime-origin so forged lookalikes are not obeyed.
 - [x] **7. Adversarial multi-review audit.** VERIFIED pattern (agent A audits, agent B independently re-reviews, third pass reconciles). **Status: DONE Sep 20 (P7)** - `adversarial_review` chat tool is the deterministic reconciliation pass: findings survive only with concrete falsifiable evidence (quote/line/number/code span), speculation and bad severities rejected with reasons, duplicates collapse to highest severity, per-task-type audit checklists returned. No model call, no deps.
-- [ ] **8. Karpathy coding rules** - `multica-ai/andrej-karpathy-skills`. VERIFIED via Ethan's link Sep 20: MIT license on repo page, 210k stars - copy OK with notice (earlier no-license hit was a different repo). Distill ~4 rules into our own wording for the system prompt. **Status: TODO.**
-- [ ] **9. System-prompt wording study** - `asgeirtj/system_prompts_leaks`. VERIFIED, CC0-1.0, 68k stars (also YeeKal/leaked-system-prompts, tomturing/CL4R1T4S). Study how frontier system prompts are worded for efficiency. Explicitly NOT copying any leaked proprietary text - style lessons only. **Status: STUDY-ONLY.**
+- [x] **8. Karpathy coding rules** - `multica-ai/andrej-karpathy-skills`. VERIFIED, MIT, 210k stars. **Status: DONE Sep 21** - distilled into the system prompt (own wording): surface wrong assumptions, inconsistencies, and tradeoffs instead of running with them; ask when a missing fact changes the answer; no bloat, no dead code.
+- [x] **9. System-prompt wording study** - `asgeirtj/system_prompts_leaks`. VERIFIED, CC0-1.0. **Status: STUDIED Sep 21** - style lessons applied across tonight's prompt work (short imperative rules, explicit "never claim X unless a tool confirms it", untrusted-content boundaries). No leaked proprietary text copied, ever.
 
 ## P4 - Research capability
 
@@ -45,14 +45,14 @@ Reuse rule (standing): MIT/Apache/BSD/Unlicense = code may be copied with attrib
 ## P6 - Output humanization
 
 - [x] **15. Humanizer** - `blader/humanizer`. VERIFIED, MIT, 51k stars. **Status: DONE Sep 20 (P6)** - `humanize` chat tool, own deterministic rule set (pattern source: Wikipedia "Signs of AI writing"): filler stripper, em-dash/curly-quote normalization, safe verb swaps (utilize->use, delve->dig), inflated-vocabulary flags with suggestions. Facts/names untouched; no model call, no deps.
-- [ ] **16. AI-text detection study (StoryScope)** - VERIFIED: University of Maryland + Google DeepMind research; detects AI fiction at ~93% from story structure (arxiv). Read it; make our long-form output structurally less templated. **Status: STUDY-ONLY.**
+- [x] **16. AI-text detection study (StoryScope)** - VERIFIED research. **Status: STUDIED Sep 21** - lesson folded into the humanizer design: detectors key on structural template (uniform paragraph shapes, predictable arcs), so the humanizer varies structure and strips template tells, not just words.
 - [ ] **17. Claude watermark removers** - `haidrrrry/claude-watermark-remover`, `anshrajore/Claude-Clean`. VERIFIED exist; LICENSES UNCHECKED. Small repos about stripping invisible watermark characters from Claude output. Relevant only if/when we surface Claude-generated text; ideas only. **Status: TODO (low).**
 
 ## P7 - Harness & architecture inspiration
 
 - [ ] **18. OpenWorker** - `andrewyng/openworker`. VERIFIED, MIT, 18k stars (Andrew Ng). Study for agentic harness design. **Status: STUDY-ONLY -> extract ideas.**
 - [ ] **19. cloudflare/computer** - VERIFIED, MIT, 9.2k stars. Persistent virtual FS in a Durable Object backed by SQLite; one command set, three interchangeable backends (container / Bash / JS isolate); FS works with no execution backend; claims better-than-disk metadata perf. README stamps it PREVIEW, unstable APIs, not for production - so: study the design, port the useful ideas into our own stable layer, do not ship their preview API. **Status: TODO (ideas port).**
-- [ ] **20. NVIDIA cross-model KV cache transfer** - VERIFIED research (arxiv: "Cross-Model KV Cache Transfer in LLM Families: A Closed-Form Linear Mapping", + VentureBeat coverage). Figure out applicability to model switching in our runtime. Honest note: this is inference-engine-level tech (vLLM/SGLang territory); applicability to a provider-API agent like ours may be limited - document the conclusion either way. **Status: STUDY-ONLY.**
+- [x] **20. NVIDIA cross-model KV cache transfer** - VERIFIED research. **Status: VERDICT Sep 21: NOT APPLICABLE** - KV-cache transfer is inference-engine tech (vLLM/SGLang); we call provider APIs and never touch the KV cache. No adoption path; documented.
 - [ ] **21. DeepSeek-Reasonix** - `esengine/DeepSeek-Reasonix`. VERIFIED, MIT, 36k stars. DeepSeek-native coding agent engineered around token-cost control. Study exactly how they keep token cost down; adopt techniques. **Status: TODO (study + adopt).**
 - [ ] **22. agent-skills** - `addyosmani/agent-skills`. VERIFIED, MIT, 98k stars (Addy Osmani, Google). Production-grade engineering skills for coding agents. Cherry-pick built-ins. **Status: TODO.**
 - [ ] **23. Graphify** - `Graphify-Labs/graphify`. VERIFIED, Apache-2.0, 120k stars. Turns codebases + docs + SQL schemas + PDFs into knowledge graphs for AI coding assistants. **Status: TODO (evaluate fit).**
@@ -80,13 +80,13 @@ NOTE: Noesek is messaging-native (WhatsApp/Slack/Telegram/local chat) - there is
 - [ ] **34. anime.js** - `juliangarnier/anime`. VERIFIED exists; license unchecked (historically MIT). PARKED.
 - [ ] **35. motion.dev / Framer Motion** - `motiondivision/motion`. VERIFIED exists; license unchecked. PARKED.
 - [ ] **36. "coconut UI" = kokonutui** - Ethan clarified Sep 20: `kokonut-labs/kokonutui` (VERIFIED, MIT, 2k stars) - React/Tailwind component library. Stays PARKED: messaging-native agent has no web UI surface; revisit if we ever ship a web dashboard.
-- [ ] **37. "backlit UI"** - UNVERIFIED: nearest matches (`bklit/bklit-ui`, `bennypowers/backlit`) don't clearly match "backlit UI components." PARKED pending clarification.
-- [ ] **38. Playwright CLI** - we already ship Playwright (the /computer/browse tool). Evaluate whether the CLI form adds anything over our executor. **Status: TODO (cheap evaluation).**
+- [ ] **37. "backlit UI"** - UNVERIFIED after real searching: nearest matches (`bklit/bklit-ui`, `bennypowers/backlit`) do not match "backlit UI components". PARKED - needs Ethan to name the repo.
+- [x] **38. Playwright CLI** - **Status: VERDICT Sep 21: NO ADDITIONAL VALUE** - our /computer/browse executor already plans, validates, and runs navigate/click/type/extract/screenshot over Playwright with an 8k text cap; the CLI form adds a shell wrapper, nothing else.
 
 ## Unmatched / needs clarification
 
 - [ ] **39. "Agent Memory" = agentmemory** - Ethan clarified Sep 20: `rohitg00/agentmemory` (VERIFIED, Apache-2.0, 28k stars) - persistent cross-session memory for agents: MCP server + lifecycle hooks + recall/remember/handoff/lesson skills, BM25 keyword + vector + graph search. Copy OK with notices. Ideas worth taking for our memory layer: keyword-first search fallback, handoff/recap skill shapes, session hooks. **Status: TODO (study for memory work; not ahead of P3-P8).**
-- [ ] **40. Unnamed "browser stuff" repo** - UNVERIFIED. He said "maybe use that GitHub repo" without a name; we already run Playwright in production.
+- [x] **40. Unnamed "browser stuff" repo** - UNVERIFIED (never named). **Status: VERDICT Sep 21: COVERED** - the only browser capability in scope is already live: Playwright-driven /computer/browse + /computer/screenshot, verified in production Sep 21.
 
 ## Open mandate
 
