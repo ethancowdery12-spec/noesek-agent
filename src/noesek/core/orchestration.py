@@ -27,7 +27,7 @@ CONTROLLER_TOOLS = frozenset({
     "create_task", "list_tasks", "cancel_task",
     "delegate_task",
     "gmail_read", "gmail_send", "calendar_read", "github_notifications",
-    "create_file", "speak", "optimize_prompt",
+    "create_file", "speak", "optimize_prompt", "humanize",
 })
 
 
