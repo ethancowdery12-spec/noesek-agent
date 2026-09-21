@@ -28,8 +28,8 @@ from ..tools.adversarial import AdversarialReviewInput, adversarial_review
 from ..tools.security_audit import SecurityAuditInput, security_audit
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.state import (
-    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput, SwitchModelInput,
-    cancel_task_handler, forget_handler, handoff_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, switch_model_handler, task_handler,
+    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, LibraryDocsInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput, SwitchModelInput,
+    cancel_task_handler, forget_handler, handoff_handler, library_docs_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, switch_model_handler, task_handler,
 )
 from ..tools.web import FetchInput, fetch_url
 
@@ -72,6 +72,7 @@ class Controller:
         r.register(ToolSpec("recall","Search durable memory for facts relevant to a query.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("switch_model","Switch this chat's model to another configured one (e.g. deepseek-chat <-> deepseek-reasoner), or 'default' to clear the override.",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("library_docs","Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",LibraryDocsInput,Risk.READ,library_docs_handler(),timeout_seconds=t))
         r.register(ToolSpec("handoff","Store a session handoff recap; the latest handoff is always shown in this conversation's context.",HandoffInput,Risk.WRITE,handoff_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("supersede_memory","Replace one durable memory with a corrected version (old one is kept, marked superseded).",SupersedeInput,Risk.WRITE,supersede_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("create_task","Create a durable background task.",CreateTaskInput,Risk.WRITE,task_handler(conversation_id),timeout_seconds=t))
