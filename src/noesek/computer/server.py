@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import os
 import shutil
 import subprocess
@@ -57,6 +58,8 @@ def _ensure_display() -> None:
     log.info("virtual display up on %s", DISPLAY)
 
 
+_APPROVE_RE = re.compile(r"\s*(approve|reject)\s+(\d+)\s*", re.I)
+
 app = FastAPI(title="Noesek Computer", version=__version__)
 app.include_router(whatsapp_router)
 app.include_router(slack_router)
@@ -90,7 +93,14 @@ async def chat(body: ChatIn):
         conv = await get_or_create_conversation(s, "local", body.chat_id)
         await s.commit()
         cid = conv.id
-    result = await get_controller().handle(cid, text)
+    controller = get_controller()
+    m = _APPROVE_RE.fullmatch(text)
+    if m:
+        result = await controller.decide_approval(cid, int(m.group(2)), m.group(1).lower() == "approve")
+    elif re.fullmatch(r"\s*pending\s*", text, re.I):
+        result = await controller.pending_approvals(cid)
+    else:
+        result = await controller.handle(cid, text)
     return {"chat_id": body.chat_id, "conversation_id": cid, "reply": result.text}
 
 
