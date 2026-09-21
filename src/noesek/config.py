@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     sandbox_image: str = "python:3.12-alpine"
     sandbox_backend: str = "docker-cli"  # docker-cli | docker-py | e2b
     tool_timeout_seconds: float = 45.0
+    # MCP client (roadmap item 12): Context7 first, extra servers via JSON
+    mcp_context7_enabled: bool = True
+    mcp_context7_url: str = "https://mcp.context7.com/mcp"
+    context7_api_key: str = ""  # optional Bearer for higher Context7 rate limits
+    mcp_extra_servers: str = ""  # JSON {"name": {"url": "...", "api_key": "..."}}
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 1_000_000
     # Context
