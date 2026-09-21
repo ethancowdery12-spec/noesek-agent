@@ -30,7 +30,7 @@ class Memory(Base):
     __tablename__ = "memories"
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_id: Mapped[int] = mapped_column(ForeignKey("conversations.id"), index=True)
-    kind: Mapped[str] = mapped_column(String(32), default="note")  # note | fact | preference | episode
+    kind: Mapped[str] = mapped_column(String(32), default="note")  # note | fact | preference | episode | handoff | lesson
     content: Mapped[str] = mapped_column(Text)
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     # Provenance + invalidate-not-overwrite (v2 stage D)
