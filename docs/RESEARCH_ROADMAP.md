@@ -91,6 +91,7 @@ NOTE: Noesek is messaging-native (WhatsApp/Slack/Telegram/local chat) - there is
 ## Open mandate
 
 - [ ] **41.** "If you research and find anything else that might be useful, please feel free to implement that." - Ongoing; anything added under this mandate gets logged here with source + license first.
+- [ ] **42. OpenDesign (design agent skills)** - `nexu-io/open-design`. Ethan added Sep 20 ("open design github repo code studying and skills"). VERIFIED, Apache-2.0, 94k stars - open-source Claude Design alternative with a skills/ protocol (SKILL.md format), 151 DESIGN.md brand systems, deck/dashboard design skills. Copy OK with notices. Design output has no web surface today (same reasoning as items 34-36), but study skills-protocol.md + the DESIGN.md format when doing P5 prompt optimizer. **Status: TODO (study with P5).**
 
 ---
 
