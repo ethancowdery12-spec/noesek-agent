@@ -54,7 +54,9 @@ async def mcp_session(server: MCPServer):
     from mcp.client.streamable_http import streamable_http_client
 
     async with httpx.AsyncClient(headers=server.headers(), timeout=settings.fetch_timeout_seconds) as client:
-        async with streamable_http_client(server.url, http_client=client) as (read, write, _):
+        async with streamable_http_client(server.url, http_client=client) as streams:
+            # The pinned SDK yields (read, write); some versions append a session-id accessor.
+            read, write = streams[0], streams[1]
             async with ClientSession(read, write) as session:
                 await session.initialize()
                 yield session
