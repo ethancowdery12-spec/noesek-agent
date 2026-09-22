@@ -17,11 +17,12 @@ import asyncio
 import logging
 import re
 import os
+from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Request, Response
 from pydantic import BaseModel
 
 from .. import __version__
@@ -153,6 +154,31 @@ _BROWSE_ACTIONS = {"navigate", "click", "type", "extract_text", "screenshot"}
 _TEXT_CAP = 8000
 
 
+@app.post("/computer/browser-state/import")
+async def import_browser_state(request: Request):
+    """Secure session import (item 56). Raw cookies.txt / JSON body goes
+    straight into the Fernet-encrypted store - never through chat, model
+    context, or logs. Response is domain names and counts only. Imported
+    domains land DISABLED until explicitly enabled via the browser_cookies
+    chat tool (the per-site approval)."""
+    from ..core import browser_state as bstate
+    if not (settings.browser_state_key or "").strip():
+        raise HTTPException(400, "NOESEK_BROWSER_STATE_KEY is not set")
+    body = (await request.body())
+    if not body or len(body) > 1_000_000:
+        raise HTTPException(400, "empty or oversized import body")
+    try:
+        cookies = bstate.parse_import(body.decode("utf-8", "replace"))
+    except (bstate.BrowserStateError, ValueError):
+        raise HTTPException(400, "unrecognized import format (expected cookies.txt or storage_state JSON)")
+    state = (await bstate.load_state()) or {"cookies": [], "origins": [], "enabled": []}
+    domains = bstate.merge_import(state, cookies)
+    await bstate.save_state(state)
+    await bstate.audit("import", ",".join(domains), f"{len(cookies)} cookies")
+    return {"imported": len(cookies), "domains": domains, "pending": domains,
+            "next": "enable per site with the browser_cookies chat tool"}
+
+
 @app.post("/computer/browse")
 async def browse(body: BrowseIn):
     """Drive Chromium as a tool: build a plan, validate it, execute it.
@@ -179,11 +205,36 @@ async def browse(body: BrowseIn):
     except PermissionError as exc:
         raise HTTPException(403, str(exc))
     headless = os.environ.get("NOESEK_COMPUTER_BROWSER_HEADED", "") != "1"
-    executor = PlaywrightExecutor(timeout_ms=body.timeout_ms, headless=headless)
+    # Persistent sessions (item 56): profile dir + encrypted storage_state in the
+    # DB. Degrades to the old fresh-profile behavior when no state key is set.
+    profile_dir = ""
+    restore = None
+    state = None
+    if settings.browser_state_key:
+        from ..core import browser_state as bstate
+        profile_dir = settings.browser_profile_dir or str(Path.home() / ".noesek" / "browser-profile")
+        try:
+            state = await bstate.load_state()
+        except bstate.BrowserStateError:
+            state = None  # unreadable state: start clean rather than fail the browse
+        if state:
+            # Approval-before-use: only ENABLED domains matching this origin
+            # are restored into the run (item 56).
+            restore = bstate.state_for_origin(state, origin)
+            if restore["cookies"] or restore["origins"]:
+                await bstate.audit("restore", origin, f"{len(restore['cookies'])} cookies, {len(restore['origins'])} origins")
+            else:
+                restore = None
+    executor = PlaywrightExecutor(timeout_ms=body.timeout_ms, headless=headless,
+                                  profile_dir=profile_dir or None, restore_state=restore)
     try:
         result = await execute_plan_for(plan, executor)
     except BrowserBackendError as exc:
         raise HTTPException(502, str(exc))
+    exported = result.pop("storage_state", None)
+    if profile_dir and exported and state is not None:
+        from ..core import browser_state as bstate
+        await bstate.save_state(bstate.merge_export(state, exported, origin))
     from ..core.content_guard import scan_untrusted
     for step in result["steps"]:
         if isinstance(step.get("text"), str):

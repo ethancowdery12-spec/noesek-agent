@@ -39,6 +39,26 @@ class Memory(Base):
     superseded_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
+class BrowserStateRow(Base):
+    """Singleton row: Fernet-encrypted Playwright storage_state (item 56)."""
+    __tablename__ = "browser_state"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    blob: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
+
+class BrowserAuditRow(Base):
+    """Append-only audit of browser-session operations (item 56).
+
+    action/domain/detail only - cookie names and values are never recorded.
+    """
+    __tablename__ = "browser_audit"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ts: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
+    action: Mapped[str] = mapped_column(String(32))
+    domain: Mapped[str] = mapped_column(String(255), default="")
+    detail: Mapped[str] = mapped_column(String(255), default="")
+
 class Task(Base):
     __tablename__ = "tasks"
     id: Mapped[int] = mapped_column(primary_key=True)
