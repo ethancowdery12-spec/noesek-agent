@@ -83,16 +83,14 @@ class Controller:
                                              gmail_send_handler, calendar_read_handler, github_notifications_handler)
         r.register(ToolSpec("security_audit","Run a bounded security audit over our own source layer: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) plus route inventory; findings carry file:line evidence.",SecurityAuditInput,Risk.READ,security_audit,timeout_seconds=t))
         r.register(ToolSpec("adversarial_review","Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",AdversarialReviewInput,Risk.READ,adversarial_review,timeout_seconds=t))
-        from ..tools.naturalize import RewriteNaturalInput, rewrite_natural
-        r.register(ToolSpec("rewrite_natural","Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",RewriteNaturalInput,Risk.READ,rewrite_natural,timeout_seconds=t))
         r.register(ToolSpec("humanize","Rewrite AI-sounding text so it reads like a person wrote it: strips filler and em dashes, swaps dead-weight verbs, flags inflated vocabulary. Does not change facts.",HumanizeInput,Risk.READ,humanize,timeout_seconds=t))
         r.register(ToolSpec("optimize_prompt","Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",OptimizePromptInput,Risk.READ,optimize_prompt,timeout_seconds=t))
         r.register(ToolSpec("gmail_read","Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",ConnectorReadInput,Risk.READ,gmail_read_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("calendar_read","List upcoming events on the chat's primary Google Calendar.",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("github_notifications","List unread GitHub notifications for the chat's connected GitHub account.",ConnectorReadInput,Risk.READ,github_notifications_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("gmail_send","Send one plain-text email from the chat's connected Google account. Always requires user approval before sending.",GmailSendInput,Risk.EXTERNAL,gmail_send_handler(conversation_id),timeout_seconds=t))
-        from ..tools.scrub import ScrubInput, scrub_handler
-        r.register(ToolSpec("scrub","Clean the user's own text or files of hidden metadata: strips invisible watermark characters from text, and removes EXIF/document-properties metadata from their own images, Office docs, and PDFs (PDF needs optional pypdf). Creates a -clean copy; originals untouched.",ScrubInput,Risk.WRITE,scrub_handler(conversation_id),timeout_seconds=t))
+        from ..tools.chat_extras import register_chat_extras
+        register_chat_extras(r, conversation_id, self, t)
         from ..tools.file_tools import CreateFileInput, create_file_handler
         r.register(ToolSpec("create_file","Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",CreateFileInput,Risk.WRITE,create_file_handler(conversation_id),timeout_seconds=t))
         from ..tools.voice_tools import SpeakInput, speak_handler
