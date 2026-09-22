@@ -1,4 +1,4 @@
-import asyncio
+import asyncio, inspect
 from dataclasses import dataclass, field
 from typing import Any, Awaitable, Callable
 from pydantic import BaseModel
@@ -58,6 +58,11 @@ class ToolRegistry:
         parsed = spec.input_model.model_validate(arguments)
         async with spec._semaphore:
             try:
-                return await asyncio.wait_for(spec.handler(parsed), timeout=spec.timeout_seconds)
+                # Handlers may be sync or async (design_system/office_doc/
+                # playbooks are sync): awaiting a plain dict raises TypeError.
+                result = spec.handler(parsed)
+                if inspect.isawaitable(result):
+                    result = await asyncio.wait_for(result, timeout=spec.timeout_seconds)
+                return result
             except TimeoutError as e:
                 raise ToolTimeoutError(f"tool {name} timed out after {spec.timeout_seconds}s") from e
