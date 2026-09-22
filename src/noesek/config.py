@@ -42,6 +42,8 @@ class Settings(BaseSettings):
     webmcp_pages: str = ""  # JSON {"name": "https://..."} - pages the webmcp sidecar exposes as tools
     webmcp_host: str = "127.0.0.1"
     linkedin_access_token: str = ""  # member token for the LinkedIn layer (item 52); server-side only
+    browser_state_key: str = ""  # passphrase -> Fernet key for stored browser sessions (item 56)
+    browser_profile_dir: str = ""  # persistent chromium profile dir; default ~/.noesek/browser-profile
     webmcp_port: int = 8795
     # Vector memory: pluggable embedder, zero-dep local default (core.memory_vector)
     vector_memory_enabled: bool = True
