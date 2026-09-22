@@ -56,3 +56,23 @@ async def test_deliver_callback_invoked(db):
 
 def test_backoff_grows_exponentially():
     assert backoff_seconds(1) < backoff_seconds(2) < backoff_seconds(3)
+
+
+async def test_recover_interrupted_on_empty_schema(db):
+    """Fresh-database boot (Sep 22 Neon crash): recover_interrupted must ensure
+    the schema itself instead of dying on 'relation tasks does not exist'."""
+    from sqlalchemy import inspect as sa_inspect
+    from noesek.db import Base, engine
+    from noesek.jobs import recover_interrupted
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+        names = await conn.run_sync(lambda sc: set(sa_inspect(sc).get_table_names()))
+        assert "tasks" not in names
+
+    out = await recover_interrupted()
+    assert out == {"requeued": 0, "failed": 0}
+
+    async with engine.begin() as conn:
+        names = await conn.run_sync(lambda sc: set(sa_inspect(sc).get_table_names()))
+        assert "tasks" in names

@@ -30,7 +30,20 @@ async def recover_interrupted() -> dict:
     failed instead of looping forever. On hosts with ephemeral disks (Render
     free tier) the DB itself is lost on redeploy; that ceiling is documented
     in docs/HOSTING.md.
+
+    Self-healing (Sep 22): on a brand-new/empty database (fresh Neon) the
+    schema may not exist yet when this runs - ensure it and retry once
+    instead of crashing startup with "relation tasks does not exist".
     """
+    try:
+        return await _recover_interrupted_once()
+    except Exception:
+        from .db import init_db
+        await init_db()
+        return await _recover_interrupted_once()
+
+
+async def _recover_interrupted_once() -> dict:
     async with Session() as s:
         zombies = (await s.execute(select(Task).where(Task.status == "running"))).scalars().all()
         requeued, failed = 0, 0
