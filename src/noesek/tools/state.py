@@ -109,15 +109,17 @@ def recall_handler(conversation_id: int):
     async def f(inp: RecallInput):
         from ..core.context import rank_memories_async
         async with Session() as s:
-            rows = (await s.execute(select(Memory).where(Memory.conversation_id==conversation_id, Memory.active==True))).scalars().all()
-        picked = await rank_memories_async(conversation_id, inp.query, list(rows), inp.limit)
+            # user-wide pool: memories are durable knowledge of the user, not
+            # of one chat session (Sep 22 fresh-chat recall fix)
+            rows = (await s.execute(select(Memory).where(Memory.active==True))).scalars().all()
+        picked = await rank_memories_async(None, inp.query, list(rows), inp.limit)
         return {"memories": [{"id": m.id, "kind": m.kind, "content": m.content} for m in picked]}
     return f
 
 def forget_handler(conversation_id: int):
     async def f(inp: ForgetInput):
         async with Session() as s:
-            m = (await s.execute(select(Memory).where(Memory.id==inp.memory_id, Memory.conversation_id==conversation_id, Memory.active==True))).scalar_one_or_none()
+            m = (await s.execute(select(Memory).where(Memory.id==inp.memory_id, Memory.active==True))).scalar_one_or_none()
             if not m: return {"error": f"Memory #{inp.memory_id} not found in this conversation"}
             m.active = False; await s.commit()
         await deindex_memory(inp.memory_id); await deindex_vector(inp.memory_id); await deindex_graph(inp.memory_id)
