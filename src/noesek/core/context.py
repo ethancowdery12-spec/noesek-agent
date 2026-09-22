@@ -54,7 +54,7 @@ def trim_to_budget(messages: list[dict], budget: int) -> tuple[list[dict], int]:
         out.pop(1); removed += 1
     return out, removed
 
-async def rank_memories_async(conversation_id: int, query: str, memories: list[Memory], limit: int) -> list[Memory]:
+async def rank_memories_async(conversation_id: int | None, query: str, memories: list[Memory], limit: int) -> list[Memory]:
     """FTS5-ranked memories first (stage D), keyword ranker fills the rest."""
     from .memory_v2 import fts_search_ids
     ids = await fts_search_ids(conversation_id, query, limit) if query.strip() else []
@@ -87,9 +87,14 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
                    char_budget: int | None = None, spine=None) -> list[dict]:
     limit = limit or settings.history_limit
     char_budget = char_budget or settings.max_context_chars
-    memories = (await session.execute(select(Memory).where(Memory.conversation_id==conversation_id, Memory.active==True).order_by(Memory.created_at.desc()).limit(settings.memory_limit * 4))).scalars().all()
+    # Memories are the agent's durable knowledge of the user, not of one chat
+    # session: every conversation on this deployment shares the pool (Sep 22
+    # fresh-chat recall bug - storing in chat A was invisible to chat B).
+    # conversation_id stays on the row as provenance. Handoffs and approvals
+    # below remain session-scoped.
+    memories = (await session.execute(select(Memory).where(Memory.active==True).order_by(Memory.created_at.desc()).limit(settings.memory_limit * 4))).scalars().all()
     history = (await session.execute(select(Message).where(Message.conversation_id==conversation_id).order_by(Message.created_at.desc()).limit(limit))).scalars().all()[::-1]
-    picked = await rank_memories_async(conversation_id, query, list(memories), settings.memory_limit)
+    picked = await rank_memories_async(None, query, list(memories), settings.memory_limit)
     # agentmemory idea (Apache-2.0): the latest session handoff is always visible, not query-dependent.
     latest_handoff = (await session.execute(select(Memory).where(
         Memory.conversation_id==conversation_id, Memory.active==True, Memory.kind=="handoff"
