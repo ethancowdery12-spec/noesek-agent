@@ -261,6 +261,268 @@ class Controller:
                 await s.commit()
             return marked
         async with Session() as s:
+from datetime import datetime, timedelta, timezone
+from typing import Literal
+from pydantic import BaseModel, Field
+from sqlalchemy import select
+from .approval_engine import assess_tool_arguments
+from .context import assemble
+from .loop_guard import LoopGuard, classify_exception
+from .content_guard import guard_untrusted
+from .steering import consume_steering
+from .policy import evaluate_policy, parse_rules
+from .llm import allowed_models, configured_llm, model_catalog, provider_name
+from .metrics import inc
+from .tools import ToolRegistry, ToolSpec
+from .turn_spine import (
+    TurnSpine, canonical,
+    APPROVAL_DECIDED, APPROVAL_REQUIRED, MODEL_REQUEST, MODEL_RESPONSE,
+    LOOP_GUARD, POLICY_BLOCKED, TOOL_CALL_REQUESTED, TOOL_CALL_RESULT,
+    TURN_COMPLETED, TURN_FAILED, TURN_STARTED, TURN_STOPPED,
+)
+from .types import Risk, TurnResult
+from ..config import settings
+from ..db import Conversation, Approval, Message, Session, Task, now, record_trace
+from ..tools.research import SearchInput, search_web
+from ..tools.prompt_opt import OptimizePromptInput, optimize_prompt
+from ..tools.humanize import HumanizeInput, humanize
+from ..tools.adversarial import AdversarialReviewInput, adversarial_review
+from ..tools.security_audit import SecurityAuditInput, security_audit
+from ..tools.sandbox import PythonInput, run_python
+from ..tools.state import (
+    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, LibraryDocsInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput, SwitchModelInput,
+    cancel_task_handler, forget_handler, handoff_handler, library_docs_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, switch_model_handler, task_handler,
+)
+from ..tools.web import FetchInput, fetch_url
+
+MAX_STEPS = 8
+APPROVAL_RISKS = {Risk.WRITE, Risk.EXTERNAL, Risk.MONEY, Risk.DESTRUCTIVE}
+
+class DelegateInput(BaseModel):
+    worker: Literal["researcher", "coder", "operator", "evaluator"]
+    instruction: str = Field(min_length=1, max_length=4000)
+    run_in_seconds: int = Field(default=0, ge=0, le=7 * 24 * 3600)
+    notify: bool = Field(default=True, description="Send the worker result back to this conversation")
+
+class SearchToolsInput(BaseModel):
+    query: str = Field(min_length=1, max_length=200)
+    limit: int = Field(default=5, ge=1, le=20)
+
+# Tools that stay visible when deferral is active.
+_CORE_VISIBLE = {"remember", "recall", "delegate_task", "search_tools"}
+
+def search_tools_handler(registry: ToolRegistry):
+    async def f(inp: SearchToolsInput):
+        names = registry.search(inp.query, inp.limit)
+        for n in names: registry.activate(n)
+        return {"activated": names, "note": "Activated tools are available with full schemas from the next step."}
+    return f
+
+class Controller:
+    def __init__(self, llm=None, registry_factory=None, max_steps: int = MAX_STEPS):
+        self.llm = llm or configured_llm()
+        self._llm_by_model: dict[str, object] = {}  # per-chat overrides, one adapter per model
+        self._registry_factory = registry_factory
+        self.max_steps = max_steps
+        self._policy_rules = parse_rules(settings.policy_rules)
+
+    def registry(self, conversation_id: int) -> ToolRegistry:
+        if self._registry_factory: return self._registry_factory(conversation_id)
+        t = settings.tool_timeout_seconds
+        r = ToolRegistry()
+        r.register(ToolSpec("remember","Store a durable user-approved fact or preference.",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("recall","Search durable memory for facts relevant to a query.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("switch_model",f"Switch this chat's model to another configured model (configured: {', '.join(sorted(allowed_models()))}), or 'default' to clear the override (back to {model_catalog()['chat']}).",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("library_docs","Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",LibraryDocsInput,Risk.READ,library_docs_handler(),timeout_seconds=t))
+        r.register(ToolSpec("handoff","Store a session handoff recap; the latest handoff is always shown in this conversation's context.",HandoffInput,Risk.WRITE,handoff_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("supersede_memory","Replace one durable memory with a corrected version (old one is kept, marked superseded).",SupersedeInput,Risk.WRITE,supersede_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("create_task","Create a durable background task.",CreateTaskInput,Risk.WRITE,task_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("list_tasks","List this conversation's background tasks and their status.",ListTasksInput,Risk.READ,list_tasks_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("cancel_task","Cancel a pending background task by id.",CancelTaskInput,Risk.WRITE,cancel_task_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("delegate_task","Delegate an instruction to a specialized background worker (researcher, coder, operator, evaluator).",DelegateInput,Risk.WRITE,self._delegate_handler(conversation_id),timeout_seconds=t))
+        from ..tools.connector_reads import (ConnectorReadInput, GmailSendInput, gmail_read_handler,
+                                             gmail_send_handler, calendar_read_handler, github_notifications_handler)
+        r.register(ToolSpec("security_audit","Run a bounded security audit over our own source layer: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) plus route inventory; findings carry file:line evidence.",SecurityAuditInput,Risk.READ,security_audit,timeout_seconds=t))
+        r.register(ToolSpec("adversarial_review","Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",AdversarialReviewInput,Risk.READ,adversarial_review,timeout_seconds=t))
+        from ..tools.variants import GenerateVariantsInput, generate_variants_handler
+        async def _resolve_llm():
+            async with Session() as s:
+                ov = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
+            return self._llm_for_model(ov)
+        r.register(ToolSpec("generate_variants","Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",GenerateVariantsInput,Risk.READ,generate_variants_handler(_resolve_llm),timeout_seconds=t))
+        from ..tools.naturalize import RewriteNaturalInput, rewrite_natural
+        r.register(ToolSpec("rewrite_natural","Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",RewriteNaturalInput,Risk.READ,rewrite_natural,timeout_seconds=t))
+        r.register(ToolSpec("humanize","Rewrite AI-sounding text so it reads like a person wrote it: strips filler and em dashes, swaps dead-weight verbs, flags inflated vocabulary. Does not change facts.",HumanizeInput,Risk.READ,humanize,timeout_seconds=t))
+        r.register(ToolSpec("optimize_prompt","Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",OptimizePromptInput,Risk.READ,optimize_prompt,timeout_seconds=t))
+        r.register(ToolSpec("gmail_read","Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",ConnectorReadInput,Risk.READ,gmail_read_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("calendar_read","List upcoming events on the chat's primary Google Calendar.",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("github_notifications","List unread GitHub notifications for the chat's connected GitHub account.",ConnectorReadInput,Risk.READ,github_notifications_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("gmail_send","Send one plain-text email from the chat's connected Google account. Always requires user approval before sending.",GmailSendInput,Risk.EXTERNAL,gmail_send_handler(conversation_id),timeout_seconds=t))
+        from ..tools.scrub import ScrubInput, scrub_handler
+        r.register(ToolSpec("scrub","Clean the user's own text or files of hidden metadata: strips invisible watermark characters from text, and removes EXIF/document-properties metadata from their own images, Office docs, and PDFs (PDF needs optional pypdf). Creates a -clean copy; originals untouched.",ScrubInput,Risk.WRITE,scrub_handler(conversation_id),timeout_seconds=t))
+        from ..tools.file_tools import CreateFileInput, create_file_handler
+        r.register(ToolSpec("create_file","Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",CreateFileInput,Risk.WRITE,create_file_handler(conversation_id),timeout_seconds=t))
+        from ..tools.voice_tools import SpeakInput, speak_handler
+        r.register(ToolSpec("speak","Create a voice note (offline text-to-speech) the user can download as a WAV.",SpeakInput,Risk.WRITE,speak_handler(conversation_id),timeout_seconds=t))
+        return r
+
+    def _delegate_handler(self, conversation_id: int):
+        async def f(inp: DelegateInput):
+            async with Session() as s:
+                t = Task(conversation_id=conversation_id, title=f"{inp.worker}: {inp.instruction[:120]}",
+                         payload={"kind":"worker","worker":inp.worker,"instruction":inp.instruction,"notify":inp.notify},
+                         run_after=datetime.now(timezone.utc)+timedelta(seconds=inp.run_in_seconds))
+                s.add(t); await s.commit()
+                return {"delegated": True, "task_id": t.id, "worker": inp.worker}
+        return f
+
+    def _llm_for_model(self, model: str | None):
+        """Per-chat model override; one cached adapter per model (OpenAI-compatible only)."""
+        if not model or settings.llm_provider.strip().lower() not in {"openai", "openai-compatible"}:
+            return self.llm
+        if model not in self._llm_by_model:
+            from .llm import OpenAICompatibleLLM
+            self._llm_by_model[model] = OpenAICompatibleLLM(model=model)
+        return self._llm_by_model[model]
+
+    def _gen_ai(self) -> dict:
+        """OTel GenAI semantic-convention attributes for model events."""
+        return {"gen_ai.system": provider_name(settings.llm_base_url, settings.llm_provider),
+                "gen_ai.request.model": settings.llm_model}
+
+    @staticmethod
+    def _usage_attrs(reply) -> dict:
+        # getattr: LLM doubles in tests and third-party adapters may be duck-typed.
+        usage = getattr(reply, "usage", None) or {}
+        finish = getattr(reply, "finish_reason", None)
+        return {"gen_ai.response.finish_reasons": [finish] if finish else [],
+                "gen_ai.usage.input_tokens": usage.get("input_tokens"),
+                "gen_ai.usage.output_tokens": usage.get("output_tokens")}
+
+    async def handle(self, conversation_id: int, text: str, external_id: str | None = None) -> TurnResult:
+        async with Session() as s:
+            if external_id and (await s.execute(select(Message).where(Message.external_id==external_id))).scalar_one_or_none():
+                return TurnResult(text="")
+            s.add(Message(conversation_id=conversation_id, role="user", content=text, external_id=external_id)); await s.commit()
+            spine = TurnSpine(conversation_id)
+            await spine.emit(TURN_STARTED, {"chars": len(text)})
+            messages = await assemble(s, conversation_id, query=text, spine=spine)
+            override = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
+        await record_trace(conversation_id, "user_message", {"chars": len(text)})
+        inc("noesek_turns_total")
+        registry = self.registry(conversation_id); citations = []
+        threshold = settings.tool_defer_threshold
+        if threshold and len(registry.names()) > threshold:
+            registry.register(ToolSpec("search_tools", "Find tools by keyword and activate their schemas for this turn.", SearchToolsInput, Risk.READ, search_tools_handler(registry), timeout_seconds=settings.tool_timeout_seconds))
+            for n in registry.names():
+                if n not in _CORE_VISIBLE: registry.defer(n)
+        guard = LoopGuard(settings.loop_max_identical, settings.loop_max_errors, settings.loop_cycle_window)
+        try:
+            for _ in range(self.max_steps):
+                notes = await consume_steering(conversation_id)
+                if notes:
+                    for note in notes:
+                        messages.append({"role": "user", "content": f"[Steering from the user]: {note}"})
+                    await spine.emit("steering", {"notes": len(notes)})
+                await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
+                reply = await self._llm_for_model(override).complete(messages, registry.schemas())
+                await spine.emit(MODEL_RESPONSE, {**self._gen_ai(), **self._usage_attrs(reply),
+                                                  "tool_calls": len(reply.tool_calls), "content_chars": len(reply.content or "")})
+                if not reply.tool_calls:
+                    final = reply.content or "I could not produce a response."
+                    async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=final)); await s.commit()
+                    await record_trace(conversation_id, "final_reply", {"chars": len(final)})
+                    await spine.emit(TURN_COMPLETED, {"chars": len(final)})
+                    return TurnResult(text=final, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
+                messages.append({"role":"assistant","content":reply.content,"tool_calls":[{"id":c.id,"type":"function","function":{"name":c.name,"arguments":json.dumps(c.arguments)}} for c in reply.tool_calls]})
+                for call in reply.tool_calls:
+                    inc("noesek_tool_calls_total")
+                    try: spec = registry.get(call.name)
+                    except KeyError:
+                        guard.before_call(call.name, call.arguments); guard.record_outcome(False)
+                        await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "unknown": True}, strict=False)
+                        result = {"error": "unknown tool"}
+                        await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id, "ok": False, "error": "unknown_tool"})
+                    else:
+                        decision = evaluate_policy(call.name, spec.risk, call.arguments, extra_rules=self._policy_rules)
+                        if decision.denied:
+                                inc("noesek_approvals_blocked_total")
+                                refusal = (f"Blocked by policy: {decision.reason}. This cannot be approved or run "
+                                           "through the agent.")
+                                async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=refusal)); await s.commit()
+                                await record_trace(conversation_id, "approval_blocked", {"tool": call.name, "reason": decision.reason})
+                                await spine.emit(POLICY_BLOCKED, {"tool": call.name, "call_id": call.id, "reason": decision.reason, "rule": decision.rule})
+                                await spine.emit(TURN_COMPLETED, {"outcome": "policy_blocked"})
+                                return TurnResult(text=refusal, turn_id=spine.turn_id)
+                        if decision.needs_approval:
+                            inc("noesek_approvals_total")
+                            rationale = f"Requested during conversation turn: {text[:300]} (rule: {decision.rule})"
+                            if decision.content_flag: rationale += f" (policy flag: {decision.content_flag})"
+                            async with Session() as s:
+                                a = Approval(conversation_id=conversation_id, tool_name=call.name, arguments=call.arguments,
+                                             rationale=rationale, turn_id=spine.turn_id, canonical_args=canonical(call.arguments),
+                                             expires_at=now()+timedelta(hours=settings.approval_ttl_hours))
+                                s.add(a); await s.commit()
+                            prompt = (f"[system] Approval required #{a.id}: {call.name} with {json.dumps(call.arguments, ensure_ascii=False)}. "
+                                      f"Reply 'approve {a.id}' or 'reject {a.id}' within {settings.approval_ttl_hours:g}h.")
+                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=prompt)); await s.commit()
+                            await record_trace(conversation_id, "approval_required", {"approval_id": a.id, "tool": call.name})
+                            await spine.emit(APPROVAL_REQUIRED, {"approval_id": a.id, "tool": call.name, "call_id": call.id,
+                                                                 "arguments_json": canonical(call.arguments)})
+                            return TurnResult(text=prompt, pending_approval_id=a.id, turn_id=spine.turn_id)
+                        intervention = guard.before_call(call.name, call.arguments)
+                        if intervention and intervention[0] == "warn":
+                            await spine.emit(LOOP_GUARD, {"tool": call.name, "call_id": call.id, "action": "warn", "reason": intervention[1]})
+                            result = {"error": "loop_guard", "detail": f"Loop guard: {intervention[1]}."}
+                            messages.append({"role":"tool","tool_call_id":call.id,"content":json.dumps(result,ensure_ascii=False)})
+                            continue
+                        if intervention and intervention[0] == "stop":
+                            await spine.emit(LOOP_GUARD, {"tool": call.name, "call_id": call.id, "action": "stop", "reason": intervention[1]})
+                            await spine.emit(TURN_STOPPED, {"reason": "loop_guard", "detail": intervention[1]})
+                            stop_text = "I stopped: I was repeating the same action without making progress. Please narrow or rephrase the request."
+                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
+                            return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
+                        await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "risk": spec.risk.value,
+                                                               "arguments_json": canonical(call.arguments)}, strict=True)
+                        try: result = await registry.invoke(call.name, call.arguments)
+                        except Exception as e: result = {"error": classify_exception(e), "detail": str(e)[:500]}
+                        ok = not (isinstance(result, dict) and "error" in result)
+                        guard.record_outcome(ok)
+                        await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id,
+                                                            "ok": ok,
+                                                            "error": result.get("error") if isinstance(result, dict) else None})
+                        if guard.error_streak_tripped():
+                            detail = f"{guard.error_streak} tool calls failed in a row (latest: {result.get('error')} on {call.name})"
+                            await spine.emit(TURN_STOPPED, {"reason": "error_streak", "detail": detail})
+                            stop_text = "I stopped: several tool calls in a row did not work. Please rephrase or narrow the request."
+                            async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
+                            return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
+                    await record_trace(conversation_id, "tool_call", {"tool": call.name, "ok": not (isinstance(result, dict) and "error" in result)})
+                    for item in result.get("results",[]) if isinstance(result,dict) else []:
+                        if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
+                    if isinstance(result, dict) and result.get("url"): citations.append(result["url"])
+                    messages.append({"role":"tool","tool_call_id":call.id,"content":guard_untrusted(json.dumps(result,ensure_ascii=False), call.name)})
+        except Exception as e:
+            await spine.emit(TURN_FAILED, {"error": type(e).__name__}, strict=False)
+            raise
+        await record_trace(conversation_id, "max_steps_stop", {})
+        await spine.emit(TURN_STOPPED, {"reason": "max_steps"})
+        return TurnResult(text="I stopped after the maximum tool steps. Please narrow the request.", citations=citations, turn_id=spine.turn_id)
+
+    async def decide_approval(self, conversation_id: int, approval_id: int, approved: bool) -> TurnResult:
+        spine = TurnSpine(conversation_id)
+        await spine.emit(TURN_STARTED, {"kind": "approval_decision", "approval_id": approval_id})
+
+        async def _persist(text: str) -> str:
+            """Approvals are runtime events: mark them and keep them in the transcript,
+            so later turns see resolutions, not dangling prompts."""
+            marked = f"[system] {text}"
+            async with Session() as s:
+                s.add(Message(conversation_id=conversation_id, role="assistant", content=marked))
+                await s.commit()
+            return marked
+        async with Session() as s:
             a = (await s.execute(select(Approval).where(Approval.id==approval_id, Approval.conversation_id==conversation_id))).scalar_one_or_none()
             if not a: return TurnResult(text=await _persist(f"Approval #{approval_id} was not found."))
             if a.status != "pending": return TurnResult(text=await _persist(f"Approval #{approval_id} is already {a.status}."))
