@@ -4,6 +4,30 @@ on:
   push:
     branches: [main]
 jobs:
+  postgres-boot:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: noesek
+          POSTGRES_PASSWORD: noesek
+          POSTGRES_DB: noesek
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U noesek" --health-interval 5s
+          --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: pip install -e '.[test,postgres]'
+      - name: Fresh Postgres schema boot regression
+        env:
+          NOESEK_TEST_PG_URL: postgresql+asyncpg://noesek:noesek@localhost:5432/noesek
+        run: python -m pytest tests/test_pg_boot.py -q
   tests-and-evals:
     runs-on: ubuntu-latest
     steps:
