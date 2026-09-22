@@ -11,6 +11,7 @@ from sqlalchemy import select
 from ..core.tools import ToolSpec
 from ..core.types import Risk
 from ..db import Conversation, Session
+from .code_graph import CodeGraphInput, code_graph
 from .naturalize import RewriteNaturalInput, rewrite_natural
 from .scrub import ScrubInput, scrub_handler
 from .variants import GenerateVariantsInput, generate_variants_handler
@@ -20,6 +21,7 @@ def register_chat_extras(r, conversation_id: int, controller, timeout: float) ->
     r.register(ToolSpec("scrub","Clean the user's own text or files of hidden metadata: strips invisible watermark characters from text, and removes EXIF/document-properties metadata from their own images, Office docs, and PDFs (PDF needs optional pypdf). Creates a -clean copy; originals untouched.",ScrubInput,Risk.WRITE,scrub_handler(conversation_id),timeout_seconds=timeout))
     r.register(ToolSpec("rewrite_natural","Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",RewriteNaturalInput,Risk.READ,rewrite_natural,timeout_seconds=timeout))
 
+    r.register(ToolSpec("code_graph","Answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",CodeGraphInput,Risk.READ,code_graph,timeout_seconds=timeout))
     async def _resolve_llm():
         async with Session() as s:
             ov = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
