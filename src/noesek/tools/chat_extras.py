@@ -11,6 +11,7 @@ from sqlalchemy import select
 from ..core.tools import ToolSpec
 from ..core.types import Risk
 from ..db import Conversation, Session
+from .browser_cookies import BrowserCookiesInput, browser_cookies
 from .code_graph import CodeGraphInput, code_graph
 from .design_system import DesignInput, design_system
 from .linkedin import LinkedInInput, linkedin
@@ -29,6 +30,7 @@ def register_chat_extras(r, conversation_id: int, controller, timeout: float) ->
     r.register(ToolSpec("design_system","Design-system skills: list/get schema'd themes (color, type, spacing, radius tokens) and render a self-contained styled HTML deliverable (title, subtitle, sections) into the file store.",DesignInput,Risk.WRITE,design_system,timeout_seconds=timeout))
     r.register(ToolSpec("linkedin","LinkedIn via the official API: profile (who am I) or share (post text as the member, PUBLIC or CONNECTIONS). Activates only when NOESEK_LINKEDIN_ACCESS_TOKEN is set; otherwise explains setup.",LinkedInInput,Risk.WRITE,linkedin,timeout_seconds=timeout))
     r.register(ToolSpec("office_doc","Read, create, and edit Word/Excel/PowerPoint files in the agent file store through the OfficeCLI binary (view/get outline or JSON; create/add/set/remove/close). Degrades cleanly when the officecli binary is not installed.",OfficeDocInput,Risk.WRITE,office_doc,timeout_seconds=timeout))
+    r.register(ToolSpec("browser_cookies","Persistent browser sessions: status (stored/enabled sites, counts only), enable/disable a site (the per-site approval before any logged-in session is used on a browse run), revoke, clear, audit. Imports never happen here - cookie exports are posted directly to the /computer/browser-state/import endpoint; cookie values are never shown or accepted in chat.",BrowserCookiesInput,Risk.WRITE,browser_cookies,timeout_seconds=timeout))
     r.register(ToolSpec("code_graph","Answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",CodeGraphInput,Risk.READ,code_graph,timeout_seconds=timeout))
     async def _resolve_llm():
         async with Session() as s:
