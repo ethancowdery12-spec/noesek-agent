@@ -30,23 +30,46 @@ class PlaywrightExecutor:
       screenshot    {type, path?}            - PNG bytes, base64, into results
     """
 
-    def __init__(self, *, timeout_ms: float = 30_000, headless: bool = True):
+    def __init__(self, *, timeout_ms: float = 30_000, headless: bool = True,
+                 profile_dir: str | None = None, restore_state: dict | None = None):
         self.timeout_ms = timeout_ms
         self.headless = headless
+        self.profile_dir = profile_dir  # set -> persistent context, sessions accumulate
+        self.restore_state = restore_state  # decrypted storage_state to re-apply
 
     async def run(self, plan) -> dict[str, Any]:
         from playwright.async_api import async_playwright
         results: list[dict[str, Any]] = []
         async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=self.headless)
+            if self.profile_dir:
+                context = await pw.chromium.launch_persistent_context(
+                    self.profile_dir, headless=self.headless)
+                browser = None
+            else:
+                browser = await pw.chromium.launch(headless=self.headless)
+                context = await browser.new_context()
             try:
-                page = await browser.new_page()
+                if self.restore_state:
+                    from .browser_state import restore_script
+                    cookies = self.restore_state.get("cookies", [])
+                    if cookies:
+                        await context.add_cookies(cookies)
+                    origins = self.restore_state.get("origins", [])
+                    if origins:
+                        await context.add_init_script(restore_script(origins))
+                page = await context.new_page()
                 page.set_default_timeout(self.timeout_ms)
                 for i, action in enumerate(plan.actions):
                     results.append(await self._step(page, action, i))
+                state = await context.storage_state() if self.profile_dir else None
             finally:
-                await browser.close()
-        return {"origin": plan.origin, "digest": plan.digest, "steps": results}
+                await context.close()
+                if browser is not None:
+                    await browser.close()
+        out = {"origin": plan.origin, "digest": plan.digest, "steps": results}
+        if self.profile_dir:
+            out["storage_state"] = state
+        return out
 
     async def _step(self, page, action: dict, index: int) -> dict[str, Any]:
         kind = action.get("type")
