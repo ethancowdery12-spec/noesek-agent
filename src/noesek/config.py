@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     mcp_extra_servers: str = ""  # JSON {"name": {"url": "...", "api_key": "..."}}
     webmcp_pages: str = ""  # JSON {"name": "https://..."} - pages the webmcp sidecar exposes as tools
     webmcp_host: str = "127.0.0.1"
+    linkedin_access_token: str = ""  # member token for the LinkedIn layer (item 52); server-side only
     webmcp_port: int = 8795
     # Vector memory: pluggable embedder, zero-dep local default (core.memory_vector)
     vector_memory_enabled: bool = True
