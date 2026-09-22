@@ -45,7 +45,7 @@ HEDGE_COLLAPSES = [
     (r"\bat this point in time\b", "now"),
     (r"\bin the event that\b", "if"),
     (r"\ba wide (?:range|array|variety) of\b", "many"),
-    (r"\bplays? a (?:key|crucial|critical|vital|significant) role in\b", "drives"),
+    (r"\bplays? a (?:key|crucial|critical|vital|significant) role in\b", "is central to"),
     (r"\bserves as a testament to\b", "shows"),
 ]
 # Formulaic sentence openers: safe to delete at the start of a sentence.
@@ -95,6 +95,14 @@ def rewrite_natural_text(raw: str) -> dict:
         if new != out:
             out = new
             applied.append("removed formulaic transition opener (Furthermore/Moreover/Firstly...)")
+
+    # Delve family (humanize covers only the bare stem).
+    new = re.sub(r"\bdelve([sd]?)\b|\bdelving\b",
+                 lambda m: {"s": "digs", "d": "dug", "": "dig"}[m.group(1) or ""] if m.group(0).endswith(("e", "es", "ed")) else "digging",
+                 out, flags=re.IGNORECASE)
+    if new != out:
+        out = new
+        applied.append("swapped delve family (delved/delves/delving -> dug/digs/digging)")
 
     # Then the humanizer's mechanical passes (dashes, quotes, filler, vocab).
     hz = humanize_text(out)
