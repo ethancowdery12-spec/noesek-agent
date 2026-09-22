@@ -73,6 +73,7 @@ noesek-tui = "noesek.tui:main"
 noesek-agent = "noesek.upstream_boot:main_run_agent"
 noesek-acp = "noesek.upstream_boot:main_acp"
 noesek-computer = "noesek.computer.server:main"
+noesek-webmcp = "noesek.core.webmcp_server:main"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

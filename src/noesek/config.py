@@ -39,6 +39,9 @@ class Settings(BaseSettings):
     mcp_context7_url: str = "https://mcp.context7.com/mcp"
     context7_api_key: str = ""  # optional Bearer for higher Context7 rate limits
     mcp_extra_servers: str = ""  # JSON {"name": {"url": "...", "api_key": "..."}}
+    webmcp_pages: str = ""  # JSON {"name": "https://..."} - pages the webmcp sidecar exposes as tools
+    webmcp_host: str = "127.0.0.1"
+    webmcp_port: int = 8795
     # Vector memory: pluggable embedder, zero-dep local default (core.memory_vector)
     vector_memory_enabled: bool = True
     embed_provider: str = "local"  # local (hashed-ngram) | openai-compatible
