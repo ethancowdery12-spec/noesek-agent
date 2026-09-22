@@ -138,23 +138,31 @@ async def deindex_graph(memory_id: int) -> None:
         pass
 
 
-async def graph_boost(conversation_id: int, query: str) -> dict[int, float]:
-    """memory_id -> boost from query entities and their 1-hop graph neighbors."""
+async def graph_boost(conversation_id: int | None, query: str) -> dict[int, float]:
+    """memory_id -> boost from query entities and their 1-hop graph neighbors.
+    conversation_id=None boosts across the shared user-wide pool."""
     if not settings.graph_memory_enabled or not await graph_available():
         return {}
     qe = extract_entities(query)
     if not qe: return {}
     try:
         async with Session() as s:
-            rows = (await s.execute(text(
-                "SELECT id, name FROM graph_entities WHERE conversation_id = :c"),
-                {"c": conversation_id})).all()
+            if conversation_id is None:
+                rows = (await s.execute(text("SELECT id, name FROM graph_entities"))).all()
+            else:
+                rows = (await s.execute(text(
+                    "SELECT id, name FROM graph_entities WHERE conversation_id = :c"),
+                    {"c": conversation_id})).all()
             by_name = {n: i for i, n in rows}
             seed = {by_name[n] for n in qe if n in by_name}
             if not seed: return {}
-            edges = (await s.execute(text(
-                "SELECT src_id, dst_id, weight, memory_id FROM graph_edges WHERE conversation_id = :c"),
-                {"c": conversation_id})).all()
+            if conversation_id is None:
+                edges = (await s.execute(text(
+                    "SELECT src_id, dst_id, weight, memory_id FROM graph_edges"))).all()
+            else:
+                edges = (await s.execute(text(
+                    "SELECT src_id, dst_id, weight, memory_id FROM graph_edges WHERE conversation_id = :c"),
+                    {"c": conversation_id})).all()
         neighborhood = set(seed)
         for s_, d_, w_, m_ in edges:
             if s_ in seed or d_ in seed:
