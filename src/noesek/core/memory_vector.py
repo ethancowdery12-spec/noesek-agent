@@ -136,18 +136,23 @@ def _unpack(blob: bytes) -> list[float]:
     return list(a)
 
 
-async def vector_scores(conversation_id: int, query: str, limit: int = 40) -> dict[int, float]:
-    """Cosine similarity per active memory in this conversation. Lazily backfills
-    vectors for memories that predate the index (bounded batch per call)."""
+async def vector_scores(conversation_id: int | None, query: str, limit: int = 40) -> dict[int, float]:
+    """Cosine similarity per active memory. conversation_id=None scores the
+    shared user-wide pool. Lazily backfills vectors for memories that predate
+    the index (bounded batch per call)."""
     if not settings.vector_memory_enabled or not query.strip() or not await vectors_available():
         return {}
     try:
         async with Session() as s:
-            rows = (await s.execute(text(
-                "SELECT m.id, m.content, v.vector FROM memories m "
-                "LEFT JOIN memory_vectors v ON v.memory_id = m.id "
-                "WHERE m.conversation_id = :c AND m.active = 1 ORDER BY m.created_at DESC LIMIT :n"),
-                {"c": conversation_id, "n": limit})).all()
+            sql = ("SELECT m.id, m.content, v.vector FROM memories m "
+                   "LEFT JOIN memory_vectors v ON v.memory_id = m.id "
+                   "WHERE m.active = 1 ")
+            params = {"n": limit}
+            if conversation_id is not None:
+                sql += "AND m.conversation_id = :c "
+                params["c"] = conversation_id
+            sql += "ORDER BY m.created_at DESC LIMIT :n"
+            rows = (await s.execute(text(sql), params)).all()
         missing = [(mid, content) for mid, content, blob in rows if blob is None]
         for mid, content in missing[:20]:
             await index_vector(mid, conversation_id, content)
