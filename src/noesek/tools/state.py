@@ -23,6 +23,7 @@ class HandoffInput(BaseModel):
     content: str = Field(min_length=1, max_length=2000, description="session handoff recap for future sessions")
 class RecallInput(BaseModel): query: str = Field(min_length=1, max_length=500); limit: int = Field(default=5, ge=1, le=20)
 class ForgetInput(BaseModel): memory_id: int = Field(ge=1)
+class MemoryGetInput(BaseModel): ids: list[int] = Field(min_length=1, max_length=20)
 class CreateTaskInput(BaseModel):
     title: str = Field(min_length=1, max_length=256)
     payload: dict = Field(default_factory=dict)
@@ -113,7 +114,21 @@ def recall_handler(conversation_id: int):
             # of one chat session (Sep 22 fresh-chat recall fix)
             rows = (await s.execute(select(Memory).where(Memory.active==True))).scalars().all()
         picked = await rank_memories_async(None, inp.query, list(rows), inp.limit)
-        return {"memories": [{"id": m.id, "kind": m.kind, "content": m.content} for m in picked]}
+        # Progressive disclosure (item 58, claude-mem pattern): the index is
+        # cheap; full text moves only on explicit request via memory_get.
+        return {"memories": [{"id": m.id, "kind": m.kind,
+                              "preview": (m.content or "")[:140] + ("..." if len(m.content or "") > 140 else ""),
+                              "created_at": m.created_at.isoformat()} for m in picked],
+                "hint": "previews only - call memory_get with ids for full content"}
+    return f
+
+def memory_get_handler(conversation_id: int):
+    async def f(inp: MemoryGetInput):
+        async with Session() as s:
+            rows = (await s.execute(select(Memory).where(Memory.id.in_(inp.ids), Memory.active==True))).scalars().all()
+        rows.sort(key=lambda m: inp.ids.index(m.id))
+        return {"memories": [{"id": m.id, "kind": m.kind, "content": m.content,
+                              "created_at": m.created_at.isoformat()} for m in rows]}
     return f
 
 def forget_handler(conversation_id: int):

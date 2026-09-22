@@ -14,7 +14,8 @@ async def test_remember_recall_forget(db):
     r = await memory_handler(cid)(RememberInput(content="likes green tea"))
     assert r["stored"]
     out = await recall_handler(cid)(RecallInput(query="green tea"))
-    assert out["memories"] and out["memories"][0]["content"] == "likes green tea"
+    # progressive disclosure (item 58): recall returns previews, not content
+    assert out["memories"] and out["memories"][0]["preview"] == "likes green tea"
     f = await forget_handler(cid)(ForgetInput(memory_id=r["memory_id"]))
     assert f["forgotten"]
     out = await recall_handler(cid)(RecallInput(query="green tea"))
