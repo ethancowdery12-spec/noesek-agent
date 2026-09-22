@@ -55,6 +55,23 @@ PLAYBOOKS: dict[str, dict] = {
             "summary and one problem for them to solve unaided."
         ),
     },
+    "terse": {
+        "when": "save output tokens / get maximally compressed replies (caveman-style)",
+        "brief": (
+            "Switch to compressed output for the rest of this conversation. Drop every word that "
+            "carries no information: articles (a/an/the), filler (just, really, basically, actually), "
+            "pleasantries and hedging (sure, happy to, it might be worth, you could consider), and "
+            "throat-clearing openers. Write in fragments where a fragment reads clean: 'Run tests "
+            "before push' not 'You should always run the tests before pushing'. Use the short "
+            "synonym: fix not 'implement a solution for', use not utilize, big not extensive. "
+            "Merge bullets that say the same thing twice; keep one example where several show the "
+            "same pattern. Never compress the load-bearing parts: code blocks, inline code, "
+            "commands, file paths, URLs, env vars, proper nouns, dates, versions and numbers stay "
+            "byte-exact. Structure stays: headings, list nesting, numbering, tables. Meaning and "
+            "accuracy beat brevity - if compression would change what an answer says, keep the "
+            "longer form for that part. Stay in this mode until the user asks for normal style."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
