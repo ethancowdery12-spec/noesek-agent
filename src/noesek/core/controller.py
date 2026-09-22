@@ -83,6 +83,12 @@ class Controller:
                                              gmail_send_handler, calendar_read_handler, github_notifications_handler)
         r.register(ToolSpec("security_audit","Run a bounded security audit over our own source layer: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) plus route inventory; findings carry file:line evidence.",SecurityAuditInput,Risk.READ,security_audit,timeout_seconds=t))
         r.register(ToolSpec("adversarial_review","Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",AdversarialReviewInput,Risk.READ,adversarial_review,timeout_seconds=t))
+        from ..tools.variants import GenerateVariantsInput, generate_variants_handler
+        async def _resolve_llm():
+            async with Session() as s:
+                ov = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
+            return self._llm_for_model(ov)
+        r.register(ToolSpec("generate_variants","Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",GenerateVariantsInput,Risk.READ,generate_variants_handler(_resolve_llm),timeout_seconds=t))
         from ..tools.naturalize import RewriteNaturalInput, rewrite_natural
         r.register(ToolSpec("rewrite_natural","Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",RewriteNaturalInput,Risk.READ,rewrite_natural,timeout_seconds=t))
         r.register(ToolSpec("humanize","Rewrite AI-sounding text so it reads like a person wrote it: strips filler and em dashes, swaps dead-weight verbs, flags inflated vocabulary. Does not change facts.",HumanizeInput,Risk.READ,humanize,timeout_seconds=t))
