@@ -20,11 +20,13 @@ async def test_remember_recall_forget(db):
     out = await recall_handler(cid)(RecallInput(query="green tea"))
     assert out["memories"] == []
 
-async def test_forget_scoped_to_conversation(db):
+async def test_forget_user_wide_pool(db):
+    # Memories are the user-wide pool (Sep 22 recall fix): forget by id works
+    # from any chat; conversation_id on the row is provenance only.
     cid = await _conv(); other = await _conv("u2")
     r = await memory_handler(cid)(RememberInput(content="secret"))
     f = await forget_handler(other)(ForgetInput(memory_id=r["memory_id"]))
-    assert "error" in f
+    assert "error" not in f
 
 async def test_task_lifecycle_tools(db):
     cid = await _conv()
