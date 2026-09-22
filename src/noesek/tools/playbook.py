@@ -72,6 +72,40 @@ PLAYBOOKS: dict[str, dict] = {
             "longer form for that part. Stay in this mode until the user asks for normal style."
         ),
     },
+    "spec_first": {
+        "when": "start a non-trivial build or feature (pin down what before how)",
+        "brief": (
+            "Do not jump into code. First tease out what the user actually wants: ask the few "
+            "questions that change the design, one or two at a time, until you can state the goal, "
+            "the constraints, and what 'done' looks like. Play it back in chunks short enough to "
+            "read - problem, approach, what is explicitly out of scope - and get a yes on each "
+            "before moving on. Only then propose a plan: ordered steps small enough that a careless "
+            "junior could follow them, each with how you will know it worked. Build nothing until "
+            "the plan gets a go."
+        ),
+    },
+    "tdd_flow": {
+        "when": "write or change code with tests driving (red/green discipline)",
+        "brief": (
+            "Work red/green. For each behavior: write the failing test first and watch it fail for "
+            "the right reason - a test that never fails proves nothing. Then write the smallest "
+            "change that turns it green, nothing more. Then clean up with the tests green: rename, "
+            "dedupe, simplify. One behavior per cycle; keep the suite green between cycles. Do not "
+            "bank features ahead of tests (YAGNI), and do not copy-paste a third time (DRY). If a "
+            "test is hard to write, that is the design talking - simplify the interface first."
+        ),
+    },
+    "verify_done": {
+        "when": "before declaring any work finished",
+        "brief": (
+            "Never say done on faith. Before reporting completion: run the actual test suite and "
+            "quote the real numbers, not the expected ones. Open the artifact that matters - the "
+            "page, the file, the output - and look at it. Re-read the request and check every "
+            "asked-for thing is present. Anything you could not check gets named as unverified, "
+            "with what would check it. 'Should work' is not verified. If verification surfaces a "
+            "problem, fix it and verify again before reporting."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (

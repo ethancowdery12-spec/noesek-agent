@@ -4,7 +4,7 @@ from noesek.tools.playbook import PLAYBOOKS, PlaybookInput, playbook
 
 def test_list_and_load():
     out = playbook(PlaybookInput(action="list"))
-    assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse"}
+    assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done"}
     loaded = playbook(PlaybookInput(action="load", name="debate"))
     assert loaded["loaded"] == "debate" and len(loaded["brief"]) > 100
 
@@ -35,3 +35,17 @@ def test_terse_mode_preserves_load_bearing_parts():
     # own-words guard: zero phrasing lifted from the upstream skill file
     assert "why use many token" not in b
     assert "throat-clearing" in b  # our phrasing, present
+
+
+def test_dev_workflow_briefs_carry_the_discipline():
+    # superpowers (obra/superpowers, MIT) studied Sep 22: the adoptable core is
+    # the discipline layer - spec before code, red/green TDD, verify before done.
+    b1 = PLAYBOOKS["spec_first"]["brief"].lower()
+    assert "out of scope" in b1 and "build nothing until" in b1
+    b2 = PLAYBOOKS["tdd_flow"]["brief"].lower()
+    assert "failing test first" in b2 and "smallest" in b2
+    b3 = PLAYBOOKS["verify_done"]["brief"].lower()
+    assert "real numbers" in b3 and "unverified" in b3
+    # own-words guard against upstream phrasing
+    for name in ("spec_first", "tdd_flow", "verify_done"):
+        assert "enthusiastic junior engineer" not in PLAYBOOKS[name]["brief"].lower()
