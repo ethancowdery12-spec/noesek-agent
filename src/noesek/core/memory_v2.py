@@ -54,18 +54,22 @@ async def deindex_memory(memory_id: int) -> None:
         pass
 
 
-async def fts_search_ids(conversation_id: int, query: str, limit: int) -> list[int]:
-    """Active memory ids for this conversation matching the query, best first."""
+async def fts_search_ids(conversation_id: int | None, query: str, limit: int) -> list[int]:
+    """Active memory ids matching the query, best first. conversation_id=None
+    searches the shared user-wide pool (provenance only, Sep 22 recall fix)."""
     tokens = _FTS_TOKEN.findall((query or "").lower())
     if not tokens or not await fts_available():
         return []
     match = " OR ".join(tokens[:8])
+    sql = ("SELECT m.id FROM memory_fts f JOIN memories m ON m.id = f.memory_id "
+           "WHERE memory_fts MATCH :q AND m.active = 1 ")
+    params = {"q": match, "n": limit}
+    if conversation_id is not None:
+        sql += "AND m.conversation_id = :c "
+        params["c"] = conversation_id
+    sql += "ORDER BY bm25(memory_fts) LIMIT :n"
     async with Session() as s:
-        rows = (await s.execute(text(
-            "SELECT m.id FROM memory_fts f JOIN memories m ON m.id = f.memory_id "
-            "WHERE memory_fts MATCH :q AND m.conversation_id = :c AND m.active = 1 "
-            "ORDER BY bm25(memory_fts) LIMIT :n"),
-            {"q": match, "c": conversation_id, "n": limit})).all()
+        rows = (await s.execute(text(sql), params)).all()
     return [r[0] for r in rows]
 
 
