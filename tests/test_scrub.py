@@ -124,7 +124,7 @@ def test_rewrite_natural_cuts_hedges_and_openers():
     assert "important to note" not in out["text"]
     assert "may potentially" not in out["text"]
     assert "Furthermore" not in out["text"]
-    assert "drives results" in out["text"]
+    assert "is central to results" in out["text"]
     assert out["text"][0].isupper()
     assert len(out["applied"]) >= 3
 
@@ -143,3 +143,16 @@ def test_rewrite_natural_clean_text_untouched():
     text = "Ship it Friday. If CI stays green we merge, otherwise we wait."
     out = rewrite_natural_text(text)
     assert out["text"] == text
+
+
+def test_rewrite_natural_role_in_gerund_not_stranded():
+    # Live-test catch: "plays a crucial role in driving X" must not become "drives driving X".
+    out = rewrite_natural_text("It plays a crucial role in driving seamless innovation.")
+    assert "drives driving" not in out["text"]
+    assert "is central to driving" in out["text"]
+
+
+def test_rewrite_natural_delve_family():
+    out = rewrite_natural_text("We delved into the data. She delves deep. They are delving now.")
+    assert "dug into" in out["text"] and "digs deep" in out["text"] and "digging" in out["text"]
+    assert "delve" not in out["text"].lower()
