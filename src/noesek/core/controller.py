@@ -28,8 +28,8 @@ from ..tools.adversarial import AdversarialReviewInput, adversarial_review
 from ..tools.security_audit import SecurityAuditInput, security_audit
 from ..tools.sandbox import PythonInput, run_python
 from ..tools.state import (
-    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, LibraryDocsInput, ListTasksInput, RecallInput, RememberInput, SupersedeInput, SwitchModelInput,
-    cancel_task_handler, forget_handler, handoff_handler, library_docs_handler, list_tasks_handler, memory_handler, recall_handler, supersede_handler, switch_model_handler, task_handler,
+    CancelTaskInput, CreateTaskInput, ForgetInput, HandoffInput, LibraryDocsInput, ListTasksInput, MemoryGetInput, RecallInput, RememberInput, SupersedeInput, SwitchModelInput,
+    cancel_task_handler, forget_handler, handoff_handler, library_docs_handler, list_tasks_handler, memory_get_handler, memory_handler, recall_handler, supersede_handler, switch_model_handler, task_handler,
 )
 from ..tools.web import FetchInput, fetch_url
 
@@ -69,7 +69,8 @@ class Controller:
         t = settings.tool_timeout_seconds
         r = ToolRegistry()
         r.register(ToolSpec("remember","Store a durable user-approved fact or preference.",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
-        r.register(ToolSpec("recall","Search durable memory for facts relevant to a query.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("recall","Search durable memory for facts relevant to a query. Returns a compact index (id/kind/preview) - call memory_get with ids for full content.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("memory_get","Fetch the full content of durable memories by id (ids come from recall previews).",MemoryGetInput,Risk.READ,memory_get_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("switch_model",f"Switch this chat's model to another configured model (configured: {', '.join(sorted(allowed_models()))}), or 'default' to clear the override (back to {model_catalog()['chat']}).",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("library_docs","Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",LibraryDocsInput,Risk.READ,library_docs_handler(),timeout_seconds=t))
@@ -139,6 +140,20 @@ class Controller:
             await spine.emit(TURN_STARTED, {"chars": len(text)})
             messages = await assemble(s, conversation_id, query=text, spine=spine)
             override = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
+        # Session auto-distill (item 58, claude-mem pattern): when this turn
+        # compacted older messages, compress the dropped span into one durable
+        # handoff memory so later turns keep the thread. Background, best-effort.
+        import asyncio as _aio
+        from .memory_v2 import auto_distill
+        async def _distill():
+            async def _summarize(tx: str) -> str:
+                r = await self._llm_for_model(None).complete([
+                    {"role":"system","content":"Summarize this conversation excerpt in 3-5 plain lines for a future session: durable facts, decisions made, open loops. No preamble."},
+                    {"role":"user","content":tx}], [])
+                return r.content or ""
+            try: await auto_distill(conversation_id, _summarize)
+            except Exception: pass
+        _aio.create_task(_distill())
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
         registry = self.registry(conversation_id); citations = []
