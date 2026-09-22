@@ -182,8 +182,6 @@ async def init_db(eng: AsyncEngine | None = None):
     try:
         async with e.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-            try: await conn.execute(text(_FTS_DDL))
-            except Exception: pass  # SQLite build without FTS5: keyword fallback stays in place
     except Exception as exc:
         raise RuntimeError(
             "Database init failed. Check NOESEK_DATABASE_URL: Postgres needs the "
@@ -191,6 +189,16 @@ async def init_db(eng: AsyncEngine | None = None):
             "Neon/libpq query params (sslmode, channel_binding) are handled "
             "automatically. Original error: " + str(exc)[:300]
         ) from exc
+    # FTS5 is SQLite-only, and it MUST run in its own transaction: on Postgres a
+    # failed statement aborts the whole transaction, so the old single-block
+    # version silently rolled back create_all (the Sep 22 "relation tasks does
+    # not exist" boot crash on fresh Neon - init_db returned 'successfully'
+    # with zero tables created).
+    if e.dialect.name == "sqlite":
+        try:
+            async with e.begin() as conn:
+                await conn.execute(text(_FTS_DDL))
+        except Exception: pass  # SQLite build without FTS5: keyword fallback stays in place
 
 # Columns added after v0.1, applied to pre-existing databases by migrate().
 _COLUMN_UPGRADES = {
