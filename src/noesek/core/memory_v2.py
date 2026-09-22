@@ -73,6 +73,52 @@ async def fts_search_ids(conversation_id: int | None, query: str, limit: int) ->
     return [r[0] for r in rows]
 
 
+async def auto_distill(conversation_id: int, summarize) -> int | None:
+    """Session auto-distill (item 58, claude-mem pattern, own implementation):
+    after a compaction, compress the dropped span into ONE durable handoff
+    memory so later turns keep the thread (the handoff pin in context.assemble
+    surfaces it). Idempotent per compaction; None when there is nothing to do.
+    `summarize` is an async callable transcript -> summary text supplied by the
+    caller (the controller wires its chat model; tests wire a fake)."""
+    from sqlalchemy import select as _select
+    from ..db import Message
+    async with Session() as s:
+        comp = (await s.execute(_select(Compaction).where(Compaction.conversation_id==conversation_id)
+                                .order_by(Compaction.created_at.desc()).limit(1))).scalar_one_or_none()
+        if comp is None or comp.oldest_dropped_id is None:
+            return None
+        marker = f"compaction #{comp.id}"
+        existing = (await s.execute(_select(Memory.id).where(
+            Memory.conversation_id==conversation_id, Memory.kind=="handoff",
+            Memory.source=="auto-distill", Memory.content.like(f"%{marker}%")))).first()
+        if existing:
+            return None
+        span = (await s.execute(_select(Message).where(
+            Message.conversation_id==conversation_id,
+            Message.id >= comp.oldest_dropped_id, Message.id <= comp.newest_dropped_id)
+            .order_by(Message.id))).scalars().all()
+    if not span:
+        return None
+    transcript = "\n".join(f"{m.role}: {(m.content or '')[:300]}" for m in span[-40:])[:6000]
+    try:
+        summary = (await summarize(transcript) or "").strip()
+    except Exception:
+        return None
+    if not summary:
+        return None
+    content = f"Auto-distilled session summary ({marker}): {summary[:1500]}"
+    async with Session() as s:
+        m = Memory(conversation_id=conversation_id, kind="handoff",
+                   content=content, source="auto-distill")
+        s.add(m); await s.commit(); await s.refresh(m)
+        mid = m.id
+    try:
+        await index_memory(mid, content)
+    except Exception:
+        pass
+    return mid
+
+
 async def record_compaction(conversation_id: int, removed: int, budget: int,
                             oldest_dropped_id: int | None, newest_dropped_id: int | None,
                             turn_id: str | None = None) -> int | None:
