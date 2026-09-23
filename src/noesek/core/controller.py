@@ -162,10 +162,12 @@ class Controller:
             registry.register(ToolSpec("search_tools", "Find tools by keyword and activate their schemas for this turn.", SearchToolsInput, Risk.READ, search_tools_handler(registry), timeout_seconds=settings.tool_timeout_seconds))
             for n in registry.names():
                 if n not in _CORE_VISIBLE: registry.defer(n)
-        # Needle 3 exact tool routing (opt-in, item 64): propose tool calls
-        # locally before the LLM runs. High-confidence proposals execute through
-        # the SAME policy/approval/audit path below (never bypassed); low-
-        # confidence proposals only activate their schemas for the LLM turn.
+        # Needle 3 exact tool routing (opt-out, item 64/69): propose tool calls
+        # locally before the LLM runs. Proposals always activate their schemas
+        # for the LLM turn (deferral assist - the common case). Auto-execution
+        # additionally requires needle_auto_execute=True; then high-confidence
+        # proposals execute through the SAME policy/approval/audit path below
+        # (never bypassed).
         pending_reply = None
         if settings.needle_enabled:
             try:
@@ -176,7 +178,8 @@ class Controller:
                 for n in route.get("tools", []):
                     if n in registry.names(): registry.activate(n)
                 calls = [c for c in route.get("calls", []) if c.get("name") in registry.names()]
-                if calls and route.get("confidence", 0.0) >= settings.needle_min_confidence:
+                if (settings.needle_auto_execute and calls
+                        and route.get("confidence", 0.0) >= settings.needle_min_confidence):
                     from .types import LLMReply, ToolCall
                     pending_reply = LLMReply(content="", tool_calls=[
                         ToolCall(id=f"needle-{i}", name=c["name"], arguments=c["arguments"])
