@@ -45,6 +45,18 @@ def _fake_module(engine_cls=_FakeEngine):
     m.Needle = engine_cls
     return m
 
+def _reset_build_state(monkeypatch):
+    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    monkeypatch.setattr(needle_router, "_engine_building", False)
+
+def _wait_built(timeout=5.0):
+    """Wait for the background engine builder to finish (win or fail)."""
+    for _ in range(int(timeout / 0.02)):
+        if not needle_router._engine_building:
+            return
+        time.sleep(0.02)
+    raise AssertionError("engine build never finished")
+
 def _drain_run_lock():
     """Wait out any abandoned zombie still holding the process-wide run lock
     (timeout tests leave one on purpose); the lock is global, so tests must
@@ -80,22 +92,27 @@ def test_stub_records_captured_arguments():
 
 def test_route_uses_engine_function_calls(monkeypatch):
     monkeypatch.setitem(sys.modules, "needle", _fake_module())
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
+    assert needle_router.route("weather in Paris", [_spec()]) is None  # cold: build kicks, LLM-only turn
+    _wait_built()
     out = needle_router.route("weather in Paris", [_spec()])
     assert out["calls"] == [{"name": "get_weather", "arguments": {"city": "Paris"}}]  # None defaults stripped
     assert out["confidence"] == 0.91 and out["tools"] == ["get_weather"]
 
 def test_route_returns_none_when_no_tool_fits(monkeypatch):
     monkeypatch.setitem(sys.modules, "needle", _fake_module(_EmptyEngine))
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
+    needle_router.route("warm", [_spec()]); _wait_built()
     assert needle_router.route("tell me a joke", [_spec()]) is None
 
 def test_route_returns_none_when_engine_errors(monkeypatch):
     class Boom:
         def __init__(self, **kw): raise RuntimeError("no model")
     monkeypatch.setitem(sys.modules, "needle", _fake_module(Boom))
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
     assert needle_router.route("hi", [_spec()]) is None
+    _wait_built()
+    assert needle_router.route("hi again", [_spec()]) is None  # failed build retries, still None
 
 def test_route_returns_none_without_package(monkeypatch):
     monkeypatch.setitem(sys.modules, "needle", None)
@@ -104,8 +121,9 @@ def test_route_returns_none_without_package(monkeypatch):
 
 def test_route_times_out_instead_of_hanging(monkeypatch):
     monkeypatch.setitem(sys.modules, "needle", _fake_module(_SlowEngine))
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
     monkeypatch.setenv("NOESEK_NEEDLE_TIMEOUT_SECONDS", "0.1")
+    needle_router.route("warm", [_spec()]); _wait_built()
     assert needle_router.route("slow query", [_spec()]) is None
     _drain_run_lock()
 
@@ -114,7 +132,8 @@ def test_route_skips_when_engine_busy(monkeypatch):
     never queue or overlap: route() returns None and the turn proceeds
     LLM-only."""
     monkeypatch.setitem(sys.modules, "needle", _fake_module())
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
+    needle_router.route("warm", [_spec()]); _wait_built()
     _drain_run_lock()
     assert needle_router._engine_run_lock.acquire(blocking=False)
     try:
@@ -130,22 +149,52 @@ def test_run_lock_held_until_generation_ends(monkeypatch):
     while the native generation is still going - a second route skips, and
     once generation finishes the lock is released for the next one."""
     monkeypatch.setitem(sys.modules, "needle", _fake_module(_SlowEngine))
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
     monkeypatch.setenv("NOESEK_NEEDLE_TIMEOUT_SECONDS", "0.1")
+    needle_router.route("warm", [_spec()]); _wait_built()
     assert needle_router.route("slow query", [_spec()]) is None       # timed out, zombie holds lock
     assert not needle_router._engine_run_lock.acquire(blocking=False)  # zombie still inside run()
     _drain_run_lock()                                                  # zombie finishes, lock released
 
 def test_max_steps_capped_and_env_tunable(monkeypatch):
     monkeypatch.setitem(sys.modules, "needle", _fake_module())
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
     monkeypatch.delenv("NOESEK_NEEDLE_MAX_STEPS", raising=False)
+    needle_router.route("warm", [_spec()]); _wait_built()
     needle_router.route("weather", [_spec()])
     assert _FakeEngine.last_run_kwargs["max_steps"] == 3  # default cap, not the engine's 8
-    monkeypatch.setattr(needle_router, "_engine_cache", {})
+    _reset_build_state(monkeypatch)
     monkeypatch.setenv("NOESEK_NEEDLE_MAX_STEPS", "5")
+    needle_router.route("warm", [_spec()]); _wait_built()
     needle_router.route("weather", [_spec()])
     assert _FakeEngine.last_run_kwargs["max_steps"] == 5
+
+def test_cold_route_returns_fast_while_engine_builds(monkeypatch):
+    """The engine load must never hold a request: measured live, it hung
+    /chat for minutes. First route() kicks a daemon build and returns None
+    immediately; once built, routing works."""
+    class SlowCtor(_FakeEngine):
+        def __init__(self, tools, **kw): time.sleep(0.3); super().__init__(tools, **kw)
+    monkeypatch.setitem(sys.modules, "needle", _fake_module(SlowCtor))
+    _reset_build_state(monkeypatch)
+    t0 = time.monotonic()
+    assert needle_router.route("weather in Paris", [_spec()]) is None
+    assert time.monotonic() - t0 < 0.25  # did not wait on the 0.3s build
+    _wait_built()
+    out = needle_router.route("weather in Paris", [_spec()])
+    assert out["calls"] == [{"name": "get_weather", "arguments": {"city": "Paris"}}]
+
+def test_single_build_for_concurrent_cold_requests(monkeypatch):
+    builds = []
+    class CountingCtor(_FakeEngine):
+        def __init__(self, tools, **kw):
+            builds.append(1); time.sleep(0.3); super().__init__(tools, **kw)
+    monkeypatch.setitem(sys.modules, "needle", _fake_module(CountingCtor))
+    _reset_build_state(monkeypatch)
+    assert needle_router.route("one", [_spec()]) is None
+    assert needle_router.route("two", [_spec()]) is None  # build already in flight
+    _wait_built()
+    assert len(builds) == 1
 
 def test_optout_defaults():
     from noesek.config import Settings
