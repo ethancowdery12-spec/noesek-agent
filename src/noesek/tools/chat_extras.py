@@ -22,6 +22,7 @@ from .scrub import ScrubInput, scrub_handler
 from .variants import GenerateVariantsInput, generate_variants_handler
 from .story_critique import StoryCritiqueInput, story_critique_handler
 from .exact_solve import ExactSolveInput, exact_solve
+from .seo_audit import SeoAuditInput, seo_audit
 
 
 def register_chat_extras(r, conversation_id: int, controller, timeout: float) -> None:
@@ -39,5 +40,6 @@ def register_chat_extras(r, conversation_id: int, controller, timeout: float) ->
             ov = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
         return controller._llm_for_model(ov)
     r.register(ToolSpec("generate_variants","Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",GenerateVariantsInput,Risk.READ,generate_variants_handler(_resolve_llm),timeout_seconds=timeout))
+    r.register(ToolSpec("seo_audit","Audit one HTML page for rankability (claude-seo checks, MIT, own-words): title/meta bounds, single h1, heading outline, lang/charset/viewport, canonical, noindex, mixed content, og/twitter cards, JSON-LD validity + deprecated types, content depth, image alt coverage. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Run on any website/landing deliverable before shipping.",SeoAuditInput,Risk.READ,seo_audit,timeout_seconds=timeout))
     r.register(ToolSpec("exact_solve","Solve exact-procedure tasks with code instead of in-head simulation (reasoning models collapse on long exact traces - Apple's Illusion of Thinking, arXiv:2506.06941). Use for puzzles, long arithmetic, state tracking, multi-step derivations: pass a small Python solver that computes and self-verifies, prints STATUS + ANSWER; a solver proving infeasibility reports UNSOLVABLE. Returns only the verified result plus a short digest.",ExactSolveInput,Risk.WRITE,exact_solve,timeout_seconds=timeout))
     r.register(ToolSpec("story_critique","Critique a fiction draft against the documented AI-narrative defaults (StoryScope, COLM 2026): stated themes, tidy endings, linear time, single-track plots, clean heroes, bodily emotion, vague references, flat escalation, debate dialogue, sealed narration. Returns per-check ai/human/mixed verdicts with evidence and fixes.",StoryCritiqueInput,Risk.READ,story_critique_handler(_resolve_llm),timeout_seconds=timeout))
