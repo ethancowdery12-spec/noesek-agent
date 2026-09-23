@@ -172,7 +172,11 @@ class Controller:
         if settings.needle_enabled:
             try:
                 from ..tools.needle_router import route as _needle_route
-                route = _needle_route(text, [registry.get(n) for n in registry.names() if n != "search_tools"])
+                # Off the event loop: engine load is ~25s of CPU and route()
+                # is sync; run inline it starves uvicorn and health checks
+                # time out (observed as a restart flap on the Render deploy).
+                route = await _aio.to_thread(_needle_route, text,
+                                             [registry.get(n) for n in registry.names() if n != "search_tools"])
             except Exception: route = None
             if route:
                 for n in route.get("tools", []):
