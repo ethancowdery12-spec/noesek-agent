@@ -1,3 +1,4 @@
+import asyncio
 import json
 from ..core.llm import OpenAICompatibleLLM, model_for_task
 from ..config import settings
@@ -82,7 +83,9 @@ async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: in
     if settings.needle_enabled and settings.needle_auto_execute:
         try:
             from ..tools.needle_router import route as _needle_route
-            route = _needle_route(instruction, [registry.get(n) for n in registry.names()])
+            # off the event loop: needle engine load/run is sync CPU work
+            route = await asyncio.to_thread(_needle_route, instruction,
+                                            [registry.get(n) for n in registry.names()])
         except Exception: route = None
         if route:
             calls = [c for c in route.get("calls", []) if c.get("name") in registry.names()]
