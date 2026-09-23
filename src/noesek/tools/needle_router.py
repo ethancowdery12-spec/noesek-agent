@@ -21,6 +21,9 @@ Note: the response-level confidence scores the finished response on the base
 weights; per the vendor it becomes product-tunable with tuned weights
 (weights=), where routing thresholds should be measured on needle.environments
 before lowering them.
+The engine builds in the background on first use: turns that arrive while
+it loads proceed LLM-only instead of waiting on the load (measured: the load
+hung live /chat requests for minutes on a small shared CPU).
 One engine.run at a time, process-wide: a busy engine (including a runaway
 the guard abandoned) makes route() return None so the turn proceeds LLM-only.
 Runaway length is capped via NOESEK_NEEDLE_MAX_STEPS (default 3; the engine
@@ -85,6 +88,27 @@ class _EngineBusy(RuntimeError):
 _engine_run_lock = threading.Lock()
 
 
+# Engine construction is minutes of CPU on a small box (measured live: /chat
+# requests hung 4+ min inside the first request's thread while
+# needle.Needle(tools=...) loaded). It therefore NEVER runs in the request
+# thread: route() kicks a single daemon builder and answers that turn with no
+# proposal (LLM-only); later turns route normally once the engine is ready.
+_engine_build_lock = threading.Lock()
+_engine_building = False
+
+
+def _build_engine_async(needle, stubs, key):
+    global _engine_building
+    try:
+        engine = needle.Needle(tools=stubs)
+        _engine_cache.clear()
+        _engine_cache.update({"engine": engine, "key": key, "stubs": stubs})
+    except Exception:
+        pass  # build failed; the next route() retries
+    finally:
+        _engine_building = False
+
+
 def _run_engine(engine, text, timeout_s: float, max_steps: int):
     """Wall-clock guard around ONE engine.run at a time.
 
@@ -130,14 +154,18 @@ def route(text: str, specs: list[ToolSpec]) -> dict | None:
             continue
     if not stubs:
         return None
+    global _engine_building
     key = tuple(s.__name__ for s in stubs)
     try:
         needle = _needle_module()
-        engine = _engine_cache.get("engine")
         if _engine_cache.get("key") != key:
-            engine = needle.Needle(tools=stubs)
-            _engine_cache.clear()
-            _engine_cache.update({"engine": engine, "key": key, "stubs": stubs})
+            with _engine_build_lock:
+                if not _engine_building:
+                    _engine_building = True
+                    threading.Thread(target=_build_engine_async,
+                                     args=(needle, stubs, key), daemon=True).start()
+            return None  # engine warming; this turn proceeds LLM-only
+        engine = _engine_cache.get("engine")
         timeout_s = float(os.environ.get("NOESEK_NEEDLE_TIMEOUT_SECONDS", "20"))
         max_steps = int(os.environ.get("NOESEK_NEEDLE_MAX_STEPS", "3"))
         response = _run_engine(engine, text, timeout_s, max_steps)
