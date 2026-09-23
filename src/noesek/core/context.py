@@ -54,10 +54,12 @@ def trim_to_budget(messages: list[dict], budget: int) -> tuple[list[dict], int]:
         out.pop(1); removed += 1
     return out, removed
 
-async def rank_memories_async(conversation_id: int | None, query: str, memories: list[Memory], limit: int) -> list[Memory]:
-    """FTS5-ranked memories first (stage D), keyword ranker fills the rest."""
+async def rank_memories_async(conversation_id: int | None, query: str, memories: list[Memory], limit: int,
+                              pool_conversation_ids: list[int] | None = None) -> list[Memory]:
+    """FTS5-ranked memories first (stage D), keyword ranker fills the rest.
+    pool_conversation_ids scopes the retrieval pool (item 68 multi-user seam)."""
     from .memory_v2 import fts_search_ids
-    ids = await fts_search_ids(conversation_id, query, limit) if query.strip() else []
+    ids = await fts_search_ids(conversation_id, query, limit, pool_conversation_ids) if query.strip() else []
     if not ids: return rank_memories(query, memories, limit)
     pos = {mid: i for i, mid in enumerate(ids)}
     hits = sorted([m for m in memories if m.id in pos], key=lambda m: pos[m.id])
@@ -65,7 +67,7 @@ async def rank_memories_async(conversation_id: int | None, query: str, memories:
     merged = (hits + rest)[:limit]
     if settings.vector_memory_enabled and query.strip() and merged:
         from .memory_vector import vector_scores
-        scores = await vector_scores(conversation_id, query)
+        scores = await vector_scores(conversation_id, query, pool_conversation_ids=pool_conversation_ids)
         if scores:
             # FTS/keyword order is the baseline; cosine boosts on top. Stable
             # sort keeps the baseline order for equal fused scores.
@@ -74,7 +76,7 @@ async def rank_memories_async(conversation_id: int | None, query: str, memories:
             merged = sorted(merged, key=lambda m: base[m.id] + scores.get(m.id, 0.0), reverse=True)
     if settings.graph_memory_enabled and query.strip() and merged:
         from .memory_graph import graph_boost
-        boosts = await graph_boost(conversation_id, query)
+        boosts = await graph_boost(conversation_id, query, pool_conversation_ids=pool_conversation_ids)
         if boosts:
             # Multi-hop recall (item 65, IBM VLDB 2026 structure-boundary
             # recipe): entity-linked memories OUTSIDE the baseline top-k join
@@ -100,9 +102,14 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
     # fresh-chat recall bug - storing in chat A was invisible to chat B).
     # conversation_id stays on the row as provenance. Handoffs and approvals
     # below remain session-scoped.
-    memories = (await session.execute(select(Memory).where(Memory.active==True).order_by(Memory.created_at.desc()).limit(settings.memory_limit * 4))).scalars().all()
+    from ..db import pool_conversation_ids as _pool_ids
+    pool_ids = await _pool_ids(session, conversation_id)
+    mem_q = select(Memory).where(Memory.active==True).order_by(Memory.created_at.desc()).limit(settings.memory_limit * 4)
+    if pool_ids is not None:
+        mem_q = mem_q.where(Memory.conversation_id.in_(pool_ids))
+    memories = (await session.execute(mem_q)).scalars().all()
     history = (await session.execute(select(Message).where(Message.conversation_id==conversation_id).order_by(Message.created_at.desc()).limit(limit))).scalars().all()[::-1]
-    picked = await rank_memories_async(None, query, list(memories), settings.memory_limit)
+    picked = await rank_memories_async(None, query, list(memories), settings.memory_limit, pool_ids)
     # agentmemory idea (Apache-2.0): the latest session handoff is always visible, not query-dependent.
     latest_handoff = (await session.execute(select(Memory).where(
         Memory.conversation_id==conversation_id, Memory.active==True, Memory.kind=="handoff"
