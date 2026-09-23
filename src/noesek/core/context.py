@@ -76,11 +76,19 @@ async def rank_memories_async(conversation_id: int | None, query: str, memories:
         from .memory_graph import graph_boost
         boosts = await graph_boost(conversation_id, query)
         if boosts:
-            # entity-neighborhood boost layered after vector fusion; half weight,
-            # stable sort keeps prior order on ties.
+            # Multi-hop recall (item 65, IBM VLDB 2026 structure-boundary
+            # recipe): entity-linked memories OUTSIDE the baseline top-k join
+            # the pool instead of only re-weighting it - otherwise multi-hop
+            # evidence the flat baseline missed stays unreachable.
+            in_pool = {m.id for m in merged}
+            merged = merged + [m for m in memories if m.id in boosts and m.id not in in_pool]
+            # entity-neighborhood boost layered after vector fusion at full
+            # weight (item 65: half weight could not lift multi-hop evidence
+            # above keyword-baseline noise in the frontier fixtures); stable
+            # sort keeps prior order on ties.
             n = len(merged)
             base = {m.id: (n - i) / n for i, m in enumerate(merged)}
-            merged = sorted(merged, key=lambda m: base[m.id] + 0.5 * boosts.get(m.id, 0.0), reverse=True)
+            merged = sorted(merged, key=lambda m: base[m.id] + boosts.get(m.id, 0.0), reverse=True)[:limit]
     return merged
 
 async def assemble(session, conversation_id: int, query: str = "", limit: int | None = None,
