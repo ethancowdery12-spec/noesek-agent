@@ -54,9 +54,11 @@ async def deindex_memory(memory_id: int) -> None:
         pass
 
 
-async def fts_search_ids(conversation_id: int | None, query: str, limit: int) -> list[int]:
+async def fts_search_ids(conversation_id: int | None, query: str, limit: int,
+                         pool_conversation_ids: list[int] | None = None) -> list[int]:
     """Active memory ids matching the query, best first. conversation_id=None
-    searches the shared user-wide pool (provenance only, Sep 22 recall fix)."""
+    searches the shared user-wide pool (provenance only, Sep 22 recall fix).
+    pool_conversation_ids scopes the pool explicitly (item 68 multi-user seam)."""
     tokens = _FTS_TOKEN.findall((query or "").lower())
     if not tokens or not await fts_available():
         return []
@@ -64,12 +66,20 @@ async def fts_search_ids(conversation_id: int | None, query: str, limit: int) ->
     sql = ("SELECT m.id FROM memory_fts f JOIN memories m ON m.id = f.memory_id "
            "WHERE memory_fts MATCH :q AND m.active = 1 ")
     params = {"q": match, "n": limit}
-    if conversation_id is not None:
+    if pool_conversation_ids is not None:
+        if not pool_conversation_ids: return []
+        sql += "AND m.conversation_id IN :cids "
+        params["cids"] = pool_conversation_ids
+    elif conversation_id is not None:
         sql += "AND m.conversation_id = :c "
         params["c"] = conversation_id
     sql += "ORDER BY bm25(memory_fts) LIMIT :n"
+    q = text(sql)
+    if "cids" in params:
+        from sqlalchemy import bindparam
+        q = q.bindparams(bindparam("cids", expanding=True))
     async with Session() as s:
-        rows = (await s.execute(text(sql), params)).all()
+        rows = (await s.execute(q, params)).all()
     return [r[0] for r in rows]
 
 
