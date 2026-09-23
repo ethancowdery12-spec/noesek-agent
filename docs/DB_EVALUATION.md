@@ -39,3 +39,5 @@ Measured from the codebase, not guessed:
   thousands of memories). Neon supports it; one migration away, not needed at current scale.
 - A workload change (many users, heavy multi-writer concurrency) would reopen the question;
   the answer would still be Postgres, just a bigger plan.
+
+## Scale addendum (Sep 23, item 67): verdict HOLDS at thousands of concurrent users - Neon Postgres with the pooled endpoint + SQLAlchemy pool tuning; the fall-overs are our own query patterns, fixed in docs/SCALE_PLAN.md items 2a/2b. DuckDB/ClickHouse/MaxDB stay rejected at any scale for this OLTP+FTS workload.

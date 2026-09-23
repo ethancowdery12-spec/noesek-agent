@@ -136,10 +136,12 @@ def _unpack(blob: bytes) -> list[float]:
     return list(a)
 
 
-async def vector_scores(conversation_id: int | None, query: str, limit: int = 40) -> dict[int, float]:
+async def vector_scores(conversation_id: int | None, query: str, limit: int = 40,
+                        pool_conversation_ids: list[int] | None = None) -> dict[int, float]:
     """Cosine similarity per active memory. conversation_id=None scores the
-    shared user-wide pool. Lazily backfills vectors for memories that predate
-    the index (bounded batch per call)."""
+    shared user-wide pool; pool_conversation_ids scopes it explicitly
+    (item 68 multi-user seam). Lazily backfills vectors for memories that
+    predate the index (bounded batch per call)."""
     if not settings.vector_memory_enabled or not query.strip() or not await vectors_available():
         return {}
     try:
@@ -148,11 +150,19 @@ async def vector_scores(conversation_id: int | None, query: str, limit: int = 40
                    "LEFT JOIN memory_vectors v ON v.memory_id = m.id "
                    "WHERE m.active = 1 ")
             params = {"n": limit}
-            if conversation_id is not None:
+            if pool_conversation_ids is not None:
+                if not pool_conversation_ids: return {}
+                sql += "AND m.conversation_id IN :cids "
+                params["cids"] = pool_conversation_ids
+            elif conversation_id is not None:
                 sql += "AND m.conversation_id = :c "
                 params["c"] = conversation_id
             sql += "ORDER BY m.created_at DESC LIMIT :n"
-            rows = (await s.execute(text(sql), params)).all()
+            q = text(sql)
+            if "cids" in params:
+                from sqlalchemy import bindparam
+                q = q.bindparams(bindparam("cids", expanding=True))
+            rows = (await s.execute(q, params)).all()
         missing = [(mid, content) for mid, content, blob in rows if blob is None]
         for mid, content in missing[:20]:
             await index_vector(mid, conversation_id, content)

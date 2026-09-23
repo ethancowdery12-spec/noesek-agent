@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import re
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 
 from ..config import settings
 from ..db import Session
@@ -141,40 +141,40 @@ async def deindex_graph(memory_id: int) -> None:
         pass
 
 
-async def graph_boost(conversation_id: int | None, query: str) -> dict[int, float]:
+async def graph_boost(conversation_id: int | None, query: str,
+                      pool_conversation_ids: list[int] | None = None) -> dict[int, float]:
     """memory_id -> boost from query entities and their 1-hop graph neighbors.
-    conversation_id=None boosts across the shared user-wide pool."""
+    conversation_id=None boosts across the shared user-wide pool.
+    pool_conversation_ids scopes the pool explicitly (multi-user seam, item 68);
+    when set it wins over conversation_id. The 1-hop expansion runs in SQL -
+    at thousands of users the old load-everything-into-Python pass falls over."""
     if not settings.graph_memory_enabled or not await graph_available():
         return {}
     qe = extract_entities(query)
     if not qe: return {}
+    scope, params = "", {"names": qe}
+    if pool_conversation_ids is not None:
+        if not pool_conversation_ids: return {}
+        scope = "AND conversation_id IN :cids"; params["cids"] = pool_conversation_ids
+    elif conversation_id is not None:
+        scope = "AND conversation_id = :c"; params["c"] = conversation_id
+    sql = text(
+        "WITH seed AS (SELECT id FROM graph_entities WHERE name IN :names " + scope + "), "
+        "neighborhood AS ("
+        "  SELECT id FROM seed UNION"
+        "  SELECT src_id FROM graph_edges WHERE dst_id IN (SELECT id FROM seed) " + scope + " UNION"
+        "  SELECT dst_id FROM graph_edges WHERE src_id IN (SELECT id FROM seed) " + scope + ") "
+        "SELECT memory_id, SUM(weight) FROM graph_edges "
+        "WHERE memory_id IS NOT NULL "
+        "AND (src_id IN (SELECT id FROM neighborhood) OR dst_id IN (SELECT id FROM neighborhood)) " + scope + " "
+        "GROUP BY memory_id")
+    if "cids" in params:
+        sql = sql.bindparams(bindparam("names", expanding=True), bindparam("cids", expanding=True))
+    else:
+        sql = sql.bindparams(bindparam("names", expanding=True))
     try:
         async with Session() as s:
-            if conversation_id is None:
-                rows = (await s.execute(text("SELECT id, name FROM graph_entities"))).all()
-            else:
-                rows = (await s.execute(text(
-                    "SELECT id, name FROM graph_entities WHERE conversation_id = :c"),
-                    {"c": conversation_id})).all()
-            by_name = {n: i for i, n in rows}
-            seed = {by_name[n] for n in qe if n in by_name}
-            if not seed: return {}
-            if conversation_id is None:
-                edges = (await s.execute(text(
-                    "SELECT src_id, dst_id, weight, memory_id FROM graph_edges"))).all()
-            else:
-                edges = (await s.execute(text(
-                    "SELECT src_id, dst_id, weight, memory_id FROM graph_edges WHERE conversation_id = :c"),
-                    {"c": conversation_id})).all()
-        neighborhood = set(seed)
-        for s_, d_, w_, m_ in edges:
-            if s_ in seed or d_ in seed:
-                neighborhood.add(s_); neighborhood.add(d_)
-        boosts: dict[int, float] = {}
-        for s_, d_, w_, m_ in edges:
-            if m_ is None: continue
-            if s_ in neighborhood or d_ in neighborhood:
-                boosts[m_] = min(1.0, boosts.get(m_, 0.0) + 0.25 * w_)
-        return boosts
+            rows = (await s.execute(sql, params)).all()
+        return {m: min(1.0, 0.25 * w) for m, w in rows}
     except Exception:
         return {}

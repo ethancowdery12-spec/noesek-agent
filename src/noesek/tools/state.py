@@ -109,11 +109,18 @@ def switch_model_handler(conversation_id: int):
 def recall_handler(conversation_id: int):
     async def f(inp: RecallInput):
         from ..core.context import rank_memories_async
+        from ..db import pool_conversation_ids
         async with Session() as s:
             # user-wide pool: memories are durable knowledge of the user, not
-            # of one chat session (Sep 22 fresh-chat recall fix)
-            rows = (await s.execute(select(Memory).where(Memory.active==True))).scalars().all()
-        picked = await rank_memories_async(None, inp.query, list(rows), inp.limit)
+            # of one chat session (Sep 22 fresh-chat recall fix). In
+            # memory_pool_mode='user' the pool scopes to this user's
+            # conversations (item 68 multi-user seam).
+            pool_ids = await pool_conversation_ids(s, conversation_id)
+            mq = select(Memory).where(Memory.active==True)
+            if pool_ids is not None:
+                mq = mq.where(Memory.conversation_id.in_(pool_ids))
+            rows = (await s.execute(mq)).scalars().all()
+        picked = await rank_memories_async(None, inp.query, list(rows), inp.limit, pool_ids)
         # Progressive disclosure (item 58, claude-mem pattern): the index is
         # cheap; full text moves only on explicit request via memory_get.
         return {"memories": [{"id": m.id, "kind": m.kind,

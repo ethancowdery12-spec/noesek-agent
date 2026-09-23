@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # Tool scaling (stage F): when a registry exceeds this many tools, non-core
     # tools are deferred behind search_tools. 0 = disabled.
     tool_defer_threshold: int = 0
+    # Memory pool scoping (item 68): 'deployment' = one shared pool (single-user
+    # deploys, today's behavior); 'user' = one pool per (channel, external_user_id).
+    memory_pool_mode: str = "deployment"
     # Needle 3 on-device tool routing (opt-in, item 64)
     needle_enabled: bool = False
     needle_min_confidence: float = 0.75
