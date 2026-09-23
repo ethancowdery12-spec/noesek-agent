@@ -162,6 +162,27 @@ class Controller:
             registry.register(ToolSpec("search_tools", "Find tools by keyword and activate their schemas for this turn.", SearchToolsInput, Risk.READ, search_tools_handler(registry), timeout_seconds=settings.tool_timeout_seconds))
             for n in registry.names():
                 if n not in _CORE_VISIBLE: registry.defer(n)
+        # Needle 3 exact tool routing (opt-in, item 64): propose tool calls
+        # locally before the LLM runs. High-confidence proposals execute through
+        # the SAME policy/approval/audit path below (never bypassed); low-
+        # confidence proposals only activate their schemas for the LLM turn.
+        pending_reply = None
+        if settings.needle_enabled:
+            try:
+                from ..tools.needle_router import route as _needle_route
+                route = _needle_route(text, [registry.get(n) for n in registry.names() if n != "search_tools"])
+            except Exception: route = None
+            if route:
+                for n in route.get("tools", []):
+                    if n in registry.names(): registry.activate(n)
+                calls = [c for c in route.get("calls", []) if c.get("name") in registry.names()]
+                if calls and route.get("confidence", 0.0) >= settings.needle_min_confidence:
+                    from .types import LLMReply, ToolCall
+                    pending_reply = LLMReply(content="", tool_calls=[
+                        ToolCall(id=f"needle-{i}", name=c["name"], arguments=c["arguments"])
+                        for i, c in enumerate(calls)])
+                    await spine.emit("needle_route", {"tools": [c.name for c in pending_reply.tool_calls],
+                                                      "confidence": route["confidence"]}, strict=False)
         guard = LoopGuard(settings.loop_max_identical, settings.loop_max_errors, settings.loop_cycle_window)
         try:
             for _ in range(self.max_steps):
@@ -171,7 +192,8 @@ class Controller:
                         messages.append({"role": "user", "content": f"[Steering from the user]: {note}"})
                     await spine.emit("steering", {"notes": len(notes)})
                 await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
-                reply = await self._llm_for_model(override).complete(messages, registry.schemas())
+                reply = pending_reply or await self._llm_for_model(override).complete(messages, registry.schemas())
+                pending_reply = None
                 await spine.emit(MODEL_RESPONSE, {**self._gen_ai(), **self._usage_attrs(reply),
                                                   "tool_calls": len(reply.tool_calls), "content_chars": len(reply.content or "")})
                 if not reply.tool_calls:

@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # Tool scaling (stage F): when a registry exceeds this many tools, non-core
     # tools are deferred behind search_tools. 0 = disabled.
     tool_defer_threshold: int = 0
+    # Needle 3 on-device tool routing (opt-in, item 64)
+    needle_enabled: bool = False
+    needle_min_confidence: float = 0.75
     # Background worker
     worker_poll_seconds: float = 2.0
     task_max_attempts: int = 3
