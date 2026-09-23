@@ -244,6 +244,22 @@ async def get_or_create_conversation(session: AsyncSession, channel: str, extern
     if row: return row
     row = Conversation(channel=channel, external_user_id=external_user_id); session.add(row); await session.flush(); return row
 
+async def pool_conversation_ids(session: AsyncSession, conversation_id: int) -> list[int] | None:
+    """Memory-pool scope for this conversation (item 68, multi-user seam).
+    None = deployment-wide pool (single-user default, unchanged behavior).
+    In 'user' mode: all conversations sharing this conversation's
+    (channel, external_user_id) form the pool."""
+    from .config import settings as _s
+    if _s.memory_pool_mode != "user":
+        return None
+    row = (await session.execute(select(Conversation.channel, Conversation.external_user_id)
+                                 .where(Conversation.id == conversation_id))).first()
+    if not row:
+        return [conversation_id]
+    ids = (await session.execute(select(Conversation.id).where(
+        Conversation.channel == row[0], Conversation.external_user_id == row[1]))).scalars().all()
+    return list(ids)
+
 async def record_trace(conversation_id: int, event: str, detail: dict | None = None):
     """Best-effort audit write; tracing must never break a user turn."""
     try:
