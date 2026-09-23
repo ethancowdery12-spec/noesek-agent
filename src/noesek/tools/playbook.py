@@ -121,6 +121,21 @@ PLAYBOOKS: dict[str, dict] = {
             "texture, not plot. Read the draft back and cut any sentence that explains what the story means."
         ),
     },
+    "reason_route": {
+        "when": "match reasoning effort to problem complexity (Illusion-of-Thinking counters)",
+        "brief": (
+            "Size the ask before spending tokens on it. Simple lookup or short answer: answer directly, "
+            "no deliberation dump - overthinking easy problems wastes budget and can talk you out of a "
+            "correct first answer. Layered judgment: think, then answer. Anything needing many EXACT "
+            "steps - puzzle move sequences, long arithmetic, itinerary or state tracking, multi-step "
+            "derivations: never simulate the steps in prose; models collapse on long exact traces. "
+            "Write a small self-verifying solver and call exact_solve, then report only the verified "
+            "answer. If a problem might be impossible, run a quick feasibility check in code before "
+            "committing to a long attempt; if it is provably unsolvable, say so with the evidence "
+            "instead of proposing moves. Never cut effort because a problem looks hard; never burn a "
+            "long chain on something that needed two sentences."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
