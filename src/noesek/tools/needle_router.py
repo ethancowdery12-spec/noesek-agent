@@ -21,6 +21,10 @@ Note: the response-level confidence scores the finished response on the base
 weights; per the vendor it becomes product-tunable with tuned weights
 (weights=), where routing thresholds should be measured on needle.environments
 before lowering them.
+One engine.run at a time, process-wide: a busy engine (including a runaway
+the guard abandoned) makes route() return None so the turn proceeds LLM-only.
+Runaway length is capped via NOESEK_NEEDLE_MAX_STEPS (default 3; the engine
+default of 8 measured multi-minute generations on base weights).
 On by default (opt-out): NOESEK_NEEDLE_ENABLED=0 disables. Needle's
 anonymous usage telemetry is disabled via NEEDLE_TELEMETRY=0 before the
 engine loads.
@@ -68,15 +72,39 @@ def _stub_for(spec: ToolSpec, recorder=None):
     return fn
 
 
-def _run_engine(engine, text, timeout_s: float):
-    """Wall-clock guard around engine.run. On base weights some inputs send
-    the engine's agent loop into multi-minute generations (measured: a
-    calendar query looped 4+ min at the 8-step default). A stuck call is
-    abandoned in its daemon thread and treated as no proposal."""
+class _EngineBusy(RuntimeError):
+    """Another engine.run is still inside the native engine (possibly a
+    runaway abandoned by the wall-clock guard). The engine is native code
+    over shared buffers, so a concurrent run on the same engine is never
+    safe - the turn skips proposals instead of entering or queueing."""
+
+
+# Held by the engine.run thread itself, from start until generation actually
+# ends. Never wait on it: a waiter would hang its request for as long as a
+# runaway generation runs (minutes on a shared CPU).
+_engine_run_lock = threading.Lock()
+
+
+def _run_engine(engine, text, timeout_s: float, max_steps: int):
+    """Wall-clock guard around ONE engine.run at a time.
+
+    On base weights some inputs send the engine's agent loop into
+    multi-minute generations (measured: a calendar query looped 4+ min at
+    the 8-step default), so max_steps is capped low and a stuck call is
+    abandoned in its daemon thread and treated as no proposal. The abandoned
+    thread keeps the run lock until generation actually ends: measured on
+    the live shared-CPU box, repeated requests piled overlapping native
+    generations onto one engine, starving every other request (and one
+    unlucky interleave away from corrupting the native buffers). If a
+    generation ever wedges for good, routing stays skipped but chat keeps
+    working - degraded assist, never a hung turn."""
+    if not _engine_run_lock.acquire(blocking=False):
+        raise _EngineBusy("needle engine busy")
     box: dict = {}
     def work():
-        try: box["r"] = engine.run(text)
+        try: box["r"] = engine.run(text, max_steps=max_steps)
         except Exception as e: box["e"] = e
+        finally: _engine_run_lock.release()
     t = threading.Thread(target=work, daemon=True)
     t.start()
     t.join(timeout_s)
@@ -111,7 +139,8 @@ def route(text: str, specs: list[ToolSpec]) -> dict | None:
             _engine_cache.clear()
             _engine_cache.update({"engine": engine, "key": key, "stubs": stubs})
         timeout_s = float(os.environ.get("NOESEK_NEEDLE_TIMEOUT_SECONDS", "20"))
-        response = _run_engine(engine, text, timeout_s)
+        max_steps = int(os.environ.get("NOESEK_NEEDLE_MAX_STEPS", "3"))
+        response = _run_engine(engine, text, timeout_s, max_steps)
     except Exception:
         return None
     finally:
