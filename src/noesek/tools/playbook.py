@@ -106,6 +106,21 @@ PLAYBOOKS: dict[str, dict] = {
             "problem, fix it and verify again before reporting."
         ),
     },
+    "storyscope": {
+        "when": "write or revise fiction that reads human, not AI-default",
+        "brief": (
+            "Write fiction against the documented AI defaults (StoryScope, COLM 2026). Before drafting, "
+            "roll story dice and state them in one line: structure (strictly linear, or one non-linear "
+            "move like a flashback, time jump, or opened-at-the-end), point of view, ending (resolved, "
+            "open, or ambiguous), subplot count (0-2). Then the rules. Never state the theme or a lesson "
+            "learned - trust the reader to infer it. Give the protagonist's key choice a real moral cost. "
+            "Leave at least one loose end untied. Mix how emotion lands: sometimes name it plainly "
+            "(she was afraid), do not always route it through bodies, weather, and lamplight. Name real "
+            "works, places, and things when it fits instead of vague allusions. Vary escalation - no flat "
+            "arc, and don't close every story with a quiet epilogue. Allow one scene that exists for "
+            "texture, not plot. Read the draft back and cut any sentence that explains what the story means."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
