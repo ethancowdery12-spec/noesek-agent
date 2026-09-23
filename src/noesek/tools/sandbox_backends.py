@@ -12,6 +12,9 @@ Backends are constructed lazily and are dependency-injectable for tests.
 from __future__ import annotations
 
 import asyncio
+import os
+import shutil
+import subprocess
 import tempfile
 from pathlib import Path
 
@@ -152,6 +155,57 @@ class DockerPyBackend:
             return {"error": f"docker-py backend unavailable: {e}", "backend": self.name}
 
 
+class LocalSubprocessBackend:
+    """Last-resort backend for hosts without Docker (e.g. the Render image).
+
+    Runs the solver as a plain `python` subprocess with resource limits
+    (CPU/address-space/file-size/nproc rlimits), a stripped environment (no
+    inherited secrets), a hard timeout, and an isolated temp cwd. NETWORK IS
+    NOT DISABLED - do not select this backend where egress matters; prefer
+    docker-cli, docker-py, or e2b. Auto-fallback in get_backend only picks it
+    when no container runtime is on PATH.
+    """
+
+    name = "local-subprocess"
+
+    def __init__(self, python_bin: str | None = None):
+        self._python = python_bin or shutil.which("python3") or shutil.which("python")
+
+    async def run_python(self, code: str, *, image: str, timeout_seconds: int) -> dict:
+        if not self._python:
+            return {"error": "no python interpreter on PATH", "backend": self.name}
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "main.py"; p.write_text(code)
+            def _limits():
+                try:
+                    import resource
+                    resource.setrlimit(resource.RLIMIT_CPU, (timeout_seconds + 5, timeout_seconds + 5))
+                    resource.setrlimit(resource.RLIMIT_AS, (256 * 1024 * 1024, 256 * 1024 * 1024))
+                    resource.setrlimit(resource.RLIMIT_FSIZE, (4 * 1024 * 1024, 4 * 1024 * 1024))
+                    resource.setrlimit(resource.RLIMIT_NPROC, (64, 64))
+                except (ImportError, ValueError, OSError):
+                    pass  # non-Linux host: timeout still enforced
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    self._python, str(p),
+                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
+                    cwd=d, preexec_fn=_limits,
+                    env={"PATH": os.environ.get("PATH", ""), "PYTHONDONTWRITEBYTECODE": "1"})
+                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
+                return {"exit_code": proc.returncode, "stdout": _trim(out),
+                        "stderr": _trim(err), "backend": self.name}
+            except TimeoutError:
+                proc.kill(); await proc.wait()
+                return {"error": "Sandbox timed out", "backend": self.name}
+            except OSError as e:
+                return {"error": f"local subprocess failed: {e}", "backend": self.name}
+
+    async def run_command(self, command: str, *, image: str, timeout_seconds: int,
+                          workspace: str | None = None) -> dict:
+        return {"error": "run_command requires a container backend (docker or e2b)",
+                "backend": self.name}
+
+
 class E2BBackend:
     """Remote E2B microVM backend. Selected only explicitly; requires E2B_API_KEY
     in the operator's environment (never requested or stored by Noesek)."""
@@ -197,7 +251,9 @@ class E2BBackend:
                 pass
 
 
-_BACKENDS = {"docker-cli": DockerCliBackend, "docker-py": DockerPyBackend, "e2b": E2BBackend}
+_BACKENDS = {"docker-cli": DockerCliBackend, "docker-py": DockerPyBackend, "e2b": E2BBackend,
+    "local-subprocess": LocalSubprocessBackend,
+}
 
 
 def get_backend(name: str | None = None):
@@ -207,4 +263,8 @@ def get_backend(name: str | None = None):
     if cls is None:
         raise SandboxBackendError(
             f"unknown sandbox backend {selected!r}; expected one of {sorted(_BACKENDS)}")
+    if selected == "docker-cli" and shutil.which("docker") is None:
+        # Hosts without a container runtime (the Render image) still get an
+        # executor; the result dict names the backend actually used.
+        return LocalSubprocessBackend()
     return cls()
