@@ -136,6 +136,21 @@ PLAYBOOKS: dict[str, dict] = {
             "long chain on something that needed two sentences."
         ),
     },
+    "seo_web": {
+        "when": "build a website or landing page that can actually rank (claude-seo knowledge, MIT)",
+        "brief": (
+            "Build rankable, not just pretty. Semantic HTML5: one h1, logical h2/h3 outline, lang, "
+            "charset, viewport. Title 30-60 chars with the primary term; meta description 70-160 that "
+            "earns the click. Canonical link, og:title/description/image, twitter:card. JSON-LD in the "
+            "initial HTML (never JS-injected) with active types only - Organization, WebSite, WebPage, "
+            "Article, Product, Service, LocalBusiness as fits; never HowTo or SpecialAnnouncement; "
+            "FAQPage has no rich-result benefit since May 2026 (use QAPage for real Q&A); absolute URLs "
+            "inside schema. Every informative image gets descriptive alt text; all resources over https; "
+            "keep critical content inside the first 2MB of HTML. E-E-A-T: visible author/about, contact "
+            "details, original content over filler. Internal links with descriptive anchors. Before "
+            "delivering, run seo_audit on the final HTML and fix every fail and warn, then re-run."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
