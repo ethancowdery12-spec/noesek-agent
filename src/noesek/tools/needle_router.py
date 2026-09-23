@@ -1,4 +1,4 @@
-"""Needle 3 on-device tool router (opt-in; roadmap item 64).
+"""Needle 3 on-device tool router (opt-out assist; roadmap item 64/69).
 
 Uses Cactus Compute's Needle 3 engine (Apache-2.0) to pick tools and fill
 arguments locally, before the LLM runs. Measured behavior of the engine: it
@@ -7,21 +7,26 @@ its function stubs internally, and returns an empty call set when nothing in
 the toolset fits - off-topic input stays clean.
 
 Routing per the vendor's confidence guidance (act / confirm / refuse):
-  - captured calls at or above NOESEK_NEEDLE_MIN_CONFIDENCE -> the controller
-    executes them through the SAME policy / approval / audit path as LLM tool
-    calls (never bypassed)
-  - captured calls below the threshold -> their schemas are activated for the
-    LLM turn (deferral assist); the LLM still decides (this is the common
-    case on the base model, where correct calls score ~0.3-0.5)
-  - no calls captured -> the turn is unchanged
+  - proposed calls always have their schemas activated for the LLM turn
+    (deferral assist - the LLM still decides; this is the default behavior)
+  - with NOESEK_NEEDLE_AUTO_EXECUTE=1, proposals at or above
+    NOESEK_NEEDLE_MIN_CONFIDENCE execute through the SAME policy / approval /
+    audit path as LLM tool calls (never bypassed). Auto-execute is off by
+    default: measured on the 34-tool production set with base weights, wrong
+    picks carried 0.69-0.99 confidence and varied run to run, so no safe
+    threshold exists until weights are tuned (vendor: measure thresholds on
+    needle.environments with tuned weights=).
+  - no calls proposed -> the turn is unchanged
 Note: the response-level confidence scores the finished response on the base
 weights; per the vendor it becomes product-tunable with tuned weights
 (weights=), where routing thresholds should be measured on needle.environments
 before lowering them.
-Off by default: NOESEK_NEEDLE_ENABLED=1. Needle's anonymous usage telemetry
-is disabled via NEEDLE_TELEMETRY=0 before the engine loads.
+On by default (opt-out): NOESEK_NEEDLE_ENABLED=0 disables. Needle's
+anonymous usage telemetry is disabled via NEEDLE_TELEMETRY=0 before the
+engine loads.
 """
 import os
+import threading
 from ..core.tools import ToolSpec
 
 _JSON_TYPE_TO_PY = {"string": str, "integer": int, "number": float, "boolean": bool, "array": list, "object": dict}
@@ -48,7 +53,12 @@ def _stub_for(spec: ToolSpec, recorder=None):
     for pname, pdef in props.items():
         ptype = _JSON_TYPE_TO_PY.get((pdef or {}).get("type", "string"), str)
         ns[ptype.__name__] = ptype
-        params.append(f"{pname}: {ptype.__name__}" + ("" if pname in required else " = None"))
+        # Every stub param gets a default: JSON-schema property order can place
+        # a required param after an optional one, and a bare required param
+        # there is a SyntaxError that silently dropped the whole tool (measured:
+        # adversarial_review, gmail_send). Required-ness still reaches the
+        # engine through the schema/docstring, not the stub signature.
+        params.append(f"{pname}: {ptype.__name__} = None")
     src = (f"def {spec.name}({', '.join(params)}):\n"
            f"    _record.append(({spec.name!r}, dict(locals())))\n"
            f"    return None\n")
@@ -56,6 +66,25 @@ def _stub_for(spec: ToolSpec, recorder=None):
     fn = ns[spec.name]
     fn.__doc__ = spec.description
     return fn
+
+
+def _run_engine(engine, text, timeout_s: float):
+    """Wall-clock guard around engine.run. On base weights some inputs send
+    the engine's agent loop into multi-minute generations (measured: a
+    calendar query looped 4+ min at the 8-step default). A stuck call is
+    abandoned in its daemon thread and treated as no proposal."""
+    box: dict = {}
+    def work():
+        try: box["r"] = engine.run(text)
+        except Exception as e: box["e"] = e
+    t = threading.Thread(target=work, daemon=True)
+    t.start()
+    t.join(timeout_s)
+    if t.is_alive():
+        raise TimeoutError(f"needle engine.run exceeded {timeout_s:.0f}s")
+    if "e" in box:
+        raise box["e"]
+    return box.get("r")
 
 
 def route(text: str, specs: list[ToolSpec]) -> dict | None:
@@ -81,13 +110,24 @@ def route(text: str, specs: list[ToolSpec]) -> dict | None:
             engine = needle.Needle(tools=stubs)
             _engine_cache.clear()
             _engine_cache.update({"engine": engine, "key": key, "stubs": stubs})
-        response = engine.run(text)
+        timeout_s = float(os.environ.get("NOESEK_NEEDLE_TIMEOUT_SECONDS", "20"))
+        response = _run_engine(engine, text, timeout_s)
     except Exception:
         return None
     finally:
         _current_recorder = []
-    calls = [{"name": name, "arguments": {k: v for k, v in args.items() if v is not None}}
-             for name, args in recorder if isinstance(args, dict)]
+    # The engine's own final proposal is response["function_calls"]; the stub
+    # recorder instead catches INTERNAL step calls (the engine executing stubs
+    # mid-loop) and misses the final ones - measured: a memory question
+    # "captured" list_tasks while the engine's real proposal was empty.
+    calls = []
+    if isinstance(response, dict):
+        for fc in response.get("function_calls") or []:
+            if not isinstance(fc, dict) or not fc.get("name"):
+                continue
+            args = fc.get("arguments") or {}
+            calls.append({"name": fc["name"],
+                          "arguments": {k: v for k, v in args.items() if v is not None}})
     if not calls:
         return None
     conf = 0.0

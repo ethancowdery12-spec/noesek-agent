@@ -1,5 +1,6 @@
 import json
 from ..core.llm import OpenAICompatibleLLM, model_for_task
+from ..config import settings
 from ..core.tools import ToolRegistry, ToolSpec
 from ..core.types import Risk
 from ..tools.research import DeepResearchInput, SearchInput, deep_research, search_web
@@ -73,6 +74,23 @@ async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: in
         {"role": "user", "content": instruction},
     ]
     citations: list[str] = []
+    # Needle 3 routing (item 64/69): in workers the LLM already receives the
+    # full registry, so deferral assist adds nothing; needle only matters when
+    # auto-execution is explicitly enabled (off by default - base-weight
+    # precision measured too low to auto-fire).
+    pending_reply = None
+    if settings.needle_enabled and settings.needle_auto_execute:
+        try:
+            from ..tools.needle_router import route as _needle_route
+            route = _needle_route(instruction, [registry.get(n) for n in registry.names()])
+        except Exception: route = None
+        if route:
+            calls = [c for c in route.get("calls", []) if c.get("name") in registry.names()]
+            if calls and route.get("confidence", 0.0) >= settings.needle_min_confidence:
+                from ..core.types import LLMReply, ToolCall
+                pending_reply = LLMReply(content="", tool_calls=[
+                    ToolCall(id=f"needle-{i}", name=c["name"], arguments=c["arguments"])
+                    for i, c in enumerate(calls)])
     for step in range(max_steps):
         budget.check_step(step)
         token.raise_if_cancelled()
@@ -80,7 +98,8 @@ async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: in
             return {"worker": worker_name, "output": "Stopped: worker exceeded its time budget.",
                     "citations": list(dict.fromkeys(citations)), "steps": step, "incomplete": True}
         try:
-            reply = await llm.complete(messages, registry.schemas())
+            reply = pending_reply or await llm.complete(messages, registry.schemas())
+            pending_reply = None
         except Exception as e:
             from ..core.llm import LLMError
             if isinstance(e, LLMError):

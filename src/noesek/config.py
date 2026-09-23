@@ -75,9 +75,17 @@ class Settings(BaseSettings):
     # Memory pool scoping (item 68): 'deployment' = one shared pool (single-user
     # deploys, today's behavior); 'user' = one pool per (channel, external_user_id).
     memory_pool_mode: str = "deployment"
-    # Needle 3 on-device tool routing (opt-in, item 64)
-    needle_enabled: bool = False
+    # Needle 3 on-device tool routing (item 64/69). Opt-OUT since Sep 23:
+    # routing assist is on by default. Auto-executing needle's proposed calls
+    # stays OFF on the base weights - measured on the 34-tool production set,
+    # wrong picks carried 0.69-0.99 confidence with no separating threshold
+    # and picks varied run to run, so no safe auto-execute threshold exists.
+    # Revisit with tuned weights (needle weights= + needle.environments).
+    needle_enabled: bool = True
     needle_min_confidence: float = 0.75
+    needle_auto_execute: bool = False
+    needle_timeout_seconds: float = 20.0  # wall-clock guard around one route()
+
     # Background worker
     worker_poll_seconds: float = 2.0
     task_max_attempts: int = 3
