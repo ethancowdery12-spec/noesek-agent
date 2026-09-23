@@ -62,8 +62,11 @@ def extract_entities(content: str, cap: int = 8) -> list[str]:
             ents.append(phrase)
         elif len(phrase) >= 4 and not (sentence_start and phrase in openers):
             ents.append(phrase)
-    if not ents:
-        ents = [t for t in _LOWER.findall(content.lower()) if t not in _STOP][:5]
+    # Salient common nouns are bridge entities in multi-hop chains (item 65,
+    # IBM VLDB 2026): include them alongside proper nouns, not only as a
+    # last-resort fallback - "sister" and "espresso" link memories that
+    # capitalized entities alone cannot connect.
+    ents += [t for t in _LOWER.findall(content.lower()) if t not in _STOP][:5]
     out: list[str] = []
     for e in ents:
         n = " ".join(e.lower().split())
