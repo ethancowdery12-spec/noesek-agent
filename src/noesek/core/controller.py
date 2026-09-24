@@ -223,7 +223,56 @@ class Controller:
                     await spine.emit(TURN_COMPLETED, {"chars": len(final)})
                     return TurnResult(text=final, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
                 messages.append({"role":"assistant","content":reply.content,"tool_calls":[{"id":c.id,"type":"function","function":{"name":c.name,"arguments":json.dumps(c.arguments)}} for c in reply.tool_calls]})
-                for call in reply.tool_calls:
+                # LLMCompiler M1 (skills batch 3): when a model round requests
+                # several INDEPENDENT read-only tool calls, run them
+                # concurrently instead of strict ReAct sequence. The pre-scan
+                # is side-effect-free (registry/policy/risk only); loop-guard
+                # outcomes are computed ONCE and shared - any unknown tool,
+                # policy gate, or guard intervention falls back to the
+                # sequential path below with the precomputed guard outcomes.
+                prechecked: dict[int, tuple | None] = {}
+                if len(reply.tool_calls) > 1 and settings.parallel_read_tools_enabled:
+                    clean = True
+                    for call in reply.tool_calls:
+                        try: pspec = registry.get(call.name)
+                        except KeyError: clean = False; break
+                        pdec = evaluate_policy(call.name, pspec.risk, call.arguments, extra_rules=self._policy_rules)
+                        if pdec.denied or pdec.needs_approval or pspec.risk != Risk.READ:
+                            clean = False; break
+                    if clean:
+                        for idx, call in enumerate(reply.tool_calls):
+                            prechecked[idx] = guard.before_call(call.name, call.arguments)
+                        if not any(prechecked.values()):
+                            for call in reply.tool_calls:
+                                await spine.emit(TOOL_CALL_REQUESTED, {"tool": call.name, "call_id": call.id, "risk": "read",
+                                                                       "arguments_json": canonical(call.arguments)}, strict=True)
+                            await spine.emit("parallel_read_batch", {"size": len(reply.tool_calls)}, strict=False)
+                            async def _one(call):
+                                try: return await registry.invoke(call.name, call.arguments)
+                                except Exception as e: return {"error": classify_exception(e), "detail": str(e)[:500]}
+                            results = await _aio.gather(*[_one(call) for call in reply.tool_calls])
+                            stop_now = None
+                            for call, result in zip(reply.tool_calls, results):
+                                ok = not (isinstance(result, dict) and "error" in result)
+                                guard.record_outcome(ok)
+                                await spine.emit(TOOL_CALL_RESULT, {"tool": call.name, "call_id": call.id,
+                                                                    "ok": ok,
+                                                                    "error": result.get("error") if isinstance(result, dict) else None})
+                                await record_trace(conversation_id, "tool_call", {"tool": call.name, "ok": ok})
+                                for item in result.get("results",[]) if isinstance(result,dict) else []:
+                                    if isinstance(item, dict) and item.get("url"): citations.append(item["url"])
+                                if isinstance(result, dict) and result.get("url"): citations.append(result["url"])
+                                messages.append({"role":"tool","tool_call_id":call.id,"content":guard_untrusted(json.dumps(result,ensure_ascii=False), call.name)})
+                                if guard.error_streak_tripped() and stop_now is None:
+                                    stop_now = f"{guard.error_streak} tool calls failed in a row (latest: {result.get('error')} on {call.name})"
+                            if stop_now is not None:
+                                await spine.emit(TURN_STOPPED, {"reason": "error_streak", "detail": stop_now})
+                                stop_text = "I stopped: several tool calls in a row did not work. Please rephrase or narrow the request."
+                                async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=stop_text)); await s.commit()
+                                return TurnResult(text=stop_text, citations=list(dict.fromkeys(citations)), turn_id=spine.turn_id)
+                            continue
+                _UNSET = object()
+                for call_idx, call in enumerate(reply.tool_calls):
                     inc("noesek_tool_calls_total")
                     try: spec = registry.get(call.name)
                     except KeyError:
@@ -258,7 +307,9 @@ class Controller:
                             await spine.emit(APPROVAL_REQUIRED, {"approval_id": a.id, "tool": call.name, "call_id": call.id,
                                                                  "arguments_json": canonical(call.arguments)})
                             return TurnResult(text=prompt, pending_approval_id=a.id, turn_id=spine.turn_id)
-                        intervention = guard.before_call(call.name, call.arguments)
+                        intervention = prechecked.get(call_idx, _UNSET)
+                        if intervention is _UNSET:
+                            intervention = guard.before_call(call.name, call.arguments)
                         if intervention and intervention[0] == "warn":
                             await spine.emit(LOOP_GUARD, {"tool": call.name, "call_id": call.id, "action": "warn", "reason": intervention[1]})
                             result = {"error": "loop_guard", "detail": f"Loop guard: {intervention[1]}."}
