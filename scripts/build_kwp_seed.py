@@ -16,19 +16,47 @@ from pathlib import Path
 MAX_STEPS_CHARS = 3900  # skill_library SkillInput.steps cap is 4000
 
 
+def _fm_field(fm: str, key: str):
+    """Extract one scalar frontmatter field, handling YAML block scalars.
+
+    Supports `key: value` on one line and `key: >` / `key: |` (with optional
+    -/+ chomping) whose value is the following indented lines. Folded (>)
+    joins lines with spaces; literal (|) keeps newlines but we collapse them
+    for a one-line description. Stdlib-only: the generator must not add deps.
+    """
+    m = re.search(rf"^{re.escape(key)}:[ 	]*(.*)$", fm, re.M)
+    if not m:
+        return None
+    head = m.group(1).strip()
+    if head and head not in (">", "|", ">-", "|-", ">+", "|+"):
+        return head.strip('"').strip("'")
+    # block scalar: consume following more-indented lines
+    lines = []
+    for line in fm[m.end():].splitlines():
+        if line.startswith((" ", "\t")) and line.strip():
+            lines.append(line.strip())
+        elif line.strip() == "":
+            if lines:
+                break  # blank line ends the block for our purposes
+            continue
+        else:
+            break
+    return re.sub(r"\s+", " ", " ".join(lines)).strip() or None
+
+
 def parse_skill(path: Path):
     text = path.read_text(encoding="utf-8")
     m = re.match(r"^---\n(.*?)\n---\n(.*)$", text, re.S)
     if not m:
         return None
     fm, body = m.group(1), m.group(2).strip()
-    name = re.search(r"^name:\s*(.+)$", fm, re.M)
-    desc = re.search(r"^description:\s*(.+)$", fm, re.M)
+    name = _fm_field(fm, "name")
+    desc = _fm_field(fm, "description")
     if not name or not desc:
         return None
     body = re.sub(r">\s*If you see unfamiliar placeholders.*?CONNECTORS\.md\).\n?",
                   "", body)  # Cowork-environment pointer; not meaningful here
-    return {"name": name.group(1).strip(), "description": desc.group(1).strip(),
+    return {"name": name, "description": desc,
             "body": body[:MAX_STEPS_CHARS]}
 
 
