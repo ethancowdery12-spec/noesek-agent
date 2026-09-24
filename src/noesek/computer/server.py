@@ -324,10 +324,12 @@ async def oauth_callback(code: str = "", state: str = ""):
     if c is None:
         raise HTTPException(400, "unknown connector in state")
     try:
-        token = await connectors.exchange_code(c, code, pending.get("redirect_uri") or "")
+        payload = await connectors.exchange_code(c, code, pending.get("redirect_uri") or "")
     except connectors.ConnectorError as exc:
         raise HTTPException(502, str(exc))
-    await store.put(c.name, pending["chat_id"], token, c.scopes)
+    await store.put(c.name, pending["chat_id"], payload["access_token"], c.scopes,
+                    refresh_token=payload.get("refresh_token", ""),
+                    expires_at=payload.get("expires_at", 0))
     return HTMLResponse(
         f"<html><body style='font-family:sans-serif'>Connected {c.name} for chat "
         f"<b>{pending['chat_id']}</b>. You can close this tab.</body></html>")
