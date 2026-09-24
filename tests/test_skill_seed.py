@@ -16,7 +16,7 @@ def test_seed_catalog_shape():
         assert len(sk["body"]) <= 4000
     categories = {sk["category"] for sk in KWP_SKILLS}
     assert categories == {"customer-support", "operations", "marketing", "small-business",
-                           "finance", "human-resources", "legal"}
+                           "finance", "human-resources", "legal", "sales"}
 
 
 @pytest.mark.asyncio
