@@ -24,10 +24,11 @@ class ToolSpec:
         self._semaphore = asyncio.Semaphore(self.concurrency)
 
 class ToolRegistry:
-    def __init__(self): self._tools: dict[str, ToolSpec] = {}; self._deferred: set[str] = set()
+    def __init__(self): self._tools: dict[str, ToolSpec] = {}; self._deferred: set[str] = set(); self._ranker = None
     def register(self, spec: ToolSpec):
         if spec.name in self._tools: raise ValueError(f"duplicate tool: {spec.name}")
         self._tools[spec.name] = spec
+        self._ranker = None
     # Deferred schema exposure (v2, stage F): deferred tools stay searchable but
     # their schemas stay out of the prompt until activated (search-then-activate).
     def defer(self, name: str):
@@ -38,18 +39,23 @@ class ToolRegistry:
     def get(self, name: str) -> ToolSpec: return self._tools[name]
     def names(self) -> list[str]: return list(self._tools)
     def search(self, query: str, limit: int = 5) -> list[str]:
-        """Rank tool names by keyword: exact > name-substring > description-substring."""
+        """Rank tools by BM25 over name + description tokens (roadmap item 82).
+
+        Replaces the original keyword-substring tiers, which scored 0-2%
+        top-5 on the frozen natural-language acceptance fixtures vs BM25's
+        100% (evals/tool_retrieval.py). Only positive-score hits return."""
         q = query.strip().lower()
         if not q:
             return []
-        scored = []
-        for t in self._tools.values():
-            name, desc = t.name.lower(), (t.description or "").lower()
-            score = 3 if name == q else 2 if q in name else 1 if q in desc else 0
-            if score:
-                scored.append((score, t.name))
-        scored.sort(key=lambda x: (-x[0], x[1]))
-        return [n for _, n in scored[:limit]]
+        if q in self._tools:
+            return [q]  # exact name lookup short-circuits ranking
+        if self._ranker is None:
+            from .tool_rank import BM25, tokenize
+            names = list(self._tools)
+            docs = [tokenize(n) * 2 + tokenize(self._tools[n].description or "") for n in names]
+            self._ranker = (names, BM25(docs))
+        names, bm25 = self._ranker
+        return [names[i] for score, i in bm25.rank(query, limit) if score > 0]
 
     def schemas(self) -> list[dict]:
         return [{"type":"function","function":{"name":t.name,"description":t.description,"parameters":t.input_model.model_json_schema()}} for t in self._tools.values() if t.name not in self._deferred]
