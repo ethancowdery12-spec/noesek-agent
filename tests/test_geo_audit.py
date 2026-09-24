@@ -25,6 +25,7 @@ def test_good_page_scores_well():
     assert r["score"] >= 85
     assert _by_id(r, "citations")["verdict"] == "pass"
     assert _by_id(r, "entity_clarity")["verdict"] == "pass"
+    assert _by_id(r, "wikidata_entity")["verdict"] == "pass"
 
 def test_bare_page_flags_citations_and_answer_lead():
     r = _run(_BASE_HEAD + "<h1>Hi</h1><p>Welcome.</p>" + _BASE_TAIL)
@@ -48,7 +49,14 @@ def test_missing_robots_is_info_not_fail():
 
 def test_entity_without_sameas_warns():
     html = _BASE_HEAD + '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","name":"X"}</script>' + _BASE_TAIL
-    assert _by_id(_run(html), "entity_clarity")["verdict"] == "warn"
+    r = _run(html)
+    assert _by_id(r, "entity_clarity")["verdict"] == "warn"
+    w = _by_id(r, "wikidata_entity")
+    assert w["verdict"] == "warn" and "wikidata.org" in w["fix"]
+
+def test_no_entity_wikidata_is_info():
+    r = _run(_BASE_HEAD + "<h1>Hi</h1><p>Welcome.</p>" + _BASE_TAIL)
+    assert _by_id(r, "wikidata_entity")["verdict"] == "info"
 
 def test_social_links_do_not_count_as_citations():
     html = _BASE_HEAD + '<a href="https://www.facebook.com/x">fb</a><a href="https://x.com/y">x</a>' + _BASE_TAIL
