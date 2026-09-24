@@ -37,3 +37,20 @@ def test_other_query_params_preserved():
 def test_sqlite_untouched():
     url, args = _translate_database_url("sqlite+aiosqlite:///./noesek.db")
     assert url == "sqlite+aiosqlite:///./noesek.db" and args == {}
+
+def test_bare_postgres_scheme_promoted_to_asyncpg():
+    # Render's provisioned DATABASE_URL is bare postgres:// (Sep 24 staging
+    # boot crash: ModuleNotFoundError psycopg2 at db.py engine creation).
+    url, args = _translate_database_url("postgres://u:p@dpg-x-a/dbname")
+    assert url == "postgresql+asyncpg://u:p@dpg-x-a/dbname" and args == {}
+
+
+def test_bare_postgresql_scheme_promoted_to_asyncpg():
+    url, _ = _translate_database_url("postgresql://u:p@h/db")
+    assert url.startswith("postgresql+asyncpg://")
+
+
+def test_bare_scheme_with_sslmode_promoted_and_translated():
+    url, args = _translate_database_url("postgres://u:p@h/db?sslmode=require")
+    assert url.startswith("postgresql+asyncpg://") and "sslmode" not in url
+    assert isinstance(args["ssl"], ssl.SSLContext)
