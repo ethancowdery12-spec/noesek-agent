@@ -58,6 +58,8 @@ class Settings(BaseSettings):
     fetch_max_bytes: int = 1_000_000
     # Context
     history_limit: int = 24
+    condenser_enabled: bool = True
+    condenser_keep_full_tool_results: int = 6
     long_reminder_enabled: bool = True
     long_reminder_min_messages: int = 30
     memory_limit: int = 12
