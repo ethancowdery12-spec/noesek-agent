@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     graph_walk_decay: float = 0.5
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 1_000_000
+    # Business skill backbone (batch 2, item 86): seed curated KWP categories
+    # into the skill library on startup. Idempotent; retired seeds stay retired.
+    kwp_seed_enabled: bool = True
     # Context
     history_limit: int = 24
     parallel_read_tools_enabled: bool = True

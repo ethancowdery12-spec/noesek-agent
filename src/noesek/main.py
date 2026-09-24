@@ -16,6 +16,9 @@ from .jobs import task_worker
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db(); await migrate()
+    from .core.skill_seed import seed_kwp_skills
+    seeded = await seed_kwp_skills()
+    if seeded: logging.getLogger("noesek").info("kwp skill seed: %d skills added", seeded)
     stop = asyncio.Event()
     worker = asyncio.create_task(task_worker(stop, deliver=outbound.deliver))
     yield
