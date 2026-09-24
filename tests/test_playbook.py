@@ -5,7 +5,8 @@ from noesek.tools.playbook import PLAYBOOKS, PlaybookInput, playbook
 def test_list_and_load():
     out = playbook(PlaybookInput(action="list"))
     assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
-                                    "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner"}
+                                    "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner",
+                                    "birthdays"}
     loaded = playbook(PlaybookInput(action="load", name="debate"))
     assert loaded["loaded"] == "debate" and len(loaded["brief"]) > 100
 
@@ -69,3 +70,10 @@ def test_life_consumer_briefs_carry_guardrails():
     assert "if a source fails" in b  # scraper graceful-failure guardrail
     b = PLAYBOOKS["spaced_repetition_tutor"]["brief"].lower()
     assert "again" in b and "interval" in b and "kind='flashcard'" in b
+
+
+def test_birthdays_brief_carries_date_handling():
+    # batch 4 tranche 2: birthdays playbook - dates as memories, holidays never guessed.
+    b = PLAYBOOKS["birthdays"]["brief"].lower()
+    assert "kind='important_date'" in b and "weekday" in b
+    assert "never guess" in b  # public-holiday guardrail

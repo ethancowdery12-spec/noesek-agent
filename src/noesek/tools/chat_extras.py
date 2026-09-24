@@ -30,6 +30,7 @@ from .interpreter import InterpreterInput, code_interpreter_handler
 from .test_verifier import VerifierInput, test_verifier
 from .codeact import CodeActInput, codeact_handler
 from .skills import SkillInput, skill_library
+from .ofx_import import OfxImportInput, ofx_import_handler
 
 
 def register_chat_extras(r, conversation_id: int, controller, timeout: float) -> None:
@@ -42,6 +43,7 @@ def register_chat_extras(r, conversation_id: int, controller, timeout: float) ->
     r.register(ToolSpec("office_doc","Read, create, and edit Word/Excel/PowerPoint files in the agent file store through the OfficeCLI binary (view/get outline or JSON; create/add/set/remove/close). Degrades cleanly when the officecli binary is not installed.",OfficeDocInput,Risk.WRITE,office_doc,timeout_seconds=timeout))
     r.register(ToolSpec("browser_cookies","Persistent browser sessions: status (stored/enabled sites, counts only), enable/disable a site (the per-site approval before any logged-in session is used on a browse run), revoke, clear, audit. Imports never happen here - cookie exports are posted directly to the /computer/browser-state/import endpoint; cookie values are never shown or accepted in chat.",BrowserCookiesInput,Risk.WRITE,browser_cookies,timeout_seconds=timeout))
     r.register(ToolSpec("code_graph","Answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",CodeGraphInput,Risk.READ,code_graph,timeout_seconds=timeout))
+    r.register(ToolSpec("ofx_import","Import a bank or credit-card OFX/QFX statement from the file store into expense memories (deduped by bank transaction id, re-imports are safe). Informational-only money tooling: reads the uploaded statement and logs it - never moves money, no financial advice.",OfxImportInput,Risk.WRITE,ofx_import_handler(conversation_id),timeout_seconds=timeout))
     async def _resolve_llm():
         async with Session() as s:
             ov = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
