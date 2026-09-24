@@ -20,6 +20,7 @@ dependencies = [
   "croniter==6.2.4",
   "cryptography==50.0.0",
   "docker==7.1.0",
+  "duckdb==1.4.3",
   "e2b==2.9.0",
   "fastapi==0.141.1",
   "fire==0.7.1",
