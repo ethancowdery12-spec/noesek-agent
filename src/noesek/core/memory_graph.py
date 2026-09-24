@@ -199,16 +199,30 @@ async def graph_boost(conversation_id: int | None, query: str,
         scope = "AND conversation_id IN :cids"; params["cids"] = pool_conversation_ids
     elif conversation_id is not None:
         scope = "AND conversation_id = :c"; params["c"] = conversation_id
+    # Multi-hop (HippoRAG-style PPR-lite, roadmap item 84): bounded recursive
+    # walk from the seed entities. depth 0/1 reproduce the fixed 1-hop
+    # neighborhood at full weight; depths 2..N add graded boosts by
+    # graph_walk_decay, so longer evidence chains surface instead of falling
+    # off a hard 1-hop cutoff.
     sql = text(
-        "WITH seed AS (SELECT id FROM graph_entities WHERE name IN :names " + scope + "), "
-        "neighborhood AS ("
-        "  SELECT id FROM seed UNION"
-        "  SELECT src_id FROM graph_edges WHERE dst_id IN (SELECT id FROM seed) " + scope + " UNION"
-        "  SELECT dst_id FROM graph_edges WHERE src_id IN (SELECT id FROM seed) " + scope + ") "
-        "SELECT memory_id, SUM(weight) FROM graph_edges "
-        "WHERE memory_id IS NOT NULL "
-        "AND (src_id IN (SELECT id FROM neighborhood) OR dst_id IN (SELECT id FROM neighborhood)) " + scope + " "
-        "GROUP BY memory_id")
+        "WITH RECURSIVE seed AS (SELECT id FROM graph_entities WHERE name IN :names " + scope + "), "
+        "walk(node, depth) AS ("
+        "  SELECT id, 0 FROM seed UNION "
+        "  SELECT CASE WHEN e.src_id = w.node THEN e.dst_id ELSE e.src_id END, w.depth + 1 "
+        "  FROM walk w JOIN graph_edges e ON (e.src_id = w.node OR e.dst_id = w.node) " + scope + " "
+        "  WHERE w.depth < :max_depth), "
+        "reach AS (SELECT node, MIN(depth) AS d FROM walk GROUP BY node), "
+        "edge_depth AS ("  # one row per edge: min reached depth over its endpoints
+        "  SELECT e.memory_id, e.weight, MIN(r.d) AS d "
+        "  FROM graph_edges e JOIN reach r ON (r.node = e.src_id OR r.node = e.dst_id) " + scope + " "
+        "  WHERE e.memory_id IS NOT NULL "
+        "  GROUP BY e.memory_id, e.src_id, e.dst_id, e.relation, e.weight), "
+        "weighted AS ("
+        "  SELECT memory_id, weight * CASE WHEN d <= 1 THEN 1.0 "
+        "  ELSE POWER(:decay, d - 1) END AS w FROM edge_depth) "
+        "SELECT memory_id, SUM(w) FROM weighted GROUP BY memory_id")
+    params["max_depth"] = settings.graph_walk_depth
+    params["decay"] = settings.graph_walk_decay
     if "cids" in params:
         sql = sql.bindparams(bindparam("names", expanding=True), bindparam("cids", expanding=True))
     else:
