@@ -279,6 +279,33 @@ PLAYBOOKS: dict[str, dict] = {
             "waiting-on items to nudge. Completed work gets marked done, not rehashed."
         ),
     },
+    "tax_prep": {
+        "when": "get a rough tax estimate or organize documents for filing",
+        "brief": (
+            "Help them prepare, never file. For estimates: ask filing status, income types, and "
+            "the big deductions or credits that apply, then compute a plainly-labeled ESTIMATE "
+            "with the bracket math shown step by step - and say what it ignores (state tax, "
+            "AMT, credits not discussed). For organization: build the document checklist for "
+            "their situation (W-2, 1099s, receipts) and track what they have with remember as "
+            "kind='tax_doc'. Hard lines: this is informational only, not tax advice; nothing "
+            "ever gets filed, submitted, or signed; complex situations (business income, "
+            "multi-state, equity comp) get a clear 'talk to a CPA' - and current-year rules "
+            "come from web sources, never from memory."
+        ),
+    },
+    "recipe_import": {
+        "when": "save a recipe from a link or scale one up or down",
+        "brief": (
+            "Turn recipe links into clean cards. Fetch the page with the web fetch tool and "
+            "extract: title, ingredients with quantities, numbered steps, times, servings. "
+            "Many recipe sites wrap the recipe in ads and life stories - skip all of it; if "
+            "the page blocks fetching or has no recipe, say so and ask them to paste the "
+            "text instead of failing. Save with remember as kind='recipe'. For scaling: "
+            "convert every quantity proportionally (keep spices slightly under proportional "
+            "past 2x), keep oven temperatures unchanged, and flag steps whose timing changes "
+            "with batch size. Units stay as written unless they ask for conversion."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
