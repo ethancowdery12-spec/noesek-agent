@@ -153,6 +153,16 @@ class Controller:
                 return r.content or ""
             try: await auto_distill(conversation_id, _summarize)
             except Exception: pass
+            if settings.condenser_enabled:
+                async def _condense(tx: str) -> str:
+                    r = await self._llm_for_model(None).complete([
+                        {"role":"system","content":"Maintain the rolling condensation of this conversation. Digest the prior condensation (carrying forward what still matters) plus the newly omitted messages into 4-8 plain lines: durable facts, decisions made, tool outcomes, open loops. No preamble."},
+                        {"role":"user","content":tx}], [])
+                    return r.content or ""
+                try:
+                    from .condenser import update_condensation
+                    await update_condensation(conversation_id, _condense)
+                except Exception: pass
         _aio.create_task(_distill())
         await record_trace(conversation_id, "user_message", {"chars": len(text)})
         inc("noesek_turns_total")
@@ -198,6 +208,9 @@ class Controller:
                     for note in notes:
                         messages.append({"role": "user", "content": f"[Steering from the user]: {note}"})
                     await spine.emit("steering", {"notes": len(notes)})
+                if settings.condenser_enabled:
+                    from .condenser import mask_tool_results
+                    messages = mask_tool_results(messages, settings.condenser_keep_full_tool_results)
                 await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
                 reply = pending_reply or await self._llm_for_model(override).complete(messages, registry.schemas())
                 pending_reply = None
