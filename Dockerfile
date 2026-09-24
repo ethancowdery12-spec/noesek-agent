@@ -4,7 +4,7 @@ ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
-RUN pip install . && useradd -r -u 10001 noesek
+RUN pip install ".[codeintel]" && useradd -r -u 10001 noesek
 USER noesek
 EXPOSE 8000
 CMD ["noesek", "serve"]
