@@ -39,6 +39,8 @@ jobs:
         run: pip install -e '.[test]'
       - name: Install Playwright Chromium
         run: python -m playwright install --with-deps chromium
+      - name: Secret scan
+        run: python scripts/secret_scan.py
       - name: Unit and integration tests
         run: python -m pytest tests -q
       - name: Injection suite
