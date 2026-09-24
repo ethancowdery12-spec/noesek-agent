@@ -27,7 +27,7 @@ CONTROLLER_TOOLS = frozenset({
     "create_task", "list_tasks", "cancel_task",
     "delegate_task",
     "gmail_read", "gmail_send", "calendar_read", "github_notifications",
-    "create_file", "speak", "optimize_prompt", "humanize", "rewrite_natural", "scrub", "generate_variants", "story_critique", "exact_solve", "seo_audit", "geo_audit", "code_graph", "office_doc", "linkedin", "design_system", "playbook", "browser_cookies", "adversarial_review", "security_audit", "literature_search", "duckdb_query", "code_interpreter",
+    "create_file", "speak", "optimize_prompt", "humanize", "rewrite_natural", "scrub", "generate_variants", "story_critique", "exact_solve", "seo_audit", "geo_audit", "code_graph", "office_doc", "linkedin", "design_system", "playbook", "browser_cookies", "adversarial_review", "security_audit", "literature_search", "duckdb_query", "code_interpreter", "test_verifier",
 })
 
 

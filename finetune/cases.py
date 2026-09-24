@@ -82,6 +82,8 @@ TEST_CASES = [
     _c("Check the on-page SEO of this HTML", ["seo_audit"], "positive"),
     _c("Read this out loud to me", ["speak"], "positive"),
     _c("Say the morning briefing in a calm voice", ["speak"], "positive"),
+    _c("Run the tests on the code we just wrote and show coverage", ["test_verifier"], "positive"),
+    _c("Check if the test suite passes now after that fix", ["test_verifier"], "positive"),
     _c("Critique my short story", ["story_critique"], "positive"),
     _c("Give feedback on this chapter", ["story_critique"], "positive"),
     _c("Update memory 4: my new address is 12 Oak St", ["supersede_memory"], "positive"),
