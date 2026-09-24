@@ -66,11 +66,12 @@ dependencies = [
 
 [project.optional-dependencies]
 postgres = ["asyncpg==0.30.0"]
-test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1", "detect-secrets==1.5.0", "ofxparse==0.21"]
+test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1", "detect-secrets==1.5.0", "ofxparse==0.21", "fitparse==1.2.0"]
 stt = ["vosk==0.3.45"]
 docling = ["docling==2.129.0"]
 needle = ["cactus-needle==3.0.4"]
-finance = ["ofxparse==0.21"]  # batch 4 tranche 2: OFX statement import (ofx_import tool); MIT, (c) 2009 Jerry Seutter
+finance = ["ofxparse==0.21"]
+fitness = ["fitparse==1.2.0"]  # batch 4 tranche 3: .FIT activity import (fit_import tool); MIT, (c) 2011-2020 David Cooper, (c) 2017-2020 Carey Metcalfe  # batch 4 tranche 2: OFX statement import (ofx_import tool); MIT, (c) 2009 Jerry Seutter
 
 [project.scripts]
 noesek = "noesek.cli_surface:main"
