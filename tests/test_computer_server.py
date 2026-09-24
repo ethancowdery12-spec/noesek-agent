@@ -173,8 +173,8 @@ async def test_connectors_list_and_token_flow(monkeypatch, tmp_path):
         assert {x["name"]: x for x in r2.json()["connectors"]}["github"]["connected"] is True
         # token file is private and chat-scoped
         assert oct((tmp_path / "connectors.json").stat().st_mode)[-3:] == "600"
-        assert store.get("github", "ethan-main")["access_token"] == "tok-1"
-        assert store.get("github", "someone-else") is None
+        assert (await store.get("github", "ethan-main"))["access_token"] == "tok-1"
+        assert await store.get("github", "someone-else") is None
 
         unknown = await c.post("/connectors/nope/token",
                                json={"chat_id": "x", "access_token": "y"})
@@ -212,7 +212,7 @@ async def test_oauth_callback_completes_flow(monkeypatch, tmp_path):
         assert cb.status_code == 200
         assert "Connected github" in cb.text
         assert seen == {"code": "abc", "redirect_uri": "http://127.0.0.1:8780/connectors/callback"}
-        assert store.get("github", "ethan-main")["access_token"] == "tok-live"
+        assert (await store.get("github", "ethan-main"))["access_token"] == "tok-live"
 
         # state is single-use
         replay = await c.get("/connectors/callback", params={"code": "abc", "state": state})
@@ -279,7 +279,7 @@ async def test_gmail_tool_reads_with_stored_grant(monkeypatch, tmp_path):
 
     store = connectors.TokenStore(tmp_path / "connectors.json")
     monkeypatch.setattr(connectors, "default_store", lambda: store)
-    store.put("google", "ethan-main", "tok-g", ("gmail.readonly",))
+    await store.put("google", "ethan-main", "tok-g", ("gmail.readonly",))
 
     seen = {}
 
@@ -308,7 +308,7 @@ async def test_calendar_tool_reads_with_stored_grant(monkeypatch, tmp_path):
 
     store = connectors.TokenStore(tmp_path / "connectors.json")
     monkeypatch.setattr(connectors, "default_store", lambda: store)
-    store.put("google", "ethan-main", "tok-g", ("calendar.readonly",))
+    await store.put("google", "ethan-main", "tok-g", ("calendar.readonly",))
 
     async def fake_events(token, max_results):
         return [{"id": "e1", "summary": "Tennis with Sam",
@@ -333,7 +333,7 @@ async def test_github_tool_reads_with_stored_grant(monkeypatch, tmp_path):
 
     store = connectors.TokenStore(tmp_path / "connectors.json")
     monkeypatch.setattr(connectors, "default_store", lambda: store)
-    store.put("github", "ethan-main", "tok-gh", ("repo",))
+    await store.put("github", "ethan-main", "tok-gh", ("repo",))
 
     async def fake_notes(token, max_results):
         return [{"id": "n1", "repo": "ethan/noesek-agent", "title": "CI green",

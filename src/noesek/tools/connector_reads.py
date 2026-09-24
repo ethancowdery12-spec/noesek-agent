@@ -24,7 +24,7 @@ async def _chat_grant(conversation_id: int, connector: str) -> tuple[str, dict |
     async with Session() as s:
         conv = await s.get(Conversation, conversation_id)
     chat_id = conv.external_user_id if conv else ""
-    return chat_id, default_store().get(connector, chat_id)
+    return chat_id, await default_store().get(connector, chat_id)
 
 
 def connector_read_handler(conversation_id: int, connector: str, fn):

@@ -289,7 +289,7 @@ async def list_connectors(chat_id: str = ""):
             "configured": bool(c.client_id()),
         }
         if chat_id:
-            entry["connected"] = store.get(c.name, chat_id) is not None
+            entry["connected"] = await store.get(c.name, chat_id) is not None
         out.append(entry)
     return {"connectors": out}
 
@@ -305,7 +305,7 @@ async def auth_start(name: str, body: AuthStartIn):
     if not c.client_id():
         raise HTTPException(400, f"NOESEK_CONNECTOR_{name.upper()}_CLIENT_ID is not set")
     url, state = connectors.build_authorize_url(c, body.chat_id, body.redirect_uri)
-    connectors.default_store().put_state(state, name, body.chat_id, body.redirect_uri)
+    await connectors.default_store().put_state(state, name, body.chat_id, body.redirect_uri)
     return {"authorize_url": url, "state": state}
 
 
@@ -317,7 +317,7 @@ async def oauth_callback(code: str = "", state: str = ""):
     if not code or not state:
         raise HTTPException(400, "code and state are required")
     store = connectors.default_store()
-    pending = store.pop_state(state)
+    pending = await store.pop_state(state)
     if pending is None:
         raise HTTPException(400, "unknown or expired state")
     c = connectors.get(pending["connector"])
@@ -327,7 +327,7 @@ async def oauth_callback(code: str = "", state: str = ""):
         token = await connectors.exchange_code(c, code, pending.get("redirect_uri") or "")
     except connectors.ConnectorError as exc:
         raise HTTPException(502, str(exc))
-    store.put(c.name, pending["chat_id"], token, c.scopes)
+    await store.put(c.name, pending["chat_id"], token, c.scopes)
     return HTMLResponse(
         f"<html><body style='font-family:sans-serif'>Connected {c.name} for chat "
         f"<b>{pending['chat_id']}</b>. You can close this tab.</body></html>")
@@ -341,7 +341,7 @@ async def store_token(name: str, body: TokenIn):
         raise HTTPException(404, f"unknown connector {name!r}")
     if not body.chat_id or not body.access_token:
         raise HTTPException(400, "chat_id and access_token are required")
-    connectors.default_store().put(name, body.chat_id, body.access_token, c.scopes)
+    await connectors.default_store().put(name, body.chat_id, body.access_token, c.scopes)
     return {"ok": True, "connector": name, "chat_id": body.chat_id}
 
 
@@ -422,7 +422,7 @@ async def gmail_messages(chat_id: str, max_results: int = 5):
 
     if not chat_id:
         raise HTTPException(400, "chat_id is required")
-    grant = connectors.default_store().get("google", chat_id)
+    grant = await connectors.default_store().get("google", chat_id)
     if grant is None:
         raise HTTPException(403, "no google grant for this chat - run auth-start first")
     try:
@@ -439,7 +439,7 @@ async def calendar_events(chat_id: str, max_results: int = 5):
 
     if not chat_id:
         raise HTTPException(400, "chat_id is required")
-    grant = connectors.default_store().get("google", chat_id)
+    grant = await connectors.default_store().get("google", chat_id)
     if grant is None:
         raise HTTPException(403, "no google grant for this chat - run auth-start first")
     try:
@@ -456,7 +456,7 @@ async def github_notifications(chat_id: str, max_results: int = 10):
 
     if not chat_id:
         raise HTTPException(400, "chat_id is required")
-    grant = connectors.default_store().get("github", chat_id)
+    grant = await connectors.default_store().get("github", chat_id)
     if grant is None:
         raise HTTPException(403, "no github grant for this chat - run auth-start first")
     try:

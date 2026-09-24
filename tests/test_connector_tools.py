@@ -41,7 +41,7 @@ async def test_connector_tools_in_registry_and_grant_flow(monkeypatch, tmp_path)
     assert "not connected" in out["error"]
 
     # grant appears -> reads flow
-    store.put("google", "ethan-main", "tok-g", ("gmail.readonly",))
+    await store.put("google", "ethan-main", "tok-g", ("gmail.readonly",))
     out = await h(ConnectorReadInput(max_results=3))
     assert out["count"] == 1 and out["items"][0]["subject"] == "tennis?"
 
@@ -83,7 +83,7 @@ async def test_gmail_send_tool_external_risk_and_grant_flow(monkeypatch, tmp_pat
     assert "not connected" in out["error"] and not sent_calls
 
     # grant with send scope -> sends through the stub
-    store.put("google", "ethan-main", "tok-g",
+    await store.put("google", "ethan-main", "tok-g",
               ("gmail.readonly", "gmail.send"))
     out = await h(GmailSendInput(to="sam@x.com", subject="tennis", body="sat 3pm?"))
     assert out["sent"] is True and out["id"] == "msg-1"
