@@ -4,7 +4,8 @@ from noesek.tools.playbook import PLAYBOOKS, PlaybookInput, playbook
 
 def test_list_and_load():
     out = playbook(PlaybookInput(action="list"))
-    assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web"}
+    assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
+                                    "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner"}
     loaded = playbook(PlaybookInput(action="load", name="debate"))
     assert loaded["loaded"] == "debate" and len(loaded["brief"]) > 100
 
@@ -49,3 +50,22 @@ def test_dev_workflow_briefs_carry_the_discipline():
     # own-words guard against upstream phrasing
     for name in ("spec_first", "tdd_flow", "verify_done"):
         assert "enthusiastic junior engineer" not in PLAYBOOKS[name]["brief"].lower()
+
+
+def test_life_consumer_briefs_carry_guardrails():
+    # batch 4 tranche 1 (item 87): life/consumer playbooks distilled from the
+    # MIT/public-domain sources in the batch-4 research (actualbudget,
+    # free-exercise-db, openfoodfacts, py-fsrs, OSM stack). Guardrails from the
+    # batch-4 brief must survive in the briefs themselves.
+    b = PLAYBOOKS["budget_tracker"]["brief"].lower()
+    assert "explicit approval" in b and "not professional financial advice" in b
+    assert "kind='expense'" in b
+    b = PLAYBOOKS["fitness_log"]["brief"].lower()
+    assert "no medical" in b and "kind='workout'" in b
+    b = PLAYBOOKS["nutrition_lookup"]["brief"].lower()
+    assert "ask a" in b and "professional" in b and "kind='nutrition'" in b
+    b = PLAYBOOKS["trip_planner"]["brief"].lower()
+    assert "explicit approval" in b and "total shown" in b
+    assert "if a source fails" in b  # scraper graceful-failure guardrail
+    b = PLAYBOOKS["spaced_repetition_tutor"]["brief"].lower()
+    assert "again" in b and "interval" in b and "kind='flashcard'" in b
