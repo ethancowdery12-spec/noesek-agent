@@ -41,6 +41,7 @@ Hermes Agent's public command documentation.
 - opentelemetry-sdk - Apache-2.0 - https://github.com/open-telemetry/opentelemetry-python
 - MCP Python SDK (mcp) - MIT - https://github.com/modelcontextprotocol/python-sdk
 - croniter - MIT - https://github.com/pallets-eco/croniter
+- duckdb - MIT - https://github.com/duckdb/duckdb (SQL-over-files chat tool; pinned 1.4.3)
 
 Hermes Agent, Copyright (c) 2025 Nous Research, is licensed under the MIT
 License. Canonical source and license audited at commit
