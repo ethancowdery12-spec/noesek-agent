@@ -290,6 +290,13 @@ def scan_root(root) -> dict:
             "file_shas": {k: v["sha256"] for k, v in per_file.items()}}
 
 
+def default_root() -> str:
+    """Index root when settings.code_intel_root is empty: the installed package
+    (same anchor as tools/code_graph.py)."""
+    from .. import __file__ as _pkg_file
+    return str(Path(_pkg_file).resolve().parent)
+
+
 def _connect(db_path: str) -> sqlite3.Connection:
     con = sqlite3.connect(db_path)
     con.executescript(_DDL)
@@ -330,3 +337,91 @@ def index_root(root, db_path: str) -> dict:
                 "skipped": scan["skipped"], "errors": scan["errors"]}
     finally:
         con.close()
+
+
+# --- M2: symbol+neighborhood retrieval -------------------------------------
+# Retrieval unit is the SYMBOL plus its 1-hop call/import neighborhood, never
+# the whole file (graphify's core lesson, own implementation). Ranking reuses
+# the dependency-free BM25 from core.tool_rank (item 82).
+
+def _tok(text: str) -> list[str]:
+    from .tool_rank import tokenize
+    return tokenize(text or "")
+
+
+def retrieve(db_path: str, query: str, root=None, limit: int = 5,
+             max_neighbors: int = 8, slice_chars: int = 2000,
+             total_chars: int = 6000) -> dict:
+    """BM25 over symbol name+qualname+signature+docstring -> seed symbols ->
+    1-hop neighborhood via code_edges -> source line-slices read from disk.
+    Graceful: missing DB / no tree-sitter data / empty query -> empty result."""
+    out = {"seeds": [], "neighbors": [], "slices": []}
+    if not (query or "").strip() or not os.path.exists(db_path):
+        return out
+    con = sqlite3.connect(db_path)
+    try:
+        rows = con.execute(
+            "SELECT path, qualname, name, kind, signature, docstring, start_line, end_line"
+            " FROM code_symbols").fetchall()
+        if not rows:
+            return out
+        cols = ("path", "qualname", "name", "kind", "signature", "docstring",
+                "start_line", "end_line")
+        syms = [dict(zip(cols, r)) for r in rows]
+        docs = [" ".join([s["name"], s["qualname"], s["signature"], s["docstring"]])
+                for s in syms]
+        from .tool_rank import BM25
+        bm = BM25([_tok(d) for d in docs])
+        scored = bm.rank(query, limit * 3)
+        ranked = [(score, syms[i]) for score, i in scored if score > 0]
+        seeds = [s for _, s in ranked[:limit]]
+        if not seeds:
+            return out
+        out["seeds"] = seeds
+        seed_quals = {s["qualname"] for s in seeds}
+        quals = {s["qualname"] for s in syms}
+        neighbors: list[str] = []
+        for (src, dst, rel) in con.execute(
+                "SELECT src, dst, relation FROM code_edges WHERE relation='calls'"):
+            for q in seed_quals:
+                other = ""
+                if src == q and dst in quals:
+                    other = dst
+                elif dst == q and src in quals:
+                    other = src
+                if other and other not in seed_quals and other not in neighbors:
+                    neighbors.append(other)
+        neighbors = neighbors[:max_neighbors]
+        by_qual = {s["qualname"]: s for s in syms}
+        out["neighbors"] = [by_qual[q] for q in neighbors if q in by_qual]
+        if root is not None:
+            budget = total_chars
+            for s in seeds + out["neighbors"]:
+                if budget <= 0:
+                    break
+                try:
+                    lines = (Path(root) / s["path"]).read_text(
+                        encoding="utf-8", errors="replace").splitlines()
+                    text = "\n".join(lines[s["start_line"] - 1:s["end_line"]])
+                except OSError:
+                    continue
+                text = text[:slice_chars]
+                out["slices"].append({"qualname": s["qualname"], "path": s["path"],
+                                      "start_line": s["start_line"], "text": text})
+                budget -= len(text)
+        return out
+    finally:
+        con.close()
+
+
+def format_code_context(ret: dict) -> str:
+    """Render retrieval output as the system-tail section. Callers append this
+    AFTER all existing variable sections - the SYSTEM head stays byte-identical
+    (DeepSeek prefix caching, Ethan's requirement)."""
+    if not ret.get("slices"):
+        return ""
+    parts = []
+    for sl in ret["slices"]:
+        parts.append(f"### {sl['qualname']} ({sl['path']}:L{sl['start_line']})\n{sl['text']}")
+    return ("\nRelevant code (AST symbol retrieval; only matching symbols shown, "
+            "not whole files):\n" + "\n\n".join(parts))
