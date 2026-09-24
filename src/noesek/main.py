@@ -19,6 +19,20 @@ async def lifespan(app: FastAPI):
     from .core.skill_seed import seed_kwp_skills
     seeded = await seed_kwp_skills()
     if seeded: logging.getLogger("noesek").info("kwp skill seed: %d skills added", seeded)
+    # Item 89: AST code-intel startup index behind the flag. Best-effort: a
+    # failure here must never block boot. The log line doubles as the staging
+    # validation signal (deploy shells are not always available).
+    from .config import settings as _settings
+    if _settings.code_intel_enabled:
+        try:
+            from .core.code_intel import default_root, index_root
+            _root = _settings.code_intel_root or default_root()
+            _stats = index_root(_root, _settings.code_intel_db)
+            logging.getLogger("noesek").info(
+                "code_intel index: %d files, %d symbols, %d edges (%d changed, root=%s)",
+                _stats["files"], _stats["symbols"], _stats["edges"], _stats["changed"], _root)
+        except Exception:
+            logging.getLogger("noesek").exception("code_intel startup index failed (non-fatal)")
     stop = asyncio.Event()
     worker = asyncio.create_task(task_worker(stop, deliver=outbound.deliver))
     yield
