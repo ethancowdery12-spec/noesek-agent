@@ -171,8 +171,27 @@ def _translate_database_url(url: str) -> tuple[str, dict]:
     return clean, connect_args
 
 
+def _engine_kwargs(url: str, connect_args: dict) -> dict:
+    """Pool selection (lane 1). Postgres gets a bounded QueuePool so one
+    instance never exceeds pool_size + max_overflow connections; sqlite keeps
+    NullPool (file DB, pooling buys nothing). A Neon *pooled* endpoint
+    (-pooler host, pgBouncer transaction mode) additionally needs asyncpg's
+    prepared-statement cache off - statements are per-connection there."""
+    if not url.startswith(("postgresql://", "postgresql+asyncpg://", "postgres://")):
+        return {"poolclass": NullPool}
+    from urllib.parse import urlsplit
+    if "-pooler" in urlsplit(url).netloc:
+        connect_args = {**connect_args, "statement_cache_size": 0}
+    return {"pool_size": settings.db_pool_size,
+            "max_overflow": settings.db_max_overflow,
+            "pool_timeout": settings.db_pool_timeout_seconds,
+            "pool_recycle": settings.db_pool_recycle_seconds,
+            "pool_pre_ping": True,
+            "connect_args": connect_args}
+
+
 _db_url, _db_connect_args = _translate_database_url(settings.database_url)
-engine = create_async_engine(_db_url, poolclass=NullPool, connect_args=_db_connect_args)
+engine = create_async_engine(_db_url, **_engine_kwargs(_db_url, _db_connect_args))
 Session = async_sessionmaker(engine, expire_on_commit=False)
 
 _FTS_DDL = "CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(memory_id UNINDEXED, content)"
