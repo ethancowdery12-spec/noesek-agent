@@ -122,3 +122,11 @@ marketing) imported as the seeded skill backbone (item 86), converted by
 scripts/build_kwp_seed.py into src/noesek/data/kwp_skills.py with per-skill
 provenance headers. Copyright Anthropic PBC. License:
 https://github.com/anthropics/knowledge-work-plugins/blob/main/LICENSE
+
+## tree-sitter + grammar packages (MIT, item 89)
+
+Optional [codeintel] extra: tree-sitter 0.25.2 (MIT, (c) 2018-2024 Max Brunsfeld
+and contributors) and grammar packages tree-sitter-python, -javascript,
+-typescript, -go, -rust, -java, -c, -cpp, -ruby, -c-sharp, -php, -bash, -json
+(all MIT). Licenses verified against the on-disk LICENSE file shipped in each
+wheel, Sep 24 2026. Used by core/code_intel.py for AST symbol/call indexing.
