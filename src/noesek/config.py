@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     fetch_max_bytes: int = 1_000_000
     # Context
     history_limit: int = 24
+    parallel_read_tools_enabled: bool = True
     condenser_enabled: bool = True
     condenser_keep_full_tool_results: int = 6
     long_reminder_enabled: bool = True
