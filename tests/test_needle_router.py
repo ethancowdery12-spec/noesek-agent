@@ -199,6 +199,6 @@ def test_single_build_for_concurrent_cold_requests(monkeypatch):
 def test_optout_defaults():
     from noesek.config import Settings
     s = Settings()
-    assert s.needle_enabled is True          # assist on by default (opt-out)
+    assert s.needle_enabled is False         # off by default Sep 23 (owner call); env opt-in
     assert s.needle_auto_execute is False    # execution off until tuned weights
     assert s.needle_timeout_seconds > 0
