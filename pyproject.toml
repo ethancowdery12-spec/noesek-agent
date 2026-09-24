@@ -47,6 +47,7 @@ dependencies = [
   "pydantic-settings==2.15.0",
   "PyJWT[crypto]==2.13.0",
   "python-dotenv==1.2.2",
+  "python-dateutil==2.9.0.post0",  # batch 4: date_math tool uses it directly (was transitive via croniter)
   "python-multipart>=0.0.9,<1",
   "pywin32>=306,<312; sys_platform == 'win32'",
   "pywinpty>=2.0.0,<3; sys_platform == 'win32'",
