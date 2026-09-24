@@ -14,6 +14,7 @@ No third-party source code was copied into this repository. It depends on these 
 - pytest - MIT - https://github.com/pytest-dev/pytest (runtime: test_verifier tool)
 - coverage - Apache-2.0 - https://github.com/coveragepy/coveragepy (runtime: test_verifier tool)
 - pytest-asyncio (development) - Apache-2.0 - https://github.com/pytest-dev/pytest-asyncio
+- pytesseract (optional, [ocr] extra) - Apache-2.0, (c) Samuel Hoffstaetter and contributors - https://github.com/madmaze/pytesseract (runtime: receipt_import tool; drives the tesseract OCR engine, Apache-2.0, installed as an image binary, never vendored)
 
 Container images are separate works with their own package/license inventories. Review and pin approved digests before production use.
 

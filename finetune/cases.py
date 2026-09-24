@@ -76,6 +76,8 @@ TEST_CASES = [
     _c("Import the OFX statement I uploaded into my expense log", ["ofx_import"], "positive"),
     _c("Parse this .qfx export from my bank and log the transactions", ["ofx_import"], "positive"),
     _c("Import the .fit file from my Garmin watch", ["fit_import"], "positive"),
+    _c("Log this receipt photo as an expense", ["receipt_import"], "positive"),
+    _c("Import the receipt I just uploaded", ["receipt_import"], "positive"),
     _c("Log the workout in this FIT activity file", ["fit_import"], "positive"),
 
     _c("Create an Excel file with this budget table", ["office_doc"], "positive"),
