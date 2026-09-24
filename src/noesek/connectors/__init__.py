@@ -80,7 +80,7 @@ class TokenStore:
         self.path.write_text(json.dumps(data, indent=2) + "\n")
         os.chmod(self.path, 0o600)
 
-    def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = ()) -> None:
+    async def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = ()) -> None:
         data = self._load()
         data.setdefault(connector, {})[chat_id] = {
             "access_token": token,
@@ -89,13 +89,13 @@ class TokenStore:
         }
         self._save(data)
 
-    def get(self, connector: str, chat_id: str) -> dict | None:
+    async def get(self, connector: str, chat_id: str) -> dict | None:
         return self._load().get(connector, {}).get(chat_id)
 
-    def connected_chats(self, connector: str) -> list[str]:
+    async def connected_chats(self, connector: str) -> list[str]:
         return sorted(self._load().get(connector, {}))
 
-    def put_state(self, state: str, connector: str, chat_id: str, redirect_uri: str = "") -> None:
+    async def put_state(self, state: str, connector: str, chat_id: str, redirect_uri: str = "") -> None:
         data = self._load()
         states = data.setdefault("_states", {})
         # drop expired while we are here
@@ -106,7 +106,7 @@ class TokenStore:
                          "redirect_uri": redirect_uri, "issued_at": now}
         self._save(data)
 
-    def pop_state(self, state: str, max_age_seconds: int = 3600) -> dict | None:
+    async def pop_state(self, state: str, max_age_seconds: int = 3600) -> dict | None:
         data = self._load()
         states = data.get("_states", {})
         entry = states.get(state)
@@ -161,6 +161,78 @@ def build_authorize_url(connector: Connector, chat_id: str, redirect_uri: str) -
     return f"{connector.authorize_url}?{urlencode(params)}", state
 
 
-def default_store() -> TokenStore:
-    home = Path(os.environ.get("NOESEK_HOME", Path.home() / ".noesek"))
-    return TokenStore(home / "connectors.json")
+class DbTokenStore:
+    """Database-backed grant/state store. The 0600 JSON file sat on the host
+    filesystem, which is ephemeral on Render - every redeploy silently wiped
+    each chat's OAuth grants and in-flight states. Rows survive deploys.
+
+    The public async interface matches TokenStore exactly so the file store
+    remains a drop-in test double."""
+
+    async def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = ()) -> None:
+        from sqlalchemy import select
+        from ..db import ConnectorGrant, Session
+        async with Session() as s:
+            row = (await s.execute(select(ConnectorGrant).where(
+                ConnectorGrant.connector == connector,
+                ConnectorGrant.chat_id == chat_id))).scalar_one_or_none()
+            if row is None:
+                s.add(ConnectorGrant(connector=connector, chat_id=chat_id,
+                                     access_token=token, scopes=list(scopes),
+                                     obtained_at=int(time.time())))
+            else:
+                row.access_token = token
+                row.scopes = list(scopes)
+                row.obtained_at = int(time.time())
+            await s.commit()
+
+    async def get(self, connector: str, chat_id: str) -> dict | None:
+        from sqlalchemy import select
+        from ..db import ConnectorGrant, Session
+        async with Session() as s:
+            row = (await s.execute(select(ConnectorGrant).where(
+                ConnectorGrant.connector == connector,
+                ConnectorGrant.chat_id == chat_id))).scalar_one_or_none()
+        if row is None:
+            return None
+        return {"access_token": row.access_token, "obtained_at": row.obtained_at,
+                "scopes": list(row.scopes or [])}
+
+    async def connected_chats(self, connector: str) -> list[str]:
+        from sqlalchemy import select
+        from ..db import ConnectorGrant, Session
+        async with Session() as s:
+            rows = (await s.execute(select(ConnectorGrant.chat_id).where(
+                ConnectorGrant.connector == connector))).scalars().all()
+        return sorted(rows)
+
+    async def put_state(self, state: str, connector: str, chat_id: str, redirect_uri: str = "") -> None:
+        from sqlalchemy import delete
+        from ..db import ConnectorState, Session
+        now = int(time.time())
+        async with Session() as s:
+            await s.execute(delete(ConnectorState).where(
+                ConnectorState.issued_at < now - 3600))
+            await s.merge(ConnectorState(state=state, connector=connector,
+                                         chat_id=chat_id, redirect_uri=redirect_uri,
+                                         issued_at=now))
+            await s.commit()
+
+    async def pop_state(self, state: str, max_age_seconds: int = 3600) -> dict | None:
+        from sqlalchemy import delete
+        from ..db import ConnectorState, Session
+        async with Session() as s:
+            row = await s.get(ConnectorState, state)
+            if row is None:
+                return None
+            entry = {"connector": row.connector, "chat_id": row.chat_id,
+                     "redirect_uri": row.redirect_uri, "issued_at": row.issued_at}
+            if int(time.time()) - row.issued_at > max_age_seconds:
+                return None
+            await s.execute(delete(ConnectorState).where(ConnectorState.state == state))
+            await s.commit()
+        return entry
+
+
+def default_store() -> DbTokenStore:
+    return DbTokenStore()
