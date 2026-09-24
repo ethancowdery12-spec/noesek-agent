@@ -6,7 +6,7 @@ def test_list_and_load():
     out = playbook(PlaybookInput(action="list"))
     assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
                                     "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner",
-                                    "birthdays"}
+                                    "birthdays", "split_expenses", "journal", "gtd_tasks"}
     loaded = playbook(PlaybookInput(action="load", name="debate"))
     assert loaded["loaded"] == "debate" and len(loaded["brief"]) > 100
 
@@ -77,3 +77,14 @@ def test_birthdays_brief_carries_date_handling():
     b = PLAYBOOKS["birthdays"]["brief"].lower()
     assert "kind='important_date'" in b and "weekday" in b
     assert "never guess" in b  # public-holiday guardrail
+
+
+def test_tranche4_briefs_carry_guardrails():
+    # batch 4 tranche 4: split_expenses / journal / gtd_tasks.
+    b = PLAYBOOKS["split_expenses"]["brief"].lower()
+    assert "never" in b and "move money" in b and "explicit approval" in b
+    assert "kind='shared_expense'" in b
+    b = PLAYBOOKS["journal"]["brief"].lower()
+    assert "kind='journal'" in b and "never rewritten" in b and "private" in b
+    b = PLAYBOOKS["gtd_tasks"]["brief"].lower()
+    assert "next" in b and "weekly review" in b
