@@ -112,3 +112,11 @@ Deferred until a compatible release; recorded in BUILD_REPORT_V1.6.md.
 
 Noesek's generated CLI manifest records SHA-256 provenance for every inspected
 upstream parser file. Noesek does not vendor or invoke Hermes' agent core.
+
+## anthropics/knowledge-work-plugins (Apache-2.0)
+
+Curated whole-category business workflow skills (customer-support, operations,
+marketing) imported as the seeded skill backbone (item 86), converted by
+scripts/build_kwp_seed.py into src/noesek/data/kwp_skills.py with per-skill
+provenance headers. Copyright Anthropic PBC. License:
+https://github.com/anthropics/knowledge-work-plugins/blob/main/LICENSE
