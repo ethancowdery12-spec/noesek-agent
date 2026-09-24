@@ -1,0 +1,6 @@
+# Keep generated/local artifacts out of the image.
+.git
+**/__pycache__
+evals/adapter-results
+evals/adapter-results.json
+*.pyc

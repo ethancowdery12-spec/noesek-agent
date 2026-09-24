@@ -65,3 +65,5 @@ money without his explicit approval, surfaced through the parent agent first.
 | staging on Render starter | $7/mo | option B, needs approval |
 | load test execution | $0 (echo LLM, free tier) | gated on this plan |
 | DeepSeek tokens during test | $0 (echo adapter, no provider calls) | by design |
+
+Staging eval capability (Sep 24): the computer image also COPYs `evals/`, so the Render web shell can run the keyed entity-extraction eval (`python -m evals.entity_extraction`) in place; `.dockerignore` keeps generated adapter-results and pycache out of the image.
