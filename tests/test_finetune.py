@@ -62,3 +62,20 @@ def test_router_weights_path_env(monkeypatch, tmp_path):
     assert nr._weights_path() is None
     monkeypatch.setenv("NOESEK_NEEDLE_WEIGHTS", str(tmp_path / "tuned.cact"))
     assert nr._weights_path().endswith("tuned.cact")
+
+
+def test_per_tool_report_counts_hits_and_false_fires():
+    from finetune.acceptance import per_tool_report
+    results = [
+        {"query": "check my calendar", "calls": ["calendar_read"],
+         "got": ["calendar_read"], "category": "positive", "critical": False},
+        {"query": "what's up today", "calls": ["calendar_read"],
+         "got": ["list_tasks"], "category": "positive", "critical": False},
+        {"query": "email him", "calls": [], "got": ["gmail_send"],
+         "category": "critical", "critical": True},
+    ]
+    table = per_tool_report(results)
+    assert table["calendar_read"]["expected"] == 2
+    assert table["calendar_read"]["hit"] == 1
+    assert table["list_tasks"]["false_fire"] == ["what's up today"]
+    assert table["gmail_send"]["false_fire"] == ["email him"]
