@@ -79,7 +79,7 @@ Rules the policy object makes structural:
 
 ## Milestones
 
-- **M1 (next PR): policy object + hardening flags.** Introduce
+- **M1 (LANDED): policy object + hardening flags.** Introduce
   `SandboxPolicy`, thread it through `run_python`/`run_command`, add
   `--cap-drop=ALL --security-opt=no-new-privileges --user <uid>` to the
   Docker commands, add per-run tmpfs scratch as the only writable path, and
