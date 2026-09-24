@@ -25,8 +25,11 @@ jobs:
       - name: Install
         run: pip install -e '.[test,postgres]'
       - name: Fresh Postgres schema boot regression
+        # BARE postgres:// on purpose: providers (Render/Neon/Heroku) hand out
+        # unqualified URLs; the boot must promote them to +asyncpg itself
+        # (Sep 24 staging crash when this check used a pre-qualified URL).
         env:
-          NOESEK_TEST_PG_URL: postgresql+asyncpg://noesek:noesek@localhost:5432/noesek
+          NOESEK_TEST_PG_URL: postgres://noesek:noesek@localhost:5432/noesek
         run: python -m pytest tests/test_pg_boot.py -q
   tests-and-evals:
     runs-on: ubuntu-latest

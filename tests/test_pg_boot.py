@@ -20,9 +20,12 @@ PG_URL = os.environ.get("NOESEK_TEST_PG_URL", "")
 @pytest.mark.skipif(not PG_URL, reason="NOESEK_TEST_PG_URL not set (CI Postgres job only)")
 @pytest.mark.asyncio
 async def test_init_db_creates_full_schema_on_empty_postgres():
-    from noesek.db import Base, init_db
+    from noesek.db import Base, _translate_database_url, init_db
 
-    eng = create_async_engine(PG_URL)
+    # Mirror the app: engine creation goes through the same URL translation
+    # (CI feeds a BARE postgres:// URL, provider-realistic - Sep 24).
+    url, connect_args = _translate_database_url(PG_URL)
+    eng = create_async_engine(url, connect_args=connect_args)
     try:
         await init_db(eng)
         async with eng.begin() as conn:
