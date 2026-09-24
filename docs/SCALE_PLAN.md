@@ -48,3 +48,9 @@ d. **Connection churn:** computer server opens sessions per request; pool
 - [ ] SQLAlchemy pool_size/max_overflow tuned; pool_pre_ping on
 - [ ] pgvector migration if any user passes ~500 active memories
 - [ ] Load test: 1k concurrent chat posts against staging
+
+## Lane 1 execution (Sep 24)
+Item 67's connection-churn items are now built: bounded QueuePool for
+Postgres, Neon -pooler statement-cache handling, echo LLM adapter, and
+scripts/load_test.py. Execution plan, cost surface, and the approval-gated
+staging + 1k load test: docs/LANE1_SCALE_HARDENING.md.
