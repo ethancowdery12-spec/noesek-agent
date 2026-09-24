@@ -4,6 +4,15 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="NOESEK_", env_file=".env", extra="ignore")
     # Core
     database_url: str = "sqlite+aiosqlite:///./noesek.db"
+    # Connection pooling (Postgres only; sqlite always NullPool). Lane 1 scale
+    # hardening: NullPool's connect-per-request churn melts a hosted Postgres
+    # at concurrency; bounded QueuePool caps per-instance connections at
+    # pool_size + max_overflow. pool_recycle below Neon's ~5min idle-compute
+    # autosuspend so stale sockets are recycled before use (with pre-ping).
+    db_pool_size: int = 5
+    db_max_overflow: int = 10
+    db_pool_timeout_seconds: float = 30.0
+    db_pool_recycle_seconds: int = 300
     public_base_url: str = "http://localhost:8000"
     log_level: str = "INFO"
     # WhatsApp / Meta
