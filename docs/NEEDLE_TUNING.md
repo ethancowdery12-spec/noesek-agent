@@ -1,5 +1,8 @@
 # Tuning needle for noesek (auto-execute lane)
 
+Decision record (why these paths, verified engine facts, open calls):
+[NEEDLE_TUNING_DECISIONS.md](NEEDLE_TUNING_DECISIONS.md).
+
 Goal: lift the needle router (121M CPU model) from assist-only to trustworthy
 auto-execute for tool routing. Base weights measured wrong picks at
 0.69-0.99 confidence - no safe threshold exists until tuned.
