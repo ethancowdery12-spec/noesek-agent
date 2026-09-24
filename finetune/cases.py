@@ -88,6 +88,8 @@ TEST_CASES = [
     _c("Correct the saved fact in memory 2, the deadline moved to Friday", ["supersede_memory"], "positive"),
     _c("Switch to gpt-5 for this chat", ["switch_model"], "positive"),
     _c("Go back to the default model", ["switch_model"], "positive"),
+    _c("Find papers about retrieval augmented generation", ["literature_search"], "positive"),
+    _c("Search arXiv for the illusion of thinking paper", ["literature_search"], "positive"),
     # --- multi-tool ---
     _c("What's on my calendar today, and what emails came in?", ["calendar_read", "gmail_read"], "multi"),
     _c("What tasks are running and what's on my calendar?", ["calendar_read", "list_tasks"], "multi"),
