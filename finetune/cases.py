@@ -86,6 +86,8 @@ TEST_CASES = [
     _c("Check if the test suite passes now after that fix", ["test_verifier"], "positive"),
     _c("Search the literature and my files together, then summarize the overlap", ["code_act"], "positive"),
     _c("Pull the sales numbers with SQL and cross-check them against the papers you found", ["code_act"], "positive"),
+    _c("Save that workflow so you can reuse it next time", ["skill_library"], "positive"),
+    _c("Have you solved something like this before? Check your saved skills", ["skill_library"], "positive"),
     _c("Critique my short story", ["story_critique"], "positive"),
     _c("Give feedback on this chapter", ["story_critique"], "positive"),
     _c("Update memory 4: my new address is 12 Oak St", ["supersede_memory"], "positive"),
