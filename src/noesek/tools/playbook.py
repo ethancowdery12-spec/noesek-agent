@@ -241,6 +241,44 @@ PLAYBOOKS: dict[str, dict] = {
             "date is a holiday in their country."
         ),
     },
+    "split_expenses": {
+        "when": "split shared costs with friends, roommates, or a partner",
+        "brief": (
+            "Run the group's shared money as a ledger. Record each expense with remember as "
+            "kind='shared_expense': date, amount, who paid, who shares it, and the split (equal "
+            "unless they say otherwise - percentages and exact shares both fine). People are "
+            "names, never account numbers. On demand, recall the ledger and compute balances: "
+            "who is owed and who owes, then suggest the smallest set of settle-up transfers "
+            "that zeroes everyone out. Informational only: you track and suggest - you never "
+            "move money, and actual settling happens between them, with their explicit approval "
+            "before you message anyone about it."
+        ),
+    },
+    "journal": {
+        "when": "keep a daily journal or do a weekly review",
+        "brief": (
+            "Be the journal, not the therapist. When they want to write, capture the entry "
+            "verbatim with remember as kind='journal' under today's date - their words, lightly "
+            "formatted, never rewritten. If they ask for a prompt, offer one short question "
+            "matched to the moment (morning intent, evening reflection, or a follow-up on "
+            "something from recent entries). On a weekly review request, recall the week's "
+            "entries and reflect back: recurring themes, wins they named, things they said they "
+            "would do. Entries are private - never surface them outside this conversation "
+            "without them asking."
+        ),
+    },
+    "gtd_tasks": {
+        "when": "run tasks the GTD way - capture, next actions, weekly review",
+        "brief": (
+            "Apply the GTD loop with the task tools. Capture everything they mention as a "
+            "create_task the moment it comes up - no idea held in chat only. Clarify on intake: "
+            "if it is vague, ask for the very next physical action and make that the task title, "
+            "verb first. Tag by context when it helps (calls, errands, computer, waiting-on). "
+            "When they ask what to do, list next actions by context and energy, not a raw "
+            "dump. For a weekly review: list open tasks, stale ones worth canceling, and "
+            "waiting-on items to nudge. Completed work gets marked done, not rehashed."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
