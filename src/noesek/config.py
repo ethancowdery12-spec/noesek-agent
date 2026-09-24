@@ -77,6 +77,11 @@ class Settings(BaseSettings):
     # Business skill backbone (batch 2, item 86): seed curated KWP categories
     # into the skill library on startup. Idempotent; retired seeds stay retired.
     kwp_seed_enabled: bool = True
+    # AST code intelligence (item 89): tree-sitter symbol/call index behind a
+    # flag; off until the retrieval layer (PR b) lands. Requires the optional
+    # [codeintel] extra; missing grammars degrade to per-language skips.
+    code_intel_enabled: bool = False
+    code_intel_db: str = "code_intel.db"
     # Context
     history_limit: int = 24
     parallel_read_tools_enabled: bool = True
