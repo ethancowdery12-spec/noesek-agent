@@ -1,5 +1,7 @@
 """Sandbox backend contract tests. No live daemons or accounts: docker-py is
 tested against a fake SDK client, e2b against a fake sandbox factory."""
+import shutil
+
 import pytest
 
 from noesek.tools.sandbox_backends import (DockerCliBackend, DockerPyBackend,
@@ -7,6 +9,7 @@ from noesek.tools.sandbox_backends import (DockerCliBackend, DockerPyBackend,
                                            get_backend)
 
 
+@pytest.mark.skipif(shutil.which("docker") is None, reason="no docker binary - get_backend falls back to local-subprocess")
 async def test_default_backend_is_docker_cli():
     assert get_backend().name == "docker-cli"
 
