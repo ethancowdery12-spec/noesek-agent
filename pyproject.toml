@@ -67,12 +67,19 @@ dependencies = [
 
 [project.optional-dependencies]
 postgres = ["asyncpg==0.30.0"]
-test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1", "detect-secrets==1.5.0", "ofxparse==0.21", "fitparse==1.2.0"]
+test = ["pytest==8.4.2", "pytest-asyncio==0.26.0", "radon==6.0.1", "detect-secrets==1.5.0", "ofxparse==0.21", "fitparse==1.2.0", "tree-sitter==0.25.2", "tree-sitter-python==0.25.0", "tree-sitter-javascript==0.25.0", "tree-sitter-typescript==0.23.2", "tree-sitter-go==0.25.0", "tree-sitter-rust==0.24.2", "tree-sitter-java==0.23.5", "tree-sitter-c==0.24.2", "tree-sitter-cpp==0.23.4", "tree-sitter-ruby==0.23.1", "tree-sitter-c-sharp==0.23.5", "tree-sitter-php==0.24.1", "tree-sitter-bash==0.25.1", "tree-sitter-json==0.24.8"]
 stt = ["vosk==0.3.45"]
 docling = ["docling==2.129.0"]
 needle = ["cactus-needle==3.0.4"]
 finance = ["ofxparse==0.21"]
-fitness = ["fitparse==1.2.0"]  # batch 4 tranche 3: .FIT activity import (fit_import tool); MIT, (c) 2011-2020 David Cooper, (c) 2017-2020 Carey Metcalfe  # batch 4 tranche 2: OFX statement import (ofx_import tool); MIT, (c) 2009 Jerry Seutter
+fitness = ["fitparse==1.2.0"]  # batch 4 tranche 3: .FIT activity import (fit_import tool); MIT, (c) 2011-2020 David Cooper, (c) 2017-2020 Carey Metcalfe
+# item 89: AST code intelligence (tree-sitter symbol/call index for targeted
+# code retrieval). All 14 packages MIT, verified against on-disk LICENSE files
+# Sep 24 2026; versions match the exact set the indexer was tested against
+# (tree-sitter 0.25 runtime + grammar ABI range). Optional: the module degrades
+# to per-language skips when a grammar is absent and to code_graph's stdlib-ast
+# path when tree-sitter itself is absent.
+codeintel = ["tree-sitter==0.25.2", "tree-sitter-python==0.25.0", "tree-sitter-javascript==0.25.0", "tree-sitter-typescript==0.23.2", "tree-sitter-go==0.25.0", "tree-sitter-rust==0.24.2", "tree-sitter-java==0.23.5", "tree-sitter-c==0.24.2", "tree-sitter-cpp==0.23.4", "tree-sitter-ruby==0.23.1", "tree-sitter-c-sharp==0.23.5", "tree-sitter-php==0.24.1", "tree-sitter-bash==0.25.1", "tree-sitter-json==0.24.8"]  # batch 4 tranche 3: .FIT activity import (fit_import tool); MIT, (c) 2011-2020 David Cooper, (c) 2017-2020 Carey Metcalfe  # batch 4 tranche 2: OFX statement import (ofx_import tool); MIT, (c) 2009 Jerry Seutter
 
 [project.scripts]
 noesek = "noesek.cli_surface:main"
