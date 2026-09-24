@@ -151,6 +151,83 @@ PLAYBOOKS: dict[str, dict] = {
             "delivering, run seo_audit on the final HTML and fix every fail and warn, then re-run."
         ),
     },
+    "budget_tracker": {
+        "when": "log spending, watch a budget, or ask where the money went",
+        "brief": (
+            "Track money as a log, not a lecture. When the user mentions spending, record it with "
+            "remember as kind='expense' holding one JSON line: date, amount, category, note; use "
+            "today's date unless they say otherwise, and their currency. Categories stay theirs - "
+            "propose a short starter set once, then follow their usage. On demand, recall the rows "
+            "and report: period totals by category, biggest items, and pace vs any budget they set. "
+            "When they set a budget, store it as kind='budget'. Informational only: never move, "
+            "invest, or promise money; any action that spends or commits money needs their explicit "
+            "approval first. If they ask for advice, give patterns from their own numbers, not "
+            "generic financial tips, and say it is not professional financial advice."
+        ),
+    },
+    "fitness_log": {
+        "when": "log workouts by chat or voice and track training over time",
+        "brief": (
+            "Make logging a workout cost one message. Parse whatever they say - 'ran 5k in 26', "
+            "'3x10 bench 60kg' - into a structured entry and confirm it back in one line before "
+            "remember as kind='workout': date, activity, sets/reps/weight or distance/time, notes. "
+            "Unknown exercise names are fine; keep their words. On demand, recall and report: "
+            "sessions per week, volume or distance trends, and personal records when a logged "
+            "number beats every earlier one for that activity. Keep it encouraging, not preachy. "
+            "Informational only: no medical or injury advice - suggest a professional for pain, "
+            "dizziness, or conditions."
+        ),
+    },
+    "nutrition_lookup": {
+        "when": "check calories, macros, or what is in a food",
+        "brief": (
+            "Answer food questions with numbers and their source. Look items up with the web tools "
+            "(open databases such as Open Food Facts are API-only - never claim to have the whole "
+            "dataset offline), and say 'estimate' whenever the value is computed rather than looked "
+            "up. Give per-100g and per-serving where both are known. If they are logging intake, "
+            "remember as kind='nutrition' with date, item, amount, and the numbers. Informational "
+            "only: allergies, medical diets, and eating-disorder territory get a clear 'ask a "
+            "professional' - never a plan."
+        ),
+    },
+    "meal_planner": {
+        "when": "plan meals for the week or turn recipes into a shopping list",
+        "brief": (
+            "Plan around their constraints, not a template. First pin down: days to cover, people, "
+            "dietary rules, dislikes, time-per-meal, and what is already in the kitchen if they say. "
+            "Then propose a day-by-day plan with simple named meals; swap any they reject. Finish "
+            "with a consolidated shopping list grouped by store section, quantities merged across "
+            "meals. Offer to remember the plan and list. Recipe ideas come from their staples or "
+            "web sources - if a recipe site blocks scraping, say so and move to another source "
+            "rather than failing the whole plan."
+        ),
+    },
+    "spaced_repetition_tutor": {
+        "when": "memorize anything with flashcards that come back at the right time",
+        "brief": (
+            "Run lightweight spaced repetition in chat. Turn the material into atomic cards - one "
+            "fact per card, question front, answer back - and store the deck with remember as "
+            "kind='flashcard' JSON: front, back, plus due date and interval. Quiz one card at a "
+            "time; after each answer they self-grade (again / hard / good / easy). Schedule the "
+            "next review by grade: again = same session, otherwise grow the interval roughly "
+            "doubling on 'good', smaller for 'hard', larger for 'easy'. Start each study session "
+            "with recall of due cards. Report streaks and which cards keep failing, and offer to "
+            "rewrite a failing card into smaller ones."
+        ),
+    },
+    "trip_planner": {
+        "when": "plan a trip - where to stay, what to do, how the days fit",
+        "brief": (
+            "Plan the trip as days, not a pile of links. Pin down first: dates, party, budget "
+            "band, pace, and must-dos. Then build a day-by-day outline - area to stay (with why), "
+            "anchor activity per day, food near it, and realistic travel time between stops; group "
+            "sights by neighborhood so no day crosses the city twice. Use web sources for current "
+            "opening hours, prices, and weather; if a source fails, say so and continue from "
+            "others. Money gate: booking or buying anything needs their explicit approval with the "
+            "total shown first - planning is free, committing is not. Offer to remember the "
+            "itinerary."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
