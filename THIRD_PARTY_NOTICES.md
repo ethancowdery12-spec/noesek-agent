@@ -42,6 +42,7 @@ Hermes Agent's public command documentation.
 - MCP Python SDK (mcp) - MIT - https://github.com/modelcontextprotocol/python-sdk
 - croniter - MIT - https://github.com/pallets-eco/croniter
 - duckdb - MIT - https://github.com/duckdb/duckdb (SQL-over-files chat tool; pinned 1.4.3)
+- detect-secrets - Apache-2.0 - https://github.com/Yelp/detect-secrets (secret-scan gate scripts/secret_scan.py; pinned 1.5.0, test extra)
 
 Hermes Agent, Copyright (c) 2025 Nous Research, is licensed under the MIT
 License. Canonical source and license audited at commit
