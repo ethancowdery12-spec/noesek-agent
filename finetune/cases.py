@@ -23,6 +23,8 @@ TEST_CASES = [
     _c("Read my cookies for github.com so we can debug the login", ["browser_cookies"], "positive"),
     _c("List which cookies are stored for example.com", ["browser_cookies"], "positive"),
     _c("What's on my calendar today?", ["calendar_read"], "positive"),
+    _c("What day of the week is 45 days from March 18?", ["date_math"], "positive"),
+    _c("How many weeks until December 25?", ["date_math"], "positive"),
     _c("Do I have any meetings this week?", ["calendar_read"], "positive"),
     _c("Cancel background task 42", ["cancel_task"], "positive"),
     _c("Kill that reminder task, the id is 7", ["cancel_task"], "positive"),
