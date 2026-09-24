@@ -44,6 +44,24 @@ class Memory(Base):
     recall_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
+class ConnectorGrant(Base):
+    __tablename__ = "connector_grants"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    connector: Mapped[str] = mapped_column(String(64))
+    chat_id: Mapped[str] = mapped_column(String(128))
+    access_token: Mapped[str] = mapped_column(Text)
+    scopes: Mapped[list] = mapped_column(JSON, default=list)
+    obtained_at: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (UniqueConstraint("connector", "chat_id"),)
+
+class ConnectorState(Base):
+    __tablename__ = "connector_states"
+    state: Mapped[str] = mapped_column(String(256), primary_key=True)
+    connector: Mapped[str] = mapped_column(String(64))
+    chat_id: Mapped[str] = mapped_column(String(128))
+    redirect_uri: Mapped[str] = mapped_column(Text, default="")
+    issued_at: Mapped[int] = mapped_column(Integer)
+
 class BrowserStateRow(Base):
     """Singleton row: Fernet-encrypted Playwright storage_state (item 56)."""
     __tablename__ = "browser_state"
