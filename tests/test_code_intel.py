@@ -119,3 +119,120 @@ def test_parse_source_is_pure_and_tolerant():
     out2 = parse_source("x.unknownext", b"whatever")
     assert out2 == {"symbols": [], "calls": [], "imports": [], "parsed": False,
                    "has_error": False}
+
+
+# --- M2: retrieval ----------------------------------------------------------
+
+def test_retrieve_seed_and_neighborhood(repo, tmp_path):
+    from noesek.core.code_intel import format_code_context, retrieve
+    db = str(tmp_path / "idx.db")
+    index_root(repo, db)
+    ret = retrieve(db, "how does alpha work", root=repo)
+    seed_quals = [s["qualname"] for s in ret["seeds"]]
+    assert "a.alpha" in seed_quals
+    neighbor_quals = [s["qualname"] for s in ret["neighbors"]]
+    # 1-hop: caller (Calc.mul) and callees (beta, helper) of alpha
+    assert "a.Calc.mul" in neighbor_quals
+    assert "b.beta" in neighbor_quals
+    assert "c.helper" in neighbor_quals
+    # slices carry only the symbol's line range, not the whole file
+    alpha_slice = next(sl for sl in ret["slices"] if sl["qualname"] == "a.alpha")
+    assert "def alpha" in alpha_slice["text"]
+    assert "class Calc" not in alpha_slice["text"]
+    assert alpha_slice["start_line"] == 5
+    ctx = format_code_context(ret)
+    assert "a.alpha" in ctx and "def alpha" in ctx
+
+
+def test_retrieve_graceful_empty(tmp_path):
+    from noesek.core.code_intel import format_code_context, retrieve
+    assert retrieve(str(tmp_path / "nope.db"), "anything") == {
+        "seeds": [], "neighbors": [], "slices": []}
+    assert format_code_context({"slices": []}) == ""
+
+
+def test_retrieve_unmatched_query_returns_no_seeds(repo, tmp_path):
+    from noesek.core.code_intel import retrieve
+    db = str(tmp_path / "idx.db")
+    index_root(repo, db)
+    ret = retrieve(db, "zzzqqq nonexistent", root=repo)
+    assert ret["seeds"] == []
+    assert ret["slices"] == []
+
+
+# --- M2: context injection + prefix stability -------------------------------
+
+async def test_injection_appends_tail_keeps_head_byte_identical(db, tmp_path, monkeypatch):
+    from noesek.config import settings
+    from noesek.core.context import SYSTEM, assemble
+    from noesek.core.code_intel import index_root
+    from noesek.db import Conversation, Session
+    db_path = str(tmp_path / "idx.db")
+    index_root(tmp_path, db_path)  # empty index: flag on must not change output
+    monkeypatch.setattr(settings, "code_intel_enabled", False)
+    async with Session() as s:
+        c = Conversation(channel="cli", external_user_id="u"); s.add(c); await s.commit()
+        msgs_off = await assemble(s, c.id, query="how does alpha work")
+    monkeypatch.setattr(settings, "code_intel_enabled", True)
+    monkeypatch.setattr(settings, "code_intel_db", db_path)
+    async with Session() as s:
+        msgs_on = await assemble(s, c.id, query="how does alpha work")
+    head_off, head_on = msgs_off[0]["content"], msgs_on[0]["content"]
+    # SYSTEM constant is a byte-identical prefix in both, flag on or off
+    assert head_off.startswith(SYSTEM)
+    assert head_on.startswith(SYSTEM)
+    # empty index -> nothing appended: outputs identical
+    assert head_on == head_off
+
+
+async def test_injection_appends_code_section_at_tail(db, repo, tmp_path, monkeypatch):
+    from noesek.config import settings
+    from noesek.core.context import assemble
+    from noesek.core.code_intel import index_root
+    from noesek.db import Conversation, Session
+    db_path = str(tmp_path / "idx.db")
+    index_root(repo, db_path)
+    monkeypatch.setattr(settings, "code_intel_enabled", True)
+    monkeypatch.setattr(settings, "code_intel_db", db_path)
+    monkeypatch.setattr(settings, "code_intel_root", str(repo))
+    async with Session() as s:
+        c = Conversation(channel="cli", external_user_id="u"); s.add(c); await s.commit()
+        msgs = await assemble(s, c.id, query="how does alpha work")
+    content = msgs[0]["content"]
+    assert "Relevant code (AST symbol retrieval" in content
+    assert "def alpha" in content
+    # the code section lands at the tail: nothing authored after it
+    assert content.rstrip().endswith("return beta() + helper()") or \
+           "Relevant code" in content[-2000:]
+
+
+# --- M2: tool surface --------------------------------------------------------
+
+async def test_tool_search_callers_reindex_stats(repo, tmp_path, monkeypatch):
+    from noesek.config import settings
+    from noesek.tools.code_intel import CodeIntelInput, code_intel
+    monkeypatch.setattr(settings, "code_intel_db", str(tmp_path / "idx.db"))
+    monkeypatch.setattr(settings, "code_intel_root", str(repo))
+    out = await code_intel(CodeIntelInput(action="reindex"))
+    assert out["result"]["symbols"] >= 8
+    out = await code_intel(CodeIntelInput(action="stats"))
+    assert out["result"]["indexed"] is True
+    out = await code_intel(CodeIntelInput(action="search", query="alpha work"))
+    quals = [m["qualname"] for m in out["result"]["matches"]]
+    assert "a.alpha" in quals
+    out = await code_intel(CodeIntelInput(action="callers", symbol="alpha"))
+    assert "a.Calc.mul" in out["result"]
+    out = await code_intel(CodeIntelInput(action="callees", symbol="alpha"))
+    assert "b.beta" in out["result"]
+    out = await code_intel(CodeIntelInput(action="bogus"))
+    assert "error" in out
+
+
+async def test_tool_graceful_without_index(tmp_path, monkeypatch):
+    from noesek.config import settings
+    from noesek.tools.code_intel import CodeIntelInput, code_intel
+    monkeypatch.setattr(settings, "code_intel_db", str(tmp_path / "nope.db"))
+    out = await code_intel(CodeIntelInput(action="stats"))
+    assert out["result"]["indexed"] is False
+    out = await code_intel(CodeIntelInput(action="callers", symbol="x"))
+    assert "error" in out
