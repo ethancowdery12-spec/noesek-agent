@@ -1,0 +1,1006 @@
+[
+  {
+    "name": "adversarial_review",
+    "description": "Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",
+    "parameters": {
+      "$defs": {
+        "Finding": {
+          "properties": {
+            "claim": {
+              "title": "Claim",
+              "type": "string"
+            },
+            "evidence": {
+              "default": "",
+              "title": "Evidence",
+              "type": "string"
+            },
+            "severity": {
+              "default": "medium",
+              "title": "Severity",
+              "type": "string"
+            }
+          },
+          "required": [
+            "claim"
+          ],
+          "title": "Finding",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "task_type": {
+          "default": "general",
+          "title": "Task Type",
+          "type": "string"
+        },
+        "subject_summary": {
+          "title": "Subject Summary",
+          "type": "string"
+        },
+        "findings": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/Finding"
+          },
+          "title": "Findings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "subject_summary"
+      ],
+      "title": "AdversarialReviewInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "browser_cookies",
+    "description": "Persistent browser sessions: status (stored/enabled sites, counts only), enable/disable a site (the per-site approval before any logged-in session is used on a browse run), revoke, clear, audit. Imports never happen here - cookie exports are posted directly to the /computer/browser-state/import endpoint; cookie values are never shown or accepted in chat.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "status | enable | disable | revoke | clear | audit | import-help",
+          "title": "Action",
+          "type": "string"
+        },
+        "domain": {
+          "default": "",
+          "description": "site domain for enable/disable/revoke, e.g. github.com",
+          "maxLength": 255,
+          "title": "Domain",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "BrowserCookiesInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "calendar_read",
+    "description": "List upcoming events on the chat's primary Google Calendar.",
+    "parameters": {
+      "properties": {
+        "max_results": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Max Results",
+          "type": "integer"
+        }
+      },
+      "title": "ConnectorReadInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "cancel_task",
+    "description": "Cancel a pending background task by id.",
+    "parameters": {
+      "properties": {
+        "task_id": {
+          "minimum": 1,
+          "title": "Task Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "task_id"
+      ],
+      "title": "CancelTaskInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "code_graph",
+    "description": "Answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",
+    "parameters": {
+      "properties": {
+        "query": {
+          "description": "callers | callees | importers | deps | outline | stats",
+          "title": "Query",
+          "type": "string"
+        },
+        "symbol": {
+          "default": "",
+          "description": "function, class, or module name (not needed for stats)",
+          "maxLength": 200,
+          "title": "Symbol",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "CodeGraphInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_file",
+    "description": "Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",
+    "parameters": {
+      "properties": {
+        "name": {
+          "description": "File name with extension, e.g. report.md",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "content": {
+          "description": "Full text content of the file",
+          "maxLength": 5000000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "content"
+      ],
+      "title": "CreateFileInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "create_task",
+    "description": "Create a durable background task.",
+    "parameters": {
+      "properties": {
+        "title": {
+          "maxLength": 256,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "payload": {
+          "additionalProperties": true,
+          "title": "Payload",
+          "type": "object"
+        },
+        "run_in_seconds": {
+          "default": 0,
+          "maximum": 604800,
+          "minimum": 0,
+          "title": "Run In Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "title"
+      ],
+      "title": "CreateTaskInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "delegate_task",
+    "description": "Delegate an instruction to a specialized background worker (researcher, coder, operator, evaluator).",
+    "parameters": {
+      "properties": {
+        "worker": {
+          "enum": [
+            "researcher",
+            "coder",
+            "operator",
+            "evaluator"
+          ],
+          "title": "Worker",
+          "type": "string"
+        },
+        "instruction": {
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "run_in_seconds": {
+          "default": 0,
+          "maximum": 604800,
+          "minimum": 0,
+          "title": "Run In Seconds",
+          "type": "integer"
+        },
+        "notify": {
+          "default": true,
+          "description": "Send the worker result back to this conversation",
+          "title": "Notify",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "worker",
+        "instruction"
+      ],
+      "title": "DelegateInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "design_system",
+    "description": "Design-system skills: list/get schema'd themes (color, type, spacing, radius tokens) and render a self-contained styled HTML deliverable (title, subtitle, sections) into the file store.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "list | get | render",
+          "title": "Action",
+          "type": "string"
+        },
+        "theme": {
+          "default": "ink",
+          "description": "one of: ink, paper, signal",
+          "title": "Theme",
+          "type": "string"
+        },
+        "title": {
+          "default": "Untitled",
+          "maxLength": 120,
+          "title": "Title",
+          "type": "string"
+        },
+        "subtitle": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Subtitle",
+          "type": "string"
+        },
+        "sections": {
+          "description": "render: 'Heading | body text' entries",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Sections",
+          "type": "array"
+        },
+        "file_name": {
+          "default": "page.html",
+          "description": "render: output name in the file store",
+          "title": "File Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "DesignInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "exact_solve",
+    "description": "Solve exact-procedure tasks with code instead of in-head simulation (reasoning models collapse on long exact traces - Apple's Illusion of Thinking, arXiv:2506.06941). Use for puzzles, long arithmetic, state tracking, multi-step derivations: pass a small Python solver that computes and self-verifies, prints STATUS + ANSWER; a solver proving infeasibility reports UNSOLVABLE. Returns only the verified result plus a short digest.",
+    "parameters": {
+      "properties": {
+        "goal": {
+          "description": "The exact question to answer, e.g. 'minimum moves to solve this Tower of Hanoi state with 8 disks'",
+          "maxLength": 1000,
+          "minLength": 3,
+          "title": "Goal",
+          "type": "string"
+        },
+        "code": {
+          "description": "Python program that COMPUTES the answer and self-verifies it. Must print exactly one 'STATUS: VERIFIED|UNVERIFIED|UNSOLVABLE' line and one 'ANSWER: <answer>' line. When UNSOLVABLE, print a proof or the exhausted-search bound as evidence.",
+          "maxLength": 20000,
+          "minLength": 10,
+          "title": "Code",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 20,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "goal",
+        "code"
+      ],
+      "title": "ExactSolveInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "forget",
+    "description": "Deactivate one durable memory by id.",
+    "parameters": {
+      "properties": {
+        "memory_id": {
+          "minimum": 1,
+          "title": "Memory Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "memory_id"
+      ],
+      "title": "ForgetInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "generate_variants",
+    "description": "Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",
+    "parameters": {
+      "properties": {
+        "task": {
+          "description": "What to create, e.g. 'three tagline options for a dog-sitting app called Biscuit'",
+          "maxLength": 2000,
+          "minLength": 3,
+          "title": "Task",
+          "type": "string"
+        },
+        "n": {
+          "default": 3,
+          "description": "How many distinct candidates to generate (2-5)",
+          "maximum": 5,
+          "minimum": 2,
+          "title": "N",
+          "type": "integer"
+        },
+        "context": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional audience/tone/constraints the candidates must fit",
+          "title": "Context"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "title": "GenerateVariantsInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "geo_audit",
+    "description": "Audit one HTML page for citability inside AI answers (geo-optimizer-skill method families, MIT, own-words; GEO research line arXiv 2311.09735): outbound source citations, statistics, quotations, answer-ready lead, question-form headings, extractable lists/tables, JSON-LD entity clarity with sameAs, freshness dates, AI-crawler access in robots.txt, llms.txt. Pass the page HTML plus robots_txt/llms_txt when available. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Companion to seo_audit - run both on website/landing deliverables.",
+    "parameters": {
+      "properties": {
+        "html": {
+          "description": "The page's full HTML source",
+          "maxLength": 400000,
+          "minLength": 20,
+          "title": "Html",
+          "type": "string"
+        },
+        "robots_txt": {
+          "default": "",
+          "description": "Optional: the site's robots.txt content, for AI-crawler access checks",
+          "maxLength": 100000,
+          "title": "Robots Txt",
+          "type": "string"
+        },
+        "llms_txt": {
+          "default": "",
+          "description": "Optional: the site's llms.txt content, if it exists",
+          "maxLength": 100000,
+          "title": "Llms Txt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "html"
+      ],
+      "title": "GeoAuditInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "github_notifications",
+    "description": "List unread GitHub notifications for the chat's connected GitHub account.",
+    "parameters": {
+      "properties": {
+        "max_results": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Max Results",
+          "type": "integer"
+        }
+      },
+      "title": "ConnectorReadInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "gmail_read",
+    "description": "Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",
+    "parameters": {
+      "properties": {
+        "max_results": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Max Results",
+          "type": "integer"
+        }
+      },
+      "title": "ConnectorReadInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "gmail_send",
+    "description": "Send one plain-text email from the chat's connected Google account. Always requires user approval before sending.",
+    "parameters": {
+      "properties": {
+        "to": {
+          "maxLength": 320,
+          "minLength": 3,
+          "title": "To",
+          "type": "string"
+        },
+        "subject": {
+          "default": "",
+          "maxLength": 998,
+          "title": "Subject",
+          "type": "string"
+        },
+        "body": {
+          "maxLength": 50000,
+          "minLength": 1,
+          "title": "Body",
+          "type": "string"
+        }
+      },
+      "required": [
+        "to",
+        "body"
+      ],
+      "title": "GmailSendInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "handoff",
+    "description": "Store a session handoff recap; the latest handoff is always shown in this conversation's context.",
+    "parameters": {
+      "properties": {
+        "content": {
+          "description": "session handoff recap for future sessions",
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "HandoffInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "humanize",
+    "description": "Rewrite AI-sounding text so it reads like a person wrote it: strips filler and em dashes, swaps dead-weight verbs, flags inflated vocabulary. Does not change facts.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "HumanizeInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "library_docs",
+    "description": "Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",
+    "parameters": {
+      "properties": {
+        "library": {
+          "description": "library or framework name, e.g. 'next.js' or 'sqlalchemy'",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Library",
+          "type": "string"
+        },
+        "question": {
+          "description": "what you need from its docs",
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Question",
+          "type": "string"
+        },
+        "max_chars": {
+          "default": 4000,
+          "maximum": 12000,
+          "minimum": 500,
+          "title": "Max Chars",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "library",
+        "question"
+      ],
+      "title": "LibraryDocsInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "linkedin",
+    "description": "LinkedIn via the official API: profile (who am I) or share (post text as the member, PUBLIC or CONNECTIONS). Activates only when NOESEK_LINKEDIN_ACCESS_TOKEN is set; otherwise explains setup.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "profile | share",
+          "title": "Action",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "description": "share: the post text",
+          "maxLength": 3000,
+          "title": "Text",
+          "type": "string"
+        },
+        "visibility": {
+          "default": "CONNECTIONS",
+          "description": "share: PUBLIC or CONNECTIONS",
+          "title": "Visibility",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "LinkedInInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "list_tasks",
+    "description": "List this conversation's background tasks and their status.",
+    "parameters": {
+      "properties": {
+        "status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "pending, running, completed, failed, dead, or cancelled",
+          "title": "Status"
+        }
+      },
+      "title": "ListTasksInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "memory_get",
+    "description": "Fetch the full content of durable memories by id (ids come from recall previews).",
+    "parameters": {
+      "properties": {
+        "ids": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ids"
+      ],
+      "title": "MemoryGetInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "office_doc",
+    "description": "Read, create, and edit Word/Excel/PowerPoint files in the agent file store through the OfficeCLI binary (view/get outline or JSON; create/add/set/remove/close). Degrades cleanly when the officecli binary is not installed.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "view | get | create | add | set | remove | close",
+          "title": "Action",
+          "type": "string"
+        },
+        "file": {
+          "description": "file name in the agent file store, ending .docx/.xlsx/.pptx",
+          "title": "File",
+          "type": "string"
+        },
+        "path": {
+          "default": "",
+          "description": "element path for get/add/set/remove, e.g. /slide[1]/shape[1]; for view: outline or html (default outline)",
+          "maxLength": 300,
+          "title": "Path",
+          "type": "string"
+        },
+        "props": {
+          "description": "key=value properties for add/set, e.g. title=\"Q4 Report\"",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Props",
+          "type": "array"
+        },
+        "as_json": {
+          "default": false,
+          "description": "get: request structured JSON output",
+          "title": "As Json",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "action",
+        "file"
+      ],
+      "title": "OfficeDocInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "optimize_prompt",
+    "description": "Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",
+    "parameters": {
+      "properties": {
+        "prompt": {
+          "description": "The rough instruction or prompt to tighten",
+          "maxLength": 4000,
+          "minLength": 3,
+          "title": "Prompt",
+          "type": "string"
+        },
+        "target": {
+          "default": "general",
+          "description": "Optional hint: coding, writing, research, data, general",
+          "maxLength": 60,
+          "title": "Target",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt"
+      ],
+      "title": "OptimizePromptInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "playbook",
+    "description": "Load a working brief for a high-value workflow: mock interview, both-sides debate, writing tutor, step-by-step teacher, structured critic. Use list to see them, load to adopt one for this conversation.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "list | load",
+          "title": "Action",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "description": "playbook to load; one of: interview_coach, debate, writing_tutor, teacher, terse, spec_first, tdd_flow, verify_done, storyscope, reason_route, seo_web, critic",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "PlaybookInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "recall",
+    "description": "Search durable memory for facts relevant to a query. Returns a compact index (id/kind/preview) - call memory_get with ids for full content.",
+    "parameters": {
+      "properties": {
+        "query": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "limit": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "RecallInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "remember",
+    "description": "Store a durable user-approved fact or preference.",
+    "parameters": {
+      "properties": {
+        "content": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        },
+        "kind": {
+          "default": "note",
+          "description": "note, fact, preference, episode, handoff, or lesson",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "RememberInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "rewrite_natural",
+    "description": "Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "RewriteNaturalInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "scrub",
+    "description": "Clean the user's own text or files of hidden metadata: strips invisible watermark characters from text, and removes EXIF/document-properties metadata from their own images, Office docs, and PDFs (PDF needs optional pypdf). Creates a -clean copy; originals untouched.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 5000000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Text to clean of invisible watermark characters",
+          "title": "Text"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Name of a file in the download store to clean (image, Office doc, PDF, or text file)",
+          "title": "File"
+        }
+      },
+      "title": "ScrubInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "security_audit",
+    "description": "Run a bounded security audit over our own source layer: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) plus route inventory; findings carry file:line evidence.",
+    "parameters": {
+      "properties": {
+        "root": {
+          "default": "",
+          "title": "Root",
+          "type": "string"
+        },
+        "include_vendor": {
+          "default": false,
+          "title": "Include Vendor",
+          "type": "boolean"
+        }
+      },
+      "title": "SecurityAuditInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "seo_audit",
+    "description": "Audit one HTML page for rankability (claude-seo checks, MIT, own-words): title/meta bounds, single h1, heading outline, lang/charset/viewport, canonical, noindex, mixed content, og/twitter cards, JSON-LD validity + deprecated types, content depth, image alt coverage. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Run on any website/landing deliverable before shipping.",
+    "parameters": {
+      "properties": {
+        "html": {
+          "description": "The page's full HTML source",
+          "maxLength": 400000,
+          "minLength": 20,
+          "title": "Html",
+          "type": "string"
+        },
+        "page_type": {
+          "default": "other",
+          "description": "homepage | service | blog | product | location | other - used for content-depth floors",
+          "title": "Page Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "html"
+      ],
+      "title": "SeoAuditInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "speak",
+    "description": "Create a voice note (offline text-to-speech) the user can download as a WAV.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "description": "What the voice note should say",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "name": {
+          "default": "voice-note.wav",
+          "maxLength": 128,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "SpeakInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "story_critique",
+    "description": "Critique a fiction draft against the documented AI-narrative defaults (StoryScope, COLM 2026): stated themes, tidy endings, linear time, single-track plots, clean heroes, bodily emotion, vague references, flat escalation, debate dialogue, sealed narration. Returns per-check ai/human/mixed verdicts with evidence and fixes.",
+    "parameters": {
+      "properties": {
+        "story": {
+          "description": "The fiction draft (or excerpt) to critique",
+          "maxLength": 20000,
+          "minLength": 50,
+          "title": "Story",
+          "type": "string"
+        },
+        "focus": {
+          "default": "",
+          "description": "Optional: what to weight most, e.g. 'the ending' or 'dialogue'",
+          "maxLength": 500,
+          "title": "Focus",
+          "type": "string"
+        }
+      },
+      "required": [
+        "story"
+      ],
+      "title": "StoryCritiqueInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "supersede_memory",
+    "description": "Replace one durable memory with a corrected version (old one is kept, marked superseded).",
+    "parameters": {
+      "properties": {
+        "memory_id": {
+          "minimum": 1,
+          "title": "Memory Id",
+          "type": "integer"
+        },
+        "content": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        },
+        "kind": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "defaults to the superseded memory's kind",
+          "title": "Kind"
+        }
+      },
+      "required": [
+        "memory_id",
+        "content"
+      ],
+      "title": "SupersedeInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "switch_model",
+    "description": "Switch this chat's model to another configured model (configured: ), or 'default' to clear the override (back to ).",
+    "parameters": {
+      "properties": {
+        "model": {
+          "description": "a configured model name, or 'default' to clear this chat's override",
+          "maxLength": 128,
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model"
+      ],
+      "title": "SwitchModelInput",
+      "type": "object"
+    }
+  }
+]
