@@ -50,6 +50,8 @@ class ConnectorGrant(Base):
     connector: Mapped[str] = mapped_column(String(64))
     chat_id: Mapped[str] = mapped_column(String(128))
     access_token: Mapped[str] = mapped_column(Text)
+    refresh_token: Mapped[str] = mapped_column(Text, default="")
+    expires_at: Mapped[int] = mapped_column(Integer, default=0)
     scopes: Mapped[list] = mapped_column(JSON, default=list)
     obtained_at: Mapped[int] = mapped_column(Integer)
     __table_args__ = (UniqueConstraint("connector", "chat_id"),)
@@ -249,6 +251,10 @@ async def init_db(eng: AsyncEngine | None = None):
 
 # Columns added after v0.1, applied to pre-existing databases by migrate().
 _COLUMN_UPGRADES = {
+    "connector_grants": {
+        "refresh_token": "TEXT NOT NULL DEFAULT ''",
+        "expires_at": "INTEGER NOT NULL DEFAULT 0",
+    },
     "conversations": {
         "title": "VARCHAR(200)",
         "model_override": "VARCHAR(128)",
