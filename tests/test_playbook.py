@@ -6,7 +6,8 @@ def test_list_and_load():
     out = playbook(PlaybookInput(action="list"))
     assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
                                     "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner",
-                                    "birthdays", "split_expenses", "journal", "gtd_tasks"}
+                                    "birthdays", "split_expenses", "journal", "gtd_tasks",
+                                    "tax_prep", "recipe_import"}
     loaded = playbook(PlaybookInput(action="load", name="debate"))
     assert loaded["loaded"] == "debate" and len(loaded["brief"]) > 100
 
@@ -88,3 +89,13 @@ def test_tranche4_briefs_carry_guardrails():
     assert "kind='journal'" in b and "never rewritten" in b and "private" in b
     b = PLAYBOOKS["gtd_tasks"]["brief"].lower()
     assert "next" in b and "weekly review" in b
+
+
+def test_tranche6_briefs_carry_guardrails():
+    # batch 4 tranche 6: tax_prep / recipe_import.
+    b = PLAYBOOKS["tax_prep"]["brief"].lower()
+    assert "estimate" in b and "not tax advice" in b and "never" in b and "filed" in b
+    assert "cpa" in b and "web sources" in b  # current-year rules never from memory
+    b = PLAYBOOKS["recipe_import"]["brief"].lower()
+    assert "blocks fetching" in b and "paste" in b  # scraper graceful-failure
+    assert "kind='recipe'" in b
