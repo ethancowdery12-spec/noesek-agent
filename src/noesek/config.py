@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     # it beats deterministic extraction on evals/entity_fixtures.py (the IBM
     # VLDB 2026 layer-utility gate). Falls back to deterministic on any error.
     llm_entity_extraction_enabled: bool = False
+    # Multi-hop graph recall (HippoRAG pattern, own-words): recursive walk past
+    # the 1-hop neighborhood with per-depth decay. decay(0)=decay(1)=1 keeps
+    # the item-65 frontier values identical; deeper hops add graded boosts.
+    graph_walk_depth: int = 3
+    graph_walk_decay: float = 0.5
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 1_000_000
     # Context
