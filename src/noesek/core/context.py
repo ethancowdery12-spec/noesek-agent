@@ -116,6 +116,13 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
     ).order_by(Memory.created_at.desc()).limit(1))).scalar_one_or_none()
     if latest_handoff and latest_handoff.id not in {p.id for p in picked}:
         picked = ([latest_handoff] + picked)[:settings.memory_limit]
+    # Rolling condensation (skills batch 3): always pinned, like the handoff -
+    # it is the authoritative digest of messages compaction omitted.
+    condensation = None
+    if settings.condenser_enabled:
+        condensation = (await session.execute(select(Memory).where(
+            Memory.conversation_id==conversation_id, Memory.active==True, Memory.kind=="condensation"
+        ).order_by(Memory.created_at.desc()).limit(1))).scalar_one_or_none()
     mem = "\n".join(f"- [{m.kind}#{m.id}] {m.content}" for m in picked)
     approvals = (await session.execute(select(Approval).where(Approval.conversation_id==conversation_id).order_by(Approval.created_at.desc()).limit(6))).scalars().all()
     approval_state = ""
@@ -126,6 +133,9 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
             alines.append(f"- #{a.id} {a.tool_name} {aargs} -> {a.status}")
         approval_state = "\nLive approval state (authoritative, oldest first):\n" + "\n".join(alines)
     system = SYSTEM + (f"\nRelevant durable memory:\n{mem}" if mem else "") + approval_state
+    if condensation:
+        system += ("\nEarlier conversation (rolling condensation - authoritative for omitted "
+                   "messages; say what you are missing instead of guessing):\n" + condensation.content)
     total_messages = await session.scalar(select(func.count(Message.id)).where(Message.conversation_id==conversation_id)) or 0
     out = [{"role":"system","content":system}] + [{"role":m.role,"content":m.content} for m in history]
     out, removed = trim_to_budget(out, char_budget)
