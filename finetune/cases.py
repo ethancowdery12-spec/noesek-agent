@@ -90,6 +90,8 @@ TEST_CASES = [
     _c("Go back to the default model", ["switch_model"], "positive"),
     _c("Find papers about retrieval augmented generation", ["literature_search"], "positive"),
     _c("Search arXiv for the illusion of thinking paper", ["literature_search"], "positive"),
+    _c("Total up the amounts in sales.csv by region", ["duckdb_query"], "positive"),
+    _c("Join the two CSVs I uploaded and show the top 10 rows", ["duckdb_query"], "positive"),
     # --- multi-tool ---
     _c("What's on my calendar today, and what emails came in?", ["calendar_read", "gmail_read"], "multi"),
     _c("What tasks are running and what's on my calendar?", ["calendar_read", "list_tasks"], "multi"),
