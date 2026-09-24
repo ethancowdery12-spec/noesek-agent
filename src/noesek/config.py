@@ -81,7 +81,10 @@ class Settings(BaseSettings):
     # wrong picks carried 0.69-0.99 confidence with no separating threshold
     # and picks varied run to run, so no safe auto-execute threshold exists.
     # Revisit with tuned weights (needle weights= + needle.environments).
-    needle_enabled: bool = True
+    # OFF by default since Sep 23 (owner call: "remove it entirely for now"
+    # after the tune lane was deferred). Re-enable is one env flip:
+    # NOESEK_NEEDLE_ENABLED=1. Modules stay; nothing else was ripped out.
+    needle_enabled: bool = False
     needle_min_confidence: float = 0.75
     needle_auto_execute: bool = False
     needle_timeout_seconds: float = 20.0  # wall-clock guard around one route()
