@@ -53,6 +53,27 @@ def run(cases, weights=None, max_steps=3):
     return results
 
 
+def per_tool_report(results):
+    """Per-tool trust table for the free auto-execute gate: for every tool,
+    hits (proposed when expected), misses (expected but not proposed) and
+    false fires (proposed when NOT expected, with the query as evidence).
+    A tool qualifies for auto-execute only with high hit rate AND zero
+    false fires on critical-leaning traffic - see docs/NEEDLE_TUNING.md."""
+    table = {}
+    for r in results:
+        expected = set(r["calls"])
+        got = set(r["got"])
+        for name in expected | got:
+            row = table.setdefault(name, {"expected": 0, "hit": 0, "false_fire": []})
+        for name in expected:
+            table[name]["expected"] += 1
+            if name in got:
+                table[name]["hit"] += 1
+        for name in got - expected:
+            table[name]["false_fire"].append(r["query"][:80])
+    return table
+
+
 def verdict(results):
     total = len(results)
     passed = sum(1 for r in results if r["passed"])
@@ -83,6 +104,7 @@ def main() -> None:
         cases = cases[: args.limit]
     results = run(cases, weights=args.weights)
     v = verdict(results)
+    v["per_tool"] = per_tool_report(results)
     print(json.dumps(v, indent=2))
     if args.json:
         with open(args.json, "w", encoding="utf-8") as f:
