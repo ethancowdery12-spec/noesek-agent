@@ -47,6 +47,13 @@ def _needle_module():
     return needle
 
 
+def _weights_path():
+    """Tuned needle weights (.cact) to load instead of the base model, or
+    None for base. Setting NOESEK_NEEDLE_WEIGHTS swaps the engine; the cache
+    key includes it so the next route() rebuilds once in the background."""
+    return os.environ.get("NOESEK_NEEDLE_WEIGHTS", "").strip() or None
+
+
 def _stub_for(spec: ToolSpec, recorder=None):
     """Synthesize one annotated python function per ToolSpec so needle's
     constrained decoding matches the tool's real input schema. The stub is
@@ -100,7 +107,7 @@ _engine_building = False
 def _build_engine_async(needle, stubs, key):
     global _engine_building
     try:
-        engine = needle.Needle(tools=stubs)
+        engine = needle.Needle(tools=stubs, weights=_weights_path())
         _engine_cache.clear()
         _engine_cache.update({"engine": engine, "key": key, "stubs": stubs})
     except Exception:
@@ -155,7 +162,7 @@ def route(text: str, specs: list[ToolSpec]) -> dict | None:
     if not stubs:
         return None
     global _engine_building
-    key = tuple(s.__name__ for s in stubs)
+    key = (_weights_path(),) + tuple(s.__name__ for s in stubs)
     try:
         needle = _needle_module()
         if _engine_cache.get("key") != key:
