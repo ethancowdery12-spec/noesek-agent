@@ -25,6 +25,13 @@ TEST_CASES = [
     _c("What's on my calendar today?", ["calendar_read"], "positive"),
     _c("What day of the week is 45 days from March 18?", ["date_math"], "positive"),
     _c("How many weeks until December 25?", ["date_math"], "positive"),
+    _c("What's 18% of 240?", ["calc"], "positive"),
+    _c("How much is 37 x 412?", ["calc"], "positive"),
+    _c("Calculate compound interest on 10000 at 5% for 3 years", ["calc"], "positive"),
+    _c("What is a 15 percent tip on 86 dollars?", ["calc"], "positive"),
+    _c("Compute the square root of 2 million", ["calc"], "positive"),
+    _c("Calculate the monthly payment on a 300k mortgage at 6.5% for 30 years", ["calc"], "positive"),
+
     _c("Do I have any meetings this week?", ["calendar_read"], "positive"),
     _c("Cancel background task 42", ["cancel_task"], "positive"),
     _c("Kill that reminder task, the id is 7", ["cancel_task"], "positive"),
