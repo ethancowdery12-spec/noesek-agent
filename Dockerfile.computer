@@ -17,7 +17,7 @@ COPY vendor ./vendor
 # Eval harness ships in the image so staging/prod shells can run the keyed
 # entity-extraction eval (python -m evals.entity_extraction) without a repo mount.
 COPY evals ./evals
-RUN pip install ".[stt,postgres,needle,finance,fitness]" \
+RUN pip install ".[stt,postgres,needle,finance,fitness,codeintel]" \
  && playwright install --with-deps chromium \
  && chmod -R a+rX /ms-playwright
 
@@ -29,7 +29,8 @@ ENV NOESEK_VOSK_MODEL=/opt/vosk-model-small-en-us-0.15
 RUN useradd -r -u 10001 noesek && mkdir -p /home/noesek && chown noesek /home/noesek
 USER noesek
 ENV HOME=/home/noesek \
-    NOESEK_DATABASE_URL=sqlite+aiosqlite:////home/noesek/noesek.db
+    NOESEK_DATABASE_URL=sqlite+aiosqlite:////home/noesek/noesek.db \
+    NOESEK_CODE_INTEL_DB=/home/noesek/code_intel.db
 
 # Render sets PORT; locally defaults to 8780.
 CMD ["sh", "-c", "NOESEK_COMPUTER_PORT=${PORT:-8780} NOESEK_COMPUTER_HOST=0.0.0.0 noesek-computer"]
