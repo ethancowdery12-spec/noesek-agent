@@ -100,9 +100,21 @@ class OpenAICompatibleLLM:
         raise last or _llm_error(base_url, model)
 
 
+class EchoLLM:
+    """Offline adapter for load tests and staging (lane 1): NOESEK_LLM_PROVIDER=echo.
+    Exercises the full HTTP/controller/DB path without a provider call, so
+    scale tests measure infrastructure at zero token spend. Never use in prod."""
+
+    async def complete(self, messages: list[dict], tools: list[dict]) -> LLMReply:
+        last_user = next((m.get("content", "") for m in reversed(messages)
+                          if m.get("role") == "user"), "")
+        return LLMReply(content=f"[echo] {last_user[:200]}", tool_calls=[])
+
+
 def configured_llm():
     """Build the selected native wire adapter without probing or sending credentials."""
     name = settings.llm_provider.strip().lower()
+    if name == "echo": return EchoLLM()
     if name in {"openai", "openai-compatible"}: return OpenAICompatibleLLM()
     from .providers import AnthropicAdapter, GeminiAdapter
     if name == "anthropic": return AnthropicAdapter(settings.llm_api_key, settings.llm_model, settings.llm_base_url, settings.llm_timeout_seconds)
