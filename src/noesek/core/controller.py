@@ -68,34 +68,34 @@ class Controller:
         if self._registry_factory: return self._registry_factory(conversation_id)
         t = settings.tool_timeout_seconds
         r = ToolRegistry()
-        r.register(ToolSpec("remember","Store a durable user-approved fact or preference.",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
-        r.register(ToolSpec("recall","Search durable memory for facts relevant to a query. Returns a compact index (id/kind/preview) - call memory_get with ids for full content.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("remember","Store a durable user-approved fact or preference ('save this: my accountant is Dana', 'remember that I take oat milk').",RememberInput,Risk.WRITE,memory_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("recall","Search durable memory for facts relevant to a query ('what do you remember about my drinks?'). Returns a compact index (id/kind/preview) - call memory_get with ids for full content.",RecallInput,Risk.READ,recall_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("memory_get","Fetch the full content of durable memories by id (ids come from recall previews).",MemoryGetInput,Risk.READ,memory_get_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("forget","Deactivate one durable memory by id.",ForgetInput,Risk.WRITE,forget_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("switch_model",f"Switch this chat's model to another configured model (configured: {', '.join(sorted(allowed_models()))}), or 'default' to clear the override (back to {model_catalog()['chat']}).",SwitchModelInput,Risk.WRITE,switch_model_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("library_docs","Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",LibraryDocsInput,Risk.READ,library_docs_handler(),timeout_seconds=t))
         r.register(ToolSpec("handoff","Store a session handoff recap; the latest handoff is always shown in this conversation's context.",HandoffInput,Risk.WRITE,handoff_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("supersede_memory","Replace one durable memory with a corrected version (old one is kept, marked superseded).",SupersedeInput,Risk.WRITE,supersede_handler(conversation_id),timeout_seconds=t))
-        r.register(ToolSpec("create_task","Create a durable background task.",CreateTaskInput,Risk.WRITE,task_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("create_task","Create a durable background task or reminder ('remind me in 2 hours to call the bank', 'check the site every morning').",CreateTaskInput,Risk.WRITE,task_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("list_tasks","List this conversation's background tasks and their status.",ListTasksInput,Risk.READ,list_tasks_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("cancel_task","Cancel a pending background task by id.",CancelTaskInput,Risk.WRITE,cancel_task_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("delegate_task","Delegate an instruction to a specialized background worker (researcher, coder, operator, evaluator).",DelegateInput,Risk.WRITE,self._delegate_handler(conversation_id),timeout_seconds=t))
         from ..tools.connector_reads import (ConnectorReadInput, GmailSendInput, gmail_read_handler,
                                              gmail_send_handler, calendar_read_handler, github_notifications_handler)
         r.register(ToolSpec("security_audit","Run a bounded security audit over our own source layer: static probes (exec, shell=True, hardcoded secrets, SQL f-strings, TLS/CORS) plus route inventory; findings carry file:line evidence.",SecurityAuditInput,Risk.READ,security_audit,timeout_seconds=t))
-        r.register(ToolSpec("adversarial_review","Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",AdversarialReviewInput,Risk.READ,adversarial_review,timeout_seconds=t))
+        r.register(ToolSpec("adversarial_review","Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected. Use to red-team, poke holes in, or stress-test a plan, design, or argument before committing.",AdversarialReviewInput,Risk.READ,adversarial_review,timeout_seconds=t))
         r.register(ToolSpec("humanize","Rewrite AI-sounding text so it reads like a person wrote it: strips filler and em dashes, swaps dead-weight verbs, flags inflated vocabulary. Does not change facts.",HumanizeInput,Risk.READ,humanize,timeout_seconds=t))
         r.register(ToolSpec("optimize_prompt","Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",OptimizePromptInput,Risk.READ,optimize_prompt,timeout_seconds=t))
-        r.register(ToolSpec("gmail_read","Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",ConnectorReadInput,Risk.READ,gmail_read_handler(conversation_id),timeout_seconds=t))
-        r.register(ToolSpec("calendar_read","List upcoming events on the chat's primary Google Calendar.",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("gmail_read","Read recent Gmail inbox messages and latest emails (from, subject, date, snippet) via the chat's connected Google account.",ConnectorReadInput,Risk.READ,gmail_read_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("calendar_read","List upcoming events, meetings, and schedule on the chat's primary Google Calendar (what's on today, this week, next few days).",ConnectorReadInput,Risk.READ,calendar_read_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("github_notifications","List unread GitHub notifications for the chat's connected GitHub account.",ConnectorReadInput,Risk.READ,github_notifications_handler(conversation_id),timeout_seconds=t))
         r.register(ToolSpec("gmail_send","Send one plain-text email from the chat's connected Google account. Always requires user approval before sending.",GmailSendInput,Risk.EXTERNAL,gmail_send_handler(conversation_id),timeout_seconds=t))
         from ..tools.chat_extras import register_chat_extras
         register_chat_extras(r, conversation_id, self, t)
         from ..tools.file_tools import CreateFileInput, create_file_handler
-        r.register(ToolSpec("create_file","Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",CreateFileInput,Risk.WRITE,create_file_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("create_file","Create a file the user can download (notes, reports, code, csv, markdown) or write results into a named file like report.txt. Returns a download path.",CreateFileInput,Risk.WRITE,create_file_handler(conversation_id),timeout_seconds=t))
         from ..tools.voice_tools import SpeakInput, speak_handler
-        r.register(ToolSpec("speak","Create a voice note (offline text-to-speech) the user can download as a WAV.",SpeakInput,Risk.WRITE,speak_handler(conversation_id),timeout_seconds=t))
+        r.register(ToolSpec("speak","Create a voice note (offline text-to-speech) the user can download as a WAV - read text out loud as audio.",SpeakInput,Risk.WRITE,speak_handler(conversation_id),timeout_seconds=t))
         return r
 
     def _delegate_handler(self, conversation_id: int):
