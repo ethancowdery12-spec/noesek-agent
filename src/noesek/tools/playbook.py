@@ -228,6 +228,19 @@ PLAYBOOKS: dict[str, dict] = {
             "itinerary."
         ),
     },
+    "birthdays": {
+        "when": "track birthdays, anniversaries, and holidays so nothing sneaks up",
+        "brief": (
+            "Keep the dates that matter on radar. When the user mentions a birthday, anniversary, "
+            "or recurring date, remember it as kind='important_date' with the person or event, the "
+            "date (year optional), and any gift or preference notes attached to it. Proactively "
+            "surface what's coming: when they ask, or when one is within a week, say whose it is, "
+            "the exact date and weekday, and how old they turn if the year is known. For gift "
+            "ideas, use what memory holds about the person before generic suggestions. Public "
+            "holidays come from the calendar tools or web, not memory - never guess whether a "
+            "date is a holiday in their country."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
