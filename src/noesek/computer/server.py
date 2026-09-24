@@ -71,6 +71,19 @@ app.include_router(telegram_router)
 async def _startup() -> None:
     await init_db()
     await migrate()
+    # Item 89: AST code-intel startup index behind the flag. Best-effort: a
+    # failure here must never block boot. The log line doubles as the staging
+    # validation signal (deploy shells are not always available).
+    if settings.code_intel_enabled:
+        try:
+            from ..core.code_intel import default_root, index_root
+            _root = settings.code_intel_root or default_root()
+            _stats = index_root(_root, settings.code_intel_db)
+            log.info(
+                "code_intel index: %d files, %d symbols, %d edges (%d changed, root=%s)",
+                _stats["files"], _stats["symbols"], _stats["edges"], _stats["changed"], _root)
+        except Exception:
+            log.exception("code_intel startup index failed (non-fatal)")
     from ..channels import outbound
     from ..jobs import recover_interrupted, task_worker
     recovered = await recover_interrupted()
@@ -577,6 +590,9 @@ async def healthz():
 def main() -> int:
     import uvicorn
 
+    # Without a handler config the WARNING-level default swallows INFO lines
+    # (e.g. the code_intel startup index validation signal). Env-tunable.
+    logging.basicConfig(level=os.getenv("NOESEK_LOG_LEVEL", "INFO"))
     port = int(os.environ.get("NOESEK_COMPUTER_PORT", "8780"))
     host = os.environ.get("NOESEK_COMPUTER_HOST", "127.0.0.1")
     uvicorn.run("noesek.computer.server:app", host=host, port=port)
