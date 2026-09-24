@@ -35,3 +35,10 @@ def test_setup_and_model_route_to_vendored(monkeypatch):
  assert cs.main(['setup','--non-interactive'])==0
  assert cs.main(['model'])==0
  assert calls==[['setup','--non-interactive'],['model']]
+
+def test_serve_dispatches_to_main_run(monkeypatch):
+ import noesek.main as m
+ called = {}
+ monkeypatch.setattr(m, 'run', lambda: called.setdefault('ran', True))
+ assert cli_surface.main(['serve']) == 0
+ assert called.get('ran') is True

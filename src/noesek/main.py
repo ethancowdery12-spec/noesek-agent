@@ -1,4 +1,4 @@
-import asyncio, logging
+import asyncio, logging, os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Response
 from sqlalchemy import text
@@ -62,4 +62,6 @@ async def metrics():
 
 def run():
     logging.basicConfig(level=settings.log_level)
-    uvicorn.run("noesek.main:app", host="0.0.0.0", port=8000)
+    # Render and friends inject PORT; NOESEK_PORT overrides for local runs.
+    port = int(os.getenv("NOESEK_PORT") or os.getenv("PORT", "8000"))
+    uvicorn.run("noesek.main:app", host="0.0.0.0", port=port)
