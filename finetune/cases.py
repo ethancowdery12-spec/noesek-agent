@@ -64,6 +64,9 @@ TEST_CASES = [
     _c("Show me the full content of memory id 5", ["memory_get"], "positive"),
     _c("Import the OFX statement I uploaded into my expense log", ["ofx_import"], "positive"),
     _c("Parse this .qfx export from my bank and log the transactions", ["ofx_import"], "positive"),
+    _c("Import the .fit file from my Garmin watch", ["fit_import"], "positive"),
+    _c("Log the workout in this FIT activity file", ["fit_import"], "positive"),
+
     _c("Create an Excel file with this budget table", ["office_doc"], "positive"),
     _c("Edit the docx at report.docx to add a title", ["office_doc"], "positive"),
     _c("Optimize this prompt for a coding model", ["optimize_prompt"], "positive"),
