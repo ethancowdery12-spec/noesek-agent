@@ -17,7 +17,7 @@ COPY vendor ./vendor
 # Eval harness ships in the image so staging/prod shells can run the keyed
 # entity-extraction eval (python -m evals.entity_extraction) without a repo mount.
 COPY evals ./evals
-RUN pip install ".[stt,postgres,needle]" \
+RUN pip install ".[stt,postgres,needle,finance]" \
  && playwright install --with-deps chromium \
  && chmod -R a+rX /ms-playwright
 
