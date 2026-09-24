@@ -20,6 +20,9 @@ What is auditable in one HTML page (+ optional robots.txt / llms.txt):
   - question-form headings matching how people prompt AI engines
   - extractable structure (lists/tables/summary blocks)
   - entity clarity via JSON-LD (@type + sameAs to authority records)
+  - Wikidata entity presence (Ethan, Sep 23: "when you put stuff on WikiData
+    like your business it'll pop up in AI a lot more" - a Wikidata item feeds
+    the knowledge graphs AI assistants draw on; link it via sameAs)
   - freshness signals (datePublished/dateModified)
   - AI-crawler access in robots.txt (GPTBot, ClaudeBot, PerplexityBot, ...)
   - llms.txt presence (the emerging AI-facing site map convention)
@@ -174,6 +177,21 @@ def audit_geo(html: str, robots_txt: str = "", llms_txt: str = "") -> dict:
                              "add sameAs links so engines can disambiguate the entity"))
     else:
         checks.append(_check("entity_clarity", "entity", 3, "pass", "entity with sameAs links", ""))
+
+    # --- Wikidata entity: the knowledge-graph play. A Wikidata item for the
+    # business feeds the graphs AI assistants surface answers from.
+    def _sameas_urls(it):
+        v = it.get("sameAs")
+        return v if isinstance(v, list) else ([v] if v else [])
+    wd_link = any("wikidata.org/wiki/" in str(u) for it in entity for u in _sameas_urls(it))
+    if wd_link:
+        checks.append(_check("wikidata_entity", "entity", 2, "pass", "Wikidata item linked via sameAs", ""))
+    elif entity:
+        checks.append(_check("wikidata_entity", "entity", 2, "warn", "no Wikidata item linked",
+                             "create or claim the business's item on wikidata.org (official site, founding date, location, social profiles), keep it maintained, and link it in JSON-LD sameAs - a Wikidata entity is what makes AI assistants surface a business in answers"))
+    else:
+        checks.append(_check("wikidata_entity", "entity", 2, "info", "no entity declared yet",
+                             "declare Organization/Person JSON-LD first, then create the business's Wikidata item and link it via sameAs"))
 
     # --- freshness
     fresh = any(it.get("datePublished") or it.get("dateModified") for it in items) or bool(re.search(r"<time[^>]+datetime", html, re.I))
