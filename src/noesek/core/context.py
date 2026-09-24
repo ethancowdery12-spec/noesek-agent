@@ -152,6 +152,19 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
     if condensation:
         system += ("\nEarlier conversation (rolling condensation - authoritative for omitted "
                    "messages; say what you are missing instead of guessing):\n" + condensation.content)
+    # AST code intelligence (item 89, Ethan's graphify directive): symbol-level
+    # code retrieval appended as the LAST authored system section. The SYSTEM
+    # constant head stays byte-identical (DeepSeek prefix caching) - variable
+    # sections are only ever tail-appended. Best-effort: never breaks a turn.
+    if settings.code_intel_enabled and query.strip():
+        try:
+            from .code_intel import default_root, format_code_context, retrieve
+            root = settings.code_intel_root or default_root()
+            code_ctx = format_code_context(retrieve(settings.code_intel_db, query, root=root))
+            if code_ctx:
+                system += code_ctx
+        except Exception:
+            pass
     total_messages = await session.scalar(select(func.count(Message.id)).where(Message.conversation_id==conversation_id)) or 0
     out = [{"role":"system","content":system}] + [{"role":m.role,"content":m.content} for m in history]
     out, removed = trim_to_budget(out, char_budget)
