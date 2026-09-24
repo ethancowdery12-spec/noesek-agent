@@ -59,6 +59,7 @@ class Settings(BaseSettings):
     # Context
     history_limit: int = 24
     parallel_read_tools_enabled: bool = True
+    core_memory_max_chars: int = 2000
     condenser_enabled: bool = True
     condenser_keep_full_tool_results: int = 6
     long_reminder_enabled: bool = True
