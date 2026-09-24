@@ -151,7 +151,7 @@ async def test_connectors_list_and_token_flow(monkeypatch, tmp_path):
         r = await c.get("/connectors", params={"chat_id": "ethan-main"})
         assert r.status_code == 200
         by_name = {x["name"]: x for x in r.json()["connectors"]}
-        assert set(by_name) == {"github", "google"}
+        assert set(by_name) == {"github", "google", "strava"}
         assert by_name["github"]["configured"] is True
         assert by_name["google"]["configured"] is False
         assert by_name["github"]["connected"] is False
@@ -195,7 +195,7 @@ async def test_oauth_callback_completes_flow(monkeypatch, tmp_path):
     async def fake_exchange(connector, code, redirect_uri):
         seen["code"] = code
         seen["redirect_uri"] = redirect_uri
-        return "tok-live"
+        return {"access_token": "tok-live", "refresh_token": "", "expires_at": 0}
 
     monkeypatch.setattr(connectors, "exchange_code", fake_exchange)
 
