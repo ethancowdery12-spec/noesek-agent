@@ -4,7 +4,7 @@ from sqlalchemy import select
 from ..core.memory_v2 import MEMORY_KINDS, deindex_memory, fts_search_ids, index_memory
 from ..core.memory_vector import deindex_vector, index_vector
 from ..core.memory_graph import deindex_graph, index_graph
-from ..db import Session, Conversation, Memory, Task
+from ..db import Session, Conversation, Memory, Task, bump_recall_heat
 
 class RememberInput(BaseModel):
     content: str = Field(min_length=1, max_length=2000)
@@ -121,12 +121,15 @@ def recall_handler(conversation_id: int):
                 mq = mq.where(Memory.conversation_id.in_(pool_ids))
             rows = (await s.execute(mq)).scalars().all()
         picked = await rank_memories_async(None, inp.query, list(rows), inp.limit, pool_ids)
+        if picked:
+            await bump_recall_heat([m.id for m in picked])
         # Progressive disclosure (item 58, claude-mem pattern): the index is
         # cheap; full text moves only on explicit request via memory_get.
         return {"memories": [{"id": m.id, "kind": m.kind,
                               "preview": (m.content or "")[:140] + ("..." if len(m.content or "") > 140 else ""),
+                              "recall_count": (m.recall_count or 0) + 1,
                               "created_at": m.created_at.isoformat()} for m in picked],
-                "hint": "previews only - call memory_get with ids for full content"}
+                "hint": "previews only - call memory_get with ids for full content; recall_count is this memory's heat (how often recall surfaced it, this recall included)"}
     return f
 
 def memory_get_handler(conversation_id: int):

@@ -36,7 +36,7 @@ async def test_recall_returns_compact_index_memory_get_returns_full(clean):
     out = await recall_handler(cid)(RecallInput(query="green tea"))
     assert out["memories"], "recall found nothing"
     hit = out["memories"][0]
-    assert hit["id"] == mid and set(hit) == {"id", "kind", "preview", "created_at"}
+    assert hit["id"] == mid and set(hit) == {"id", "kind", "preview", "recall_count", "created_at"}
     assert len(hit["preview"]) <= 143 and hit["preview"].endswith("...")
     assert "content" not in hit
     got = await memory_get_handler(cid)(MemoryGetInput(ids=[mid]))
