@@ -116,6 +116,20 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
     ).order_by(Memory.created_at.desc()).limit(1))).scalar_one_or_none()
     if latest_handoff and latest_handoff.id not in {p.id for p in picked}:
         picked = ([latest_handoff] + picked)[:settings.memory_limit]
+    # Letta bounded core block (skills batch 3): kind="core" memories are the
+    # agent's self-edited always-on memory - pinned in full, hard char bound;
+    # the agent curates them through remember/supersede.
+    core_block = ""
+    if settings.core_memory_max_chars > 0:
+        core_q = select(Memory).where(Memory.active==True, Memory.kind=="core").order_by(Memory.created_at.asc()).limit(20)
+        if pool_ids is not None:
+            core_q = core_q.where(Memory.conversation_id.in_(pool_ids))
+        core_rows = (await session.execute(core_q)).scalars().all()
+        if core_rows:
+            block = "\n".join(f"- {m.content}" for m in core_rows)
+            if len(block) > settings.core_memory_max_chars:
+                block = block[:settings.core_memory_max_chars].rsplit("\n", 1)[0]
+            core_block = "\nCore memory (always on, agent-curated):\n" + block
     # Rolling condensation (skills batch 3): always pinned, like the handoff -
     # it is the authoritative digest of messages compaction omitted.
     condensation = None
@@ -133,6 +147,8 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
             alines.append(f"- #{a.id} {a.tool_name} {aargs} -> {a.status}")
         approval_state = "\nLive approval state (authoritative, oldest first):\n" + "\n".join(alines)
     system = SYSTEM + (f"\nRelevant durable memory:\n{mem}" if mem else "") + approval_state
+    if core_block:
+        system += core_block
     if condensation:
         system += ("\nEarlier conversation (rolling condensation - authoritative for omitted "
                    "messages; say what you are missing instead of guessing):\n" + condensation.content)
