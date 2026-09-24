@@ -9,6 +9,7 @@ No third-party source code was copied into this repository. It depends on these 
 - SQLAlchemy - MIT - https://github.com/sqlalchemy/sqlalchemy
 - aiosqlite - MIT - https://github.com/omnilib/aiosqlite
 - asyncpg (optional) - Apache-2.0 - https://github.com/MagicStack/asyncpg
+- ofxparse (optional, [finance] extra) - MIT, (c) 2009 Jerry Seutter - https://github.com/jseutter/ofxparse (runtime: ofx_import tool)
 - pytest - MIT - https://github.com/pytest-dev/pytest (runtime: test_verifier tool)
 - coverage - Apache-2.0 - https://github.com/coveragepy/coveragepy (runtime: test_verifier tool)
 - pytest-asyncio (development) - Apache-2.0 - https://github.com/pytest-dev/pytest-asyncio
