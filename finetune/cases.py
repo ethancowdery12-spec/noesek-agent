@@ -37,6 +37,8 @@ TEST_CASES = [
     _c("Kill that reminder task, the id is 7", ["cancel_task"], "positive"),
     _c("Find where authenticate is defined in this repo", ["code_graph"], "positive"),
     _c("Map the call graph around the router module", ["code_graph"], "positive"),
+    _c("Show me the source of the function that imports OFX bank statements", ["code_intel"], "positive"),
+    _c("Search the codebase for the symbol that handles FIT workout files", ["code_intel"], "positive"),
     _c("Create a file called notes.md with this summary", ["create_file"], "positive"),
     _c("Write the results into report.txt", ["create_file"], "positive"),
     _c("Set up a background task to check the site every morning", ["create_task"], "positive"),

@@ -82,6 +82,7 @@ class Settings(BaseSettings):
     # [codeintel] extra; missing grammars degrade to per-language skips.
     code_intel_enabled: bool = False
     code_intel_db: str = "code_intel.db"
+    code_intel_root: str = ""  # repo root to index; default = the installed noesek package
     # Context
     history_limit: int = 24
     parallel_read_tools_enabled: bool = True
