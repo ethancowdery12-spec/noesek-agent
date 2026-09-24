@@ -159,6 +159,11 @@ def _translate_database_url(url: str) -> tuple[str, dict]:
     if not url.startswith(("postgresql://", "postgresql+asyncpg://", "postgres://")):
         return url, {}
     parts = urlsplit(url)
+    # Providers (Render, Heroku, Neon) hand out bare postgres:// or
+    # postgresql:// URLs; SQLAlchemy maps those to the sync psycopg2 driver,
+    # which the image does not ship (Sep 24 staging boot crash). The app is
+    # async-only, so any bare Postgres scheme is promoted to +asyncpg here.
+    scheme = "postgresql+asyncpg" if parts.scheme in ("postgres", "postgresql") else parts.scheme
     params = dict(parse_qsl(parts.query, keep_blank_values=True))
     sslmode = (params.pop("sslmode", "") or "").lower()
     params.pop("channel_binding", None)  # libpq-only; asyncpg rejects it
@@ -172,7 +177,7 @@ def _translate_database_url(url: str) -> tuple[str, dict]:
         elif sslmode == "verify-ca":
             ctx.check_hostname = False
         connect_args["ssl"] = ctx
-    clean = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
+    clean = urlunsplit((scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
     return clean, connect_args
 
 
