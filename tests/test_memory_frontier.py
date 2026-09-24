@@ -84,3 +84,55 @@ async def test_distractor_chain_does_not_leak(corpus, monkeypatch):
     assert target in ids
     for d in ("Uncle Marco runs the bakery on Fifth Street.", "Marco's bakery closes on Mondays."):
         assert corpus[d] not in ids or ids.index(target) < ids.index(corpus[d])
+
+
+CHAIN = [
+    "Alice works with Bruno.",                  # alice <-> bruno
+    "Bruno coaches the Lions team.",            # bruno <-> lions team
+    "The Lions team trains at Riverside Park.", # lions team <-> riverside park
+]
+
+@pytest.fixture
+async def chain(db, monkeypatch):
+    monkeypatch.setattr(settings, "graph_memory_enabled", True)
+    await graph_available()
+    async with Session() as s:
+        await s.execute(text("DELETE FROM graph_edges"))
+        await s.execute(text("DELETE FROM graph_entities"))
+        from noesek.db import Conversation
+        c = Conversation(title="chain", channel="test", external_user_id="chain")
+        s.add(c); await s.commit(); await s.refresh(c)
+        ids = []
+        for content in CHAIN:
+            m = Memory(conversation_id=c.id, kind="fact", content=content)
+            s.add(m); await s.commit(); await s.refresh(m)
+            await index_memory(m.id, content)
+            await index_graph(m.id, c.id, content)
+            ids.append(m.id)
+    return ids
+
+async def test_multihop_walk_surfaces_twohop_memory(chain, monkeypatch):
+    """HippoRAG pattern (item 84): a memory two edges from the query entity
+    gets a graded boost instead of falling off the 1-hop cutoff."""
+    from noesek.core.memory_graph import graph_boost
+    m1, m2, m3 = chain
+    boosts = await graph_boost(None, "Alice")
+    assert boosts.get(m1, 0) > 0, "direct memory must be boosted"
+    assert boosts.get(m3, 0) > 0, "2-hop memory must be boosted by the walk"
+    # Grading check: per-edge decay is the mechanism. Cross-memory ordering is
+    # NOT asserted - graph_boost sums a memory's clique edges as evidence mass
+    # (item 65 semantics), so an entity-rich deep memory can out-sum a sparse
+    # direct one. What must hold: the SAME memory scores lower with decay
+    # than it would at decay 1.0 (no grading).
+    monkeypatch.setattr(settings, "graph_walk_decay", 1.0)
+    flat = await graph_boost(None, "Alice")
+    assert boosts[m3] < flat[m3], "decay must grade deep hops below flat reach"
+
+async def test_multihop_walk_depth_one_keeps_hard_cutoff(chain, monkeypatch):
+    """Depth 1 reproduces the old fixed neighborhood: 2-hop memory silent."""
+    from noesek.core.memory_graph import graph_boost
+    monkeypatch.setattr(settings, "graph_walk_depth", 1)
+    m1, m2, m3 = chain
+    boosts = await graph_boost(None, "Alice")
+    assert boosts.get(m1, 0) > 0
+    assert m3 not in boosts
