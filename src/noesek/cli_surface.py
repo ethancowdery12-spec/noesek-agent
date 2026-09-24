@@ -253,6 +253,10 @@ def _run(args):
         _emit({'output':str(out),'files':cli_ops.backup(Path(out))},as_json);return 0
     if path==('acp',):
         from .compat.acp_server import main as f;f();return 0
+    if path==('serve',):
+        # Root Dockerfile CMD: boot the FastAPI service (whatsapp/slack/telegram
+        # routers + task worker). Same entry as 'gateway run'.
+        from .main import run;run();return 0
     if path==('gateway','run'):
         from .main import run;run();return 0
     if path in {('update',),('uninstall',)} or (path and path[0]=='gateway' and path[1] in {'install','uninstall','start','stop','restart','migrate','migrate-legacy'}):
