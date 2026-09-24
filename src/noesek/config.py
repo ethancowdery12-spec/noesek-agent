@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     embed_dim: int = 256
     # Graph memory: deterministic entity/relationship extraction (core.memory_graph)
     graph_memory_enabled: bool = True
+    # Item 66: LLM-augmented entity extraction. Off by default - lands only if
+    # it beats deterministic extraction on evals/entity_fixtures.py (the IBM
+    # VLDB 2026 layer-utility gate). Falls back to deterministic on any error.
+    llm_entity_extraction_enabled: bool = False
     fetch_timeout_seconds: float = 20.0
     fetch_max_bytes: int = 1_000_000
     # Context
