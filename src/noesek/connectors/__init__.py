@@ -24,6 +24,7 @@ class Connector:
     token_url: str
     scopes: tuple[str, ...]
     tools: tuple[str, ...] = field(default=())
+    scope_sep: str = " "  # Strava wants comma-joined scopes; Google/GitHub take spaces
 
     def client_id(self) -> str:
         return os.environ.get(f"NOESEK_CONNECTOR_{self.name.upper()}_CLIENT_ID", "")
@@ -62,6 +63,14 @@ register(Connector(
     scopes=("repo", "read:user"),
     tools=("github",),
 ))
+register(Connector(
+    name="strava",
+    authorize_url="https://www.strava.com/oauth/authorize",
+    token_url="https://www.strava.com/oauth/token",
+    scopes=("read", "activity:read_all"),
+    tools=("fitness",),
+    scope_sep=",",
+))
 
 
 class TokenStore:
@@ -80,10 +89,13 @@ class TokenStore:
         self.path.write_text(json.dumps(data, indent=2) + "\n")
         os.chmod(self.path, 0o600)
 
-    async def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = ()) -> None:
+    async def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = (),
+                  refresh_token: str = "", expires_at: int = 0) -> None:
         data = self._load()
         data.setdefault(connector, {})[chat_id] = {
             "access_token": token,
+            "refresh_token": refresh_token,
+            "expires_at": expires_at,
             "obtained_at": int(time.time()),
             "scopes": list(scopes),
         }
@@ -144,7 +156,8 @@ async def exchange_code(connector: Connector, code: str, redirect_uri: str) -> s
     token = data.get("access_token")
     if not token:
         raise ConnectorError(f"{connector.name}: no access_token in response")
-    return token
+    return {"access_token": token, "refresh_token": data.get("refresh_token", ""),
+            "expires_at": int(data.get("expires_at", 0) or 0)}
 
 
 def build_authorize_url(connector: Connector, chat_id: str, redirect_uri: str) -> tuple[str, str]:
@@ -154,7 +167,7 @@ def build_authorize_url(connector: Connector, chat_id: str, redirect_uri: str) -
         "client_id": connector.client_id(),
         "redirect_uri": redirect_uri,
         "response_type": "code",
-        "scope": " ".join(connector.scopes),
+        "scope": connector.scope_sep.join(connector.scopes),
         "state": state,
         "access_type": "offline",
     }
@@ -169,7 +182,8 @@ class DbTokenStore:
     The public async interface matches TokenStore exactly so the file store
     remains a drop-in test double."""
 
-    async def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = ()) -> None:
+    async def put(self, connector: str, chat_id: str, token: str, scopes: tuple[str, ...] = (),
+                  refresh_token: str = "", expires_at: int = 0) -> None:
         from sqlalchemy import select
         from ..db import ConnectorGrant, Session
         async with Session() as s:
@@ -178,10 +192,14 @@ class DbTokenStore:
                 ConnectorGrant.chat_id == chat_id))).scalar_one_or_none()
             if row is None:
                 s.add(ConnectorGrant(connector=connector, chat_id=chat_id,
-                                     access_token=token, scopes=list(scopes),
+                                     access_token=token, refresh_token=refresh_token,
+                                     expires_at=expires_at, scopes=list(scopes),
                                      obtained_at=int(time.time())))
             else:
                 row.access_token = token
+                if refresh_token:
+                    row.refresh_token = refresh_token
+                row.expires_at = expires_at
                 row.scopes = list(scopes)
                 row.obtained_at = int(time.time())
             await s.commit()
@@ -195,7 +213,8 @@ class DbTokenStore:
                 ConnectorGrant.chat_id == chat_id))).scalar_one_or_none()
         if row is None:
             return None
-        return {"access_token": row.access_token, "obtained_at": row.obtained_at,
+        return {"access_token": row.access_token, "refresh_token": row.refresh_token,
+                "expires_at": row.expires_at, "obtained_at": row.obtained_at,
                 "scopes": list(row.scopes or [])}
 
     async def connected_chats(self, connector: str) -> list[str]:
@@ -232,6 +251,37 @@ class DbTokenStore:
             await s.execute(delete(ConnectorState).where(ConnectorState.state == state))
             await s.commit()
         return entry
+
+
+async def refresh_grant(connector: str, chat_id: str) -> str | None:
+    """Swap a stored refresh_token for a fresh access token and persist it.
+    Returns the new access token, or None when no usable refresh grant exists."""
+    c = get(connector)
+    if c is None:
+        return None
+    grant = await default_store().get(connector, chat_id)
+    if not grant or not grant.get("refresh_token"):
+        return None
+    secret = os.environ.get(f"NOESEK_CONNECTOR_{connector.upper()}_CLIENT_SECRET", "")
+    if not c.client_id() or not secret:
+        return None
+    import httpx
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.post(c.token_url, data={
+            "client_id": c.client_id(), "client_secret": secret,
+            "grant_type": "refresh_token", "refresh_token": grant["refresh_token"],
+        }, headers={"Accept": "application/json"})
+    if resp.status_code != 200:
+        return None
+    data = resp.json()
+    token = data.get("access_token")
+    if not token:
+        return None
+    await default_store().put(connector, chat_id, token,
+                              tuple(grant.get("scopes") or ()),
+                              refresh_token=data.get("refresh_token", "") or grant["refresh_token"],
+                              expires_at=int(data.get("expires_at", 0) or 0))
+    return token
 
 
 def default_store() -> DbTokenStore:
