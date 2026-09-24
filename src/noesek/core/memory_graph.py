@@ -75,6 +75,44 @@ def extract_entities(content: str, cap: int = 8) -> list[str]:
     return out[:cap]
 
 
+_LLM_EXTRACT_PROMPT = (
+    "Extract the salient entities from the text below as a JSON array of short "
+    "strings: people, places, organizations, products, dates, and important "
+    "concepts (including plain bridge nouns that could link facts, like "
+    "'sister' or 'espresso'). Lowercase each entry. At most {cap} entries. "
+    "Reply with ONLY the JSON array, no prose."
+)
+
+
+async def llm_extract_entities(content: str, cap: int = 8, llm=None) -> list[str]:
+    """LLM-augmented entity extraction (item 66). Same output contract as
+    extract_entities: normalized lowercase strings, capped. Any failure
+    (no LLM, bad JSON, non-list) falls back to the deterministic extractor."""
+    try:
+        if llm is None:
+            from .llm import configured_llm
+            llm = configured_llm()
+        reply = await llm.complete(
+            [{"role": "user",
+              "content": _LLM_EXTRACT_PROMPT.format(cap=cap) + "\n\nText: " + (content or "")}],
+            [])
+        import json as _json
+        text = (reply.content or "").strip()
+        if text.startswith("```"):
+            text = text.strip("`").removeprefix("json").strip()
+        data = _json.loads(text)
+        if not isinstance(data, list):
+            raise ValueError("not a list")
+        out: list[str] = []
+        for e in data:
+            n = " ".join(str(e).lower().split())
+            if n and n not in out:
+                out.append(n)
+        return out[:cap] or extract_entities(content, cap)
+    except Exception:
+        return extract_entities(content, cap)
+
+
 def relation_type(content: str) -> str:
     for name, pat in _REL_PATTERNS:
         if pat.search(content or ""):
@@ -112,7 +150,10 @@ async def index_graph(memory_id: int, conversation_id: int, content: str) -> Non
     """Extract entities/edges from one memory. Best-effort; never breaks a turn."""
     try:
         if not settings.graph_memory_enabled or not await graph_available(): return
-        ents = extract_entities(content)
+        if settings.llm_entity_extraction_enabled:
+            ents = await llm_extract_entities(content)
+        else:
+            ents = extract_entities(content)
         if not ents: return
         rel = relation_type(content)
         async with Session() as s:
