@@ -1,5 +1,5 @@
 from datetime import datetime, timezone, timedelta
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, inspect, select, text
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, JSON, String, Text, UniqueConstraint, bindparam, inspect, select, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -37,6 +37,11 @@ class Memory(Base):
     # Provenance + invalidate-not-overwrite (v2 stage D)
     source: Mapped[str] = mapped_column(String(64), default="conversation")
     superseded_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Recall heat (MemOS pattern, item 85): how often explicit recall surfaced
+    # this memory. Curation signal for the agent-curated core block (#146);
+    # auto-pin stays OFF by design. Only explicit recalls count - ambient
+    # assemble surfacing would be a write per chat turn at scale.
+    recall_count: Mapped[int] = mapped_column(Integer, default=0)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
 
 class BrowserStateRow(Base):
@@ -228,6 +233,7 @@ _COLUMN_UPGRADES = {
     "memories": {
         "source": "VARCHAR(64) NOT NULL DEFAULT 'conversation'",
         "superseded_by": "INTEGER",
+        "recall_count": "INTEGER NOT NULL DEFAULT 0",
     },
     "tasks": {
         "result": "JSON",
@@ -262,6 +268,22 @@ async def get_or_create_conversation(session: AsyncSession, channel: str, extern
     row = (await session.execute(select(Conversation).where(Conversation.channel==channel, Conversation.external_user_id==external_user_id))).scalar_one_or_none()
     if row: return row
     row = Conversation(channel=channel, external_user_id=external_user_id); session.add(row); await session.flush(); return row
+
+async def bump_recall_heat(memory_ids: list[int]) -> None:
+    """MemOS-lite recall heat (item 85): +1 on each explicitly recalled memory.
+    One statement, best-effort - a heat bump must never break a recall."""
+    if not memory_ids:
+        return
+    try:
+        async with Session() as s:
+            await s.execute(
+                text("UPDATE memories SET recall_count = COALESCE(recall_count, 0) + 1 WHERE id IN :ids")
+                .bindparams(bindparam("ids", expanding=True)),
+                {"ids": list(memory_ids)})
+            await s.commit()
+    except Exception:
+        pass
+
 
 async def pool_conversation_ids(session: AsyncSession, conversation_id: int) -> list[int] | None:
     """Memory-pool scope for this conversation (item 68, multi-user seam).
