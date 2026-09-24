@@ -49,8 +49,23 @@ only path to vendor-calibrated confidence gating.
    on the Render service (the router rebuilds the engine in the background;
    base weights remain the fallback when unset).
 
-## Auto-execute gating after a local tune
+## Auto-execute gating after a local tune (free path)
 
-Acceptance PASS unlocks READ-risk auto-execute only, and every proposal still
-flows through the existing policy/approval path (WRITE tools keep their
-approvals). Confidence-gated auto-execute requires the platform tune.
+The native engine exposes no logits and local builds drop the confidence head
+(verified in needle 3.0.4: `needle build` drops it, confidence reports None;
+there is no keep flag). The free gate is therefore EMPIRICAL, not scalar:
+
+1. Generate an eval split alongside training data (>=50 examples per tool).
+2. `python -m finetune.acceptance --weights tuned.cact --json out.json` now
+   emits `per_tool`: per-tool hits, misses and false fires.
+3. Auto-execute turns on PER TOOL only where measured precision clears the
+   bar (>=98% on >=50 samples) with zero false fires on critical traffic,
+   on top of the suite-level PASS. Everything else stays LLM-routed, and
+   every auto-executed call still flows through the existing policy/approval
+   path (WRITE tools keep approvals). Start with READ-risk tools only.
+
+Optional upgrade (still free): a JAX-side scorer reading sequence logprobs
+(the [train] package exposes full logits via model.apply) with Platt scaling
+fitted on the eval set - a true calibrated scalar at the cost of jax in the
+prod image. The $19 platform tune remains the polished option: learned
+confidence head, 2-bit export, per-depth scores, hosted GPUs.
