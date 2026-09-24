@@ -32,6 +32,7 @@ from .codeact import CodeActInput, codeact_handler
 from .skills import SkillInput, skill_library
 from .ofx_import import OfxImportInput, ofx_import_handler
 from .fit_import import FitImportInput, fit_import_handler
+from .date_math import DateMathInput, date_math
 
 
 def register_chat_extras(r, conversation_id: int, controller, timeout: float) -> None:
@@ -44,6 +45,7 @@ def register_chat_extras(r, conversation_id: int, controller, timeout: float) ->
     r.register(ToolSpec("office_doc","Read, create, and edit Word/Excel/PowerPoint files in the agent file store through the OfficeCLI binary (view/get outline or JSON; create/add/set/remove/close). Degrades cleanly when the officecli binary is not installed.",OfficeDocInput,Risk.WRITE,office_doc,timeout_seconds=timeout))
     r.register(ToolSpec("browser_cookies","Persistent browser sessions: status (stored/enabled sites, counts only), enable/disable a site (the per-site approval before any logged-in session is used on a browse run), revoke, clear, audit. Imports never happen here - cookie exports are posted directly to the /computer/browser-state/import endpoint; cookie values are never shown or accepted in chat.",BrowserCookiesInput,Risk.WRITE,browser_cookies,timeout_seconds=timeout))
     r.register(ToolSpec("code_graph","Answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",CodeGraphInput,Risk.READ,code_graph,timeout_seconds=timeout))
+    r.register(ToolSpec("date_math","Exact calendar arithmetic, no guessing: add/subtract days/weeks/months/years from a date (month-end clamps correctly), days/weeks between two dates, or the weekday of a date. Use for any question about what day a date falls on or how long between dates. Dates only, no timezones.",DateMathInput,Risk.READ,date_math,timeout_seconds=timeout))
     r.register(ToolSpec("fit_import","Import a Garmin/wearable .FIT activity file from the file store into a workout memory (sport, date, duration, distance, calories, heart rate; deduped by file hash). Informational-only health tooling - not medical advice.",FitImportInput,Risk.WRITE,fit_import_handler(conversation_id),timeout_seconds=timeout))
     r.register(ToolSpec("ofx_import","Import a bank or credit-card OFX/QFX statement from the file store into expense memories (deduped by bank transaction id, re-imports are safe). Informational-only money tooling: reads the uploaded statement and logs it - never moves money, no financial advice.",OfxImportInput,Risk.WRITE,ofx_import_handler(conversation_id),timeout_seconds=timeout))
     async def _resolve_llm():
