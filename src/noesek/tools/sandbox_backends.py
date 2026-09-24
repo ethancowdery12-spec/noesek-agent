@@ -1,11 +1,21 @@
 """Sandboxed-execution backends behind Noesek's sandbox tool interface.
 
-Three pinned backends, one policy surface (noesek.tools.sandbox.run_python):
+Milestone M1 of docs/SANDBOX_ISOLATION_DESIGN.md (Ethan directive, Sep 23):
+every run executes under a declared SandboxPolicy. Container payloads run as
+an unprivileged numeric user with all capabilities dropped and
+no-new-privileges set; the environment is a fixed allowlist; the only
+writable path is an optional per-run tmpfs scratch; egress is none unless a
+policy declares an allowlist - which no backend honors yet (M2), so a
+non-empty allowlist is an explicit error everywhere, never a silent allow.
+
+Four pinned backends, one policy surface (noesek.tools.sandbox.run_python):
 - docker-cli: the original subprocess `docker run` path (unchanged default).
 - docker-py: the pinned docker SDK (Apache-2.0), same isolation flags.
 - e2b: the pinned E2B SDK (Apache-2.0) remote microVM. Requires the operator's
   own E2B_API_KEY env; Noesek never embeds or requests credentials, and this
   backend is only selected explicitly via NOESEK_SANDBOX_BACKEND=e2b.
+- local-subprocess: last resort on hosts without Docker (the Render image).
+  Never honors egress.
 
 Backends are constructed lazily and are dependency-injectable for tests.
 """
@@ -13,9 +23,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+import re
 import shutil
 import subprocess
 import tempfile
+from dataclasses import dataclass
 from pathlib import Path
 
 ISOLATION = {
@@ -26,9 +38,90 @@ ISOLATION = {
     "pids_limit": 64,
 }
 
+_HOST_RE = re.compile(r"^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$")
+
+# Fixed environment allowlist inside containers. Host env is never inherited;
+# no SandboxPolicy field can carry a secret by construction.
+CONTAINER_ENV = ("PYTHONDONTWRITEBYTECODE=1",)
+
+# Unprivileged numeric user for container payloads (nobody). Numeric IDs need
+# no /etc/passwd entry in the image.
+CONTAINER_USER = "65534:65534"
+
+
+@dataclass(frozen=True)
+class SandboxPolicy:
+    """Declared per-run execution policy. A bare SandboxPolicy() reproduces
+    the pre-policy posture exactly: nothing writable, no network, no env."""
+    read_paths: tuple = ()        # host paths mounted read-only
+    scratch: bool = False         # one fresh per-run tmpfs at /scratch, removed with the container
+    egress: tuple = ()            # domain allowlist; empty = network none (M2 honors it, M1 rejects non-empty)
+    mem_limit: str = "256m"
+    timeout_seconds: int = 30
+
+    def __post_init__(self):
+        for d in self.egress:
+            if not _HOST_RE.match(d or ""):
+                raise ValueError(f"invalid egress domain: {d!r}")
+        for p in self.read_paths:
+            if not str(p).startswith("/"):
+                raise ValueError(f"read_paths must be absolute: {p!r}")
+
 
 class SandboxBackendError(RuntimeError):
     pass
+
+
+def _check_policy(policy: SandboxPolicy | None) -> SandboxPolicy:
+    policy = policy or SandboxPolicy()
+    if policy.egress:
+        raise SandboxBackendError(
+            "egress allowlists are milestone M2 - pass an empty egress tuple for now; "
+            "local-subprocess never honors egress")
+    return policy
+
+
+def _docker_argv(policy: SandboxPolicy, *, image: str, payload: list,
+                 mem: str, tmpfs_size: str, mounts: tuple = (), workdir: str | None = None) -> list:
+    """Pure argv builder for the docker-cli backend (unit-tested directly).
+
+    Hard invariants: network none, root FS read-only, all caps dropped,
+    no-new-privileges, unprivileged numeric user, env allowlist only, every
+    bind mount read-only, writes confined to tmpfs (/tmp always, /scratch
+    only when the policy asks)."""
+    argv = ["docker", "run", "--rm", "--network=none", "--read-only",
+            "--cap-drop=ALL", "--security-opt", "no-new-privileges",
+            "--user", CONTAINER_USER,
+            f"--memory={mem}", "--cpus=1", "--pids-limit=64",
+            "--tmpfs", f"/tmp:rw,noexec,nosuid,size={tmpfs_size}"]
+    for e in CONTAINER_ENV:
+        argv += ["-e", e]
+    for src, dst in mounts:
+        argv += ["-v", f"{src}:{dst}:ro"]
+    if policy.scratch:
+        argv += ["--tmpfs", "/scratch:rw,noexec,nosuid,size=64m,mode=1777"]
+    if workdir:
+        argv += ["-w", workdir]
+    return argv + [image] + list(payload)
+
+
+def _container_kwargs(policy: SandboxPolicy, *, mem: str, tmpfs_size: str) -> dict:
+    """docker-py run kwargs mirroring _docker_argv's invariants."""
+    tmpfs = {"/tmp": f"rw,noexec,nosuid,size={tmpfs_size}"}
+    if policy.scratch:
+        tmpfs["/scratch"] = "rw,noexec,nosuid,size=64m,mode=1777"
+    return {
+        "network_disabled": True,
+        "read_only": True,
+        "cap_drop": ["ALL"],
+        "security_opt": ["no-new-privileges"],
+        "user": CONTAINER_USER,
+        "mem_limit": mem,
+        "nano_cpus": ISOLATION["nano_cpus"],
+        "pids_limit": ISOLATION["pids_limit"],
+        "environment": dict(e.split("=", 1) for e in CONTAINER_ENV),
+        "tmpfs": tmpfs,
+    }
 
 
 def _trim(data: bytes | str) -> str:
@@ -39,13 +132,14 @@ def _trim(data: bytes | str) -> str:
 class DockerCliBackend:
     name = "docker-cli"
 
-    async def run_python(self, code: str, *, image: str, timeout_seconds: int) -> dict:
+    async def run_python(self, code: str, *, image: str, timeout_seconds: int,
+                         policy: SandboxPolicy | None = None) -> dict:
+        policy = _check_policy(policy)
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "main.py"; p.write_text(code)
-            cmd = ["docker", "run", "--rm", "--network=none", "--read-only",
-                   "--memory=256m", "--cpus=1", "--pids-limit=64",
-                   "--tmpfs", "/tmp:rw,noexec,nosuid,size=32m",
-                   "-v", f"{p}:/work/main.py:ro", image, "python", "/work/main.py"]
+            cmd = _docker_argv(policy, image=image, payload=["python", "/work/main.py"],
+                               mem=policy.mem_limit, tmpfs_size="32m",
+                               mounts=((str(p), "/work/main.py"),))
             try:
                 proc = await asyncio.create_subprocess_exec(
                     *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
@@ -60,29 +154,26 @@ class DockerCliBackend:
 
 
     async def run_command(self, command: str, *, image: str, timeout_seconds: int,
-                          workspace: str | None = None) -> dict:
+                          workspace: str | None = None, policy: SandboxPolicy | None = None) -> dict:
         """Run a shell command with the workspace mounted read-only at /workspace.
 
         Network stays disabled; PYTHONDONTWRITEBYTECODE keeps the ro mount clean."""
-        with tempfile.TemporaryDirectory() as d:
-            cmd = ["docker", "run", "--rm", "--network=none", "--read-only",
-                   "--memory=512m", "--cpus=1", "--pids-limit=64",
-                   "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
-                   "-e", "PYTHONDONTWRITEBYTECODE=1"]
-            if workspace:
-                cmd += ["-v", f"{workspace}:/workspace:ro", "-w", "/workspace"]
-            cmd += [image, "sh", "-c", command]
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-                out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
-                return {"exit_code": proc.returncode, "stdout": _trim(out), "stderr": _trim(err),
-                        "backend": self.name}
-            except OSError:
-                return {"error": "Docker is not installed or not runnable on PATH", "backend": self.name}
-            except TimeoutError:
-                proc.kill(); await proc.wait()
-                return {"error": "Sandbox timed out", "backend": self.name}
+        policy = _check_policy(policy)
+        mounts = ((workspace, "/workspace"),) if workspace else ()
+        cmd = _docker_argv(policy, image=image, payload=["sh", "-c", command],
+                           mem="512m", tmpfs_size="64m", mounts=mounts,
+                           workdir="/workspace" if workspace else None)
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            out, err = await asyncio.wait_for(proc.communicate(), timeout=timeout_seconds)
+            return {"exit_code": proc.returncode, "stdout": _trim(out), "stderr": _trim(err),
+                    "backend": self.name}
+        except OSError:
+            return {"error": "Docker is not installed or not runnable on PATH", "backend": self.name}
+        except TimeoutError:
+            proc.kill(); await proc.wait()
+            return {"error": "Sandbox timed out", "backend": self.name}
 
 
 class DockerPyBackend:
@@ -97,23 +188,22 @@ class DockerPyBackend:
             self._client = docker.from_env()
         return self._client
 
-    async def run_python(self, code: str, *, image: str, timeout_seconds: int) -> dict:
+    async def run_python(self, code: str, *, image: str, timeout_seconds: int,
+                         policy: SandboxPolicy | None = None) -> dict:
+        policy = _check_policy(policy)
         try:
             return await asyncio.wait_for(
-                asyncio.to_thread(self._run_sync, code, image), timeout=timeout_seconds + 5)
+                asyncio.to_thread(self._run_sync, code, image, policy), timeout=timeout_seconds + 5)
         except TimeoutError:
             return {"error": "Sandbox timed out", "backend": self.name}
         except Exception as e:
             return {"error": f"docker-py backend unavailable: {e}", "backend": self.name}
 
-    def _run_sync(self, code: str, image: str) -> dict:
+    def _run_sync(self, code: str, image: str, policy: SandboxPolicy) -> dict:
         client = self._get_client()
         container = client.containers.run(
-            image, ["python", "-c", code],
-            detach=True, network_disabled=ISOLATION["network_disabled"],
-            read_only=ISOLATION["read_only"], mem_limit=ISOLATION["mem_limit"],
-            nano_cpus=ISOLATION["nano_cpus"], pids_limit=ISOLATION["pids_limit"],
-            tmpfs={"/tmp": "rw,noexec,nosuid,size=32m"})
+            image, ["python", "-c", code], detach=True,
+            **_container_kwargs(policy, mem=policy.mem_limit, tmpfs_size="32m"))
         try:
             result = container.wait(timeout=60)
             logs = container.logs(stdout=True, stderr=True)
@@ -127,18 +217,15 @@ class DockerPyBackend:
 
 
     async def run_command(self, command: str, *, image: str, timeout_seconds: int,
-                          workspace: str | None = None) -> dict:
+                          workspace: str | None = None, policy: SandboxPolicy | None = None) -> dict:
+        policy = _check_policy(policy)
         def _run():
             client = self._get_client()
             volumes = {workspace: {"bind": "/workspace", "mode": "ro"}} if workspace else {}
             container = client.containers.run(
                 image, ["sh", "-c", command], detach=True,
-                network_disabled=ISOLATION["network_disabled"],
-                read_only=ISOLATION["read_only"], mem_limit="512m",
-                nano_cpus=ISOLATION["nano_cpus"], pids_limit=ISOLATION["pids_limit"],
-                tmpfs={"/tmp": "rw,noexec,nosuid,size=64m"},
-                environment={"PYTHONDONTWRITEBYTECODE": "1"},
-                volumes=volumes, working_dir="/workspace" if workspace else None)
+                volumes=volumes, working_dir="/workspace" if workspace else None,
+                **_container_kwargs(policy, mem="512m", tmpfs_size="64m"))
             try:
                 result = container.wait(timeout=timeout_seconds + 30)
                 logs = container.logs(stdout=True, stderr=True)
@@ -163,7 +250,8 @@ class LocalSubprocessBackend:
     inherited secrets), a hard timeout, and an isolated temp cwd. NETWORK IS
     NOT DISABLED - do not select this backend where egress matters; prefer
     docker-cli, docker-py, or e2b. Auto-fallback in get_backend only picks it
-    when no container runtime is on PATH.
+    when no container runtime is on PATH. A policy with a non-empty egress
+    allowlist is REFUSED here, always.
     """
 
     name = "local-subprocess"
@@ -171,7 +259,9 @@ class LocalSubprocessBackend:
     def __init__(self, python_bin: str | None = None):
         self._python = python_bin or shutil.which("python3") or shutil.which("python")
 
-    async def run_python(self, code: str, *, image: str, timeout_seconds: int) -> dict:
+    async def run_python(self, code: str, *, image: str, timeout_seconds: int,
+                         policy: SandboxPolicy | None = None) -> dict:
+        policy = _check_policy(policy)
         if not self._python:
             return {"error": "no python interpreter on PATH", "backend": self.name}
         with tempfile.TemporaryDirectory() as d:
@@ -201,7 +291,8 @@ class LocalSubprocessBackend:
                 return {"error": f"local subprocess failed: {e}", "backend": self.name}
 
     async def run_command(self, command: str, *, image: str, timeout_seconds: int,
-                          workspace: str | None = None) -> dict:
+                          workspace: str | None = None, policy: SandboxPolicy | None = None) -> dict:
+        _check_policy(policy)
         return {"error": "run_command requires a container backend (docker or e2b)",
                 "backend": self.name}
 
@@ -222,11 +313,14 @@ class E2BBackend:
         return Sandbox()
 
     async def run_command(self, command: str, *, image: str, timeout_seconds: int,
-                          workspace: str | None = None) -> dict:
+                          workspace: str | None = None, policy: SandboxPolicy | None = None) -> dict:
+        _check_policy(policy)
         return {"error": "run_command is not supported on the e2b backend; use docker-cli or docker-py",
                 "backend": self.name}
 
-    async def run_python(self, code: str, *, image: str, timeout_seconds: int) -> dict:
+    async def run_python(self, code: str, *, image: str, timeout_seconds: int,
+                         policy: SandboxPolicy | None = None) -> dict:
+        policy = _check_policy(policy)
         try:
             return await asyncio.wait_for(
                 asyncio.to_thread(self._run_sync, code, timeout_seconds),
