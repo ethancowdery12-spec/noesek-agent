@@ -12,7 +12,7 @@ from sqlalchemy import text
 
 from ..db import Compaction, Memory, Session
 
-MEMORY_KINDS = ("note", "fact", "preference", "episode", "handoff", "lesson", "skill")
+MEMORY_KINDS = ("note", "fact", "preference", "episode", "handoff", "lesson", "skill", "core")
 
 _FTS_TOKEN = re.compile(r"[a-z0-9]{3,}")
 _fts_ok: bool | None = None
