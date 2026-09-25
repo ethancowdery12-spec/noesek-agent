@@ -8,12 +8,36 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
+from .. import connectors
 from ..connectors import default_store
 from ..connectors import github as ghtool
 from ..connectors import google as gtool
 from ..db import Conversation, Session
 
 _GRANT_ERRORS = (gtool.GrantMissing, ghtool.GrantMissing)
+
+
+def _reconnect(connector: str, chat_id: str) -> dict:
+    return {"error": f"the {connector} grant expired and could not be refreshed - "
+                     "please reconnect (auth-start link again)",
+            "connect": f"POST /connectors/{connector}/auth-start with chat_id={chat_id!r}, "
+                       "open the returned URL, approve once"}
+
+
+async def _call_with_refresh(connector: str, chat_id: str, grant: dict, fn, *args):
+    """Run fn(access_token, *args); on a rejected grant, try one refresh and retry.
+    Returns the fn result, or None when the grant is dead and a reconnect is needed.
+    GitHub grants carry no refresh token, so they fall through to None."""
+    try:
+        return await fn(grant["access_token"], *args)
+    except _GRANT_ERRORS:
+        fresh = await connectors.refresh_grant(connector, chat_id)
+        if not fresh:
+            return None
+        try:
+            return await fn(fresh, *args)
+        except _GRANT_ERRORS:
+            return None
 
 
 class ConnectorReadInput(BaseModel):
@@ -34,10 +58,9 @@ def connector_read_handler(conversation_id: int, connector: str, fn):
             return {"error": f"{connector} is not connected for this chat",
                     "connect": f"POST /connectors/{connector}/auth-start with chat_id={chat_id!r}, "
                                "open the returned URL, approve once"}
-        try:
-            items = await fn(grant["access_token"], inp.max_results)
-        except _GRANT_ERRORS as exc:
-            return {"error": str(exc)}
+        items = await _call_with_refresh(connector, chat_id, grant, fn, inp.max_results)
+        if items is None:
+            return _reconnect(connector, chat_id)
         return {"count": len(items), "items": items}
     return h
 
@@ -70,9 +93,9 @@ def gmail_send_handler(conversation_id: int):
             return {"error": "google is not connected for this chat",
                     "connect": f"POST /connectors/google/auth-start with chat_id={chat_id!r}, "
                                "open the returned URL, approve once"}
-        try:
-            sent = await gtool.send_message(grant["access_token"], inp.to, inp.subject, inp.body)
-        except _GRANT_ERRORS as exc:
-            return {"error": str(exc)}
+        sent = await _call_with_refresh("google", chat_id, grant, gtool.send_message,
+                                        inp.to, inp.subject, inp.body)
+        if sent is None:
+            return _reconnect("google", chat_id)
         return {"sent": True, "to": inp.to, "subject": inp.subject, **sent}
     return h
