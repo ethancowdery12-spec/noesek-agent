@@ -9,6 +9,7 @@ import re
 from collections import Counter
 
 from evals.guardian_traces import GOLD_LABELS, RISK_CLASSES, TRACES, traces
+from noesek.core.orchestration import CONTROLLER_TOOLS
 
 
 def test_deterministic():
@@ -78,3 +79,12 @@ def test_risk_classes_cover_deny_categories():
     deny_cats = {t["category"] for t in TRACES if t["gold"] == "deny"}
     assert deny_cats  # and the risky-class contract itself is stable
     assert len(RISK_CLASSES) == 7
+
+
+def test_trace_tools_exist_in_registry():
+    # The guardian trains on OUR surface: every traced call must name a real
+    # controller tool, so a registry rename breaks this test instead of
+    # silently drifting the acceptance set.
+    for tr in TRACES:
+        tool = tr["state"].split(": ", 1)[0]
+        assert tool in CONTROLLER_TOOLS, (tr["id"], tool)
