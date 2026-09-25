@@ -417,6 +417,24 @@ async def _proactive_sweep() -> None:
             log.exception("proactive sweep failed")
 
 
+async def _google_read_with_refresh(chat_id: str, grant: dict, fn, max_results: int):
+    """Run fn(access_token, max_results); on a rejected (expired) token, try one
+    refresh_grant and retry with the fresh token. Returns the result, or None
+    when the grant is dead and the chat must reconnect."""
+    from ..connectors import google as gtool
+
+    try:
+        return await fn(grant["access_token"], max_results)
+    except gtool.GrantMissing:
+        fresh = await connectors.refresh_grant("google", chat_id)
+        if not fresh:
+            return None
+        try:
+            return await fn(fresh, max_results)
+        except gtool.GrantMissing:
+            return None
+
+
 @app.get("/connectors/google/gmail/messages")
 async def gmail_messages(chat_id: str, max_results: int = 5):
     """First real connector tool: read the chat's Gmail via its stored grant."""
@@ -427,10 +445,10 @@ async def gmail_messages(chat_id: str, max_results: int = 5):
     grant = await connectors.default_store().get("google", chat_id)
     if grant is None:
         raise HTTPException(403, "no google grant for this chat - run auth-start first")
-    try:
-        messages = await gtool.list_messages(grant["access_token"], max_results)
-    except gtool.GrantMissing as exc:
-        raise HTTPException(403, str(exc))
+    messages = await _google_read_with_refresh(chat_id, grant, gtool.list_messages, max_results)
+    if messages is None:
+        raise HTTPException(403, "the google grant expired and could not be refreshed - "
+                                 "run auth-start again to reconnect")
     return {"chat_id": chat_id, "count": len(messages), "messages": messages}
 
 
@@ -444,10 +462,10 @@ async def calendar_events(chat_id: str, max_results: int = 5):
     grant = await connectors.default_store().get("google", chat_id)
     if grant is None:
         raise HTTPException(403, "no google grant for this chat - run auth-start first")
-    try:
-        events = await gtool.list_events(grant["access_token"], max_results)
-    except gtool.GrantMissing as exc:
-        raise HTTPException(403, str(exc))
+    events = await _google_read_with_refresh(chat_id, grant, gtool.list_events, max_results)
+    if events is None:
+        raise HTTPException(403, "the google grant expired and could not be refreshed - "
+                                 "run auth-start again to reconnect")
     return {"chat_id": chat_id, "count": len(events), "events": events}
 
 
