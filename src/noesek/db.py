@@ -64,6 +64,17 @@ class ConnectorState(Base):
     redirect_uri: Mapped[str] = mapped_column(Text, default="")
     issued_at: Mapped[int] = mapped_column(Integer)
 
+class ProactiveChat(Base):
+    """Proactive engine state per chat - the 0600 proactive.json sat on the
+    ephemeral host filesystem, so every redeploy wiped activations, goals,
+    intervals and next-tick times. Rows survive deploys."""
+    __tablename__ = "proactive_chats"
+    chat_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    goal: Mapped[str] = mapped_column(Text, default="")
+    interval_seconds: Mapped[int] = mapped_column(Integer, default=1800)
+    next_tick_at: Mapped[int] = mapped_column(Integer, default=0)
+
 class BrowserStateRow(Base):
     """Singleton row: Fernet-encrypted Playwright storage_state (item 56)."""
     __tablename__ = "browser_state"
