@@ -248,7 +248,7 @@ async def test_proactive_flow_and_idle_withholding(monkeypatch, tmp_path):
         assert oct((tmp_path / "proactive.json").stat().st_mode)[-3:] == "600"
 
         # due immediately after activate
-        assert store.due_chats() == ["ethan-main"]
+        assert await store.due_chats() == ["ethan-main"]
 
         # first tick: controller goes IDLE -> withheld, not acted
         t1 = await c.post("/proactive/tick", json={"chat_id": "ethan-main"})
@@ -261,7 +261,7 @@ async def test_proactive_flow_and_idle_withholding(monkeypatch, tmp_path):
         assert t2.json()["acted"] is True and t2.json()["reply"] == "ordered the thing"
 
         # rescheduled into the future after each tick
-        assert store.due_chats() == []
+        assert await store.due_chats() == []
 
         pause = await c.post("/proactive/pause", json={"chat_id": "ethan-main"})
         assert pause.status_code == 200
