@@ -93,6 +93,27 @@ Rules the policy object makes structural:
   (jupyter_client kernel) runs as a sandbox payload under this policy:
   kernel env scrubbed, scratch writable, egress per the run's declared
   policy (package installs need M2).
+- **M4 (FUTURE - requirement captured Sep 25, Ethan: "eventually, not right
+  now"): guardian/reviewer decision model.** Every tool call the prime
+  agent wants to make becomes a *request* (tool + args + the agent's stated
+  reasoning) to a small dedicated decision model; only approved calls
+  execute. Design requirements from the owner:
+  - The reviewer sees minimal compressed context (a short summary - enough
+    to judge intent, not the whole transcript) so a tricked prime agent
+    cannot trivially trick the reviewer.
+  - The reviewer *architecturally cannot* emit malformed or smuggled tool
+    calls: its output is constrained (grammar/structured decode), and it
+    returns an approve/deny decision - never a tool call of its own. A
+    compromised prime agent therefore cannot produce a malformed execution
+    even if the reviewer is also fooled.
+  - Candidate open-weight decision models: Ethan will paste repo links;
+    evaluate each (real code, license, authors' stated intent, size/speed
+    fit, fine-tune feasibility under his ~$20 budget). His spoken name list
+    is unverified - repo links are the only source of truth. Fine-tuning
+    spend goes through the money gate like any other.
+  - Relationship to M1-M3: the guardian gates *which* calls run; the
+    sandbox policy bounds *what a call can touch* once approved. They are
+    independent layers and either can ship first.
 
 ## Explicit non-goals
 
