@@ -3,8 +3,8 @@
 A chat opts in with a goal and an interval; the server sweep wakes due
 chats and hands the controller a bounded nudge. The controller either acts
 (reply is delivered into the chat) or answers IDLE, which is withheld - a
-quiet tick never spams the channel. State lives in a 0600 JSON file so a
-VM restart resumes every watch.
+quiet tick never spams the channel. State lives in Postgres (DbProactiveStore; the file store stays as the
+test double) so redeploys resume every watch.
 """
 from __future__ import annotations
 
