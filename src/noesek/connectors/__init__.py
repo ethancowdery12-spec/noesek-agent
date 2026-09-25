@@ -135,6 +135,17 @@ class ConnectorError(RuntimeError):
     pass
 
 
+def _absolute_expiry(data: dict) -> int:
+    """Providers disagree on expiry shape: Strava sends an absolute expires_at,
+    Google sends a relative expires_in. Normalize to an absolute epoch so stored
+    grants are comparable; 0 means the provider sent no lifetime."""
+    exp = int(data.get("expires_at", 0) or 0)
+    if exp:
+        return exp
+    rel = int(data.get("expires_in", 0) or 0)
+    return int(time.time()) + rel if rel else 0
+
+
 async def exchange_code(connector: Connector, code: str, redirect_uri: str) -> str:
     """Swap an auth code for an access token. Secret comes from env only."""
     import httpx
@@ -157,7 +168,7 @@ async def exchange_code(connector: Connector, code: str, redirect_uri: str) -> s
     if not token:
         raise ConnectorError(f"{connector.name}: no access_token in response")
     return {"access_token": token, "refresh_token": data.get("refresh_token", ""),
-            "expires_at": int(data.get("expires_at", 0) or 0)}
+            "expires_at": _absolute_expiry(data)}
 
 
 def build_authorize_url(connector: Connector, chat_id: str, redirect_uri: str) -> tuple[str, str]:
@@ -280,7 +291,7 @@ async def refresh_grant(connector: str, chat_id: str) -> str | None:
     await default_store().put(connector, chat_id, token,
                               tuple(grant.get("scopes") or ()),
                               refresh_token=data.get("refresh_token", "") or grant["refresh_token"],
-                              expires_at=int(data.get("expires_at", 0) or 0))
+                              expires_at=_absolute_expiry(data))
     return token
 
 
