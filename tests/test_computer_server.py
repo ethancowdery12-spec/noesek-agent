@@ -327,6 +327,67 @@ async def test_calendar_tool_reads_with_stored_grant(monkeypatch, tmp_path):
 
 
 @pytest.mark.asyncio
+async def test_gmail_endpoint_refreshes_expired_grant(monkeypatch, tmp_path):
+    from noesek import connectors
+    from noesek.connectors import google as gtool
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    await store.put("google", "ethan-main", "tok-old", ("gmail.readonly",),
+                    refresh_token="rt-1")
+
+    seen_tokens = []
+
+    async def flaky_list(token, max_results):
+        seen_tokens.append(token)
+        if token == "tok-old":
+            raise gtool.GrantMissing("google token was rejected (expired or revoked)")
+        return [{"id": "m1", "subject": "tennis?"}]
+
+    refresh_calls = []
+
+    async def fake_refresh(connector, chat_id):
+        refresh_calls.append((connector, chat_id))
+        return "tok-fresh"
+
+    monkeypatch.setattr(gtool, "list_messages", flaky_list)
+    monkeypatch.setattr(connectors, "refresh_grant", fake_refresh)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r = await c.get("/connectors/google/gmail/messages",
+                        params={"chat_id": "ethan-main"})
+        assert r.status_code == 200
+        assert r.json()["messages"][0]["subject"] == "tennis?"
+    assert seen_tokens == ["tok-old", "tok-fresh"]
+    assert refresh_calls == [("google", "ethan-main")]
+
+
+@pytest.mark.asyncio
+async def test_calendar_endpoint_dead_grant_403s_with_reconnect(monkeypatch, tmp_path):
+    from noesek import connectors
+    from noesek.connectors import google as gtool
+
+    store = connectors.TokenStore(tmp_path / "connectors.json")
+    monkeypatch.setattr(connectors, "default_store", lambda: store)
+    await store.put("google", "ethan-main", "tok-old", ("calendar.readonly",))
+
+    async def dead_events(token, max_results):
+        raise gtool.GrantMissing("google token was rejected (expired or revoked)")
+
+    async def no_refresh(connector, chat_id):
+        return None
+
+    monkeypatch.setattr(gtool, "list_events", dead_events)
+    monkeypatch.setattr(connectors, "refresh_grant", no_refresh)
+
+    async with AsyncClient(transport=ASGITransport(app=server.app), base_url="http://t") as c:
+        r = await c.get("/connectors/google/calendar/events",
+                        params={"chat_id": "ethan-main"})
+        assert r.status_code == 403
+        assert "reconnect" in r.json()["detail"]
+
+
+@pytest.mark.asyncio
 async def test_github_tool_reads_with_stored_grant(monkeypatch, tmp_path):
     from noesek import connectors
     from noesek.connectors import github as ghtool
