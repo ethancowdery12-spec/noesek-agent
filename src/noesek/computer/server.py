@@ -360,7 +360,7 @@ class ProactiveChatIn(BaseModel):
 async def _run_tick(chat_id: str) -> dict:
     """One bounded wake for a chat. IDLE replies are withheld from the chat."""
     store = proactive.default_store()
-    entry = store.get(chat_id)
+    entry = await store.get(chat_id)
     if entry is None or not entry.get("active"):
         raise HTTPException(404, "chat is not proactive-active")
     async with Session() as s:
@@ -369,7 +369,7 @@ async def _run_tick(chat_id: str) -> dict:
         cid = conv.id
     result = await get_controller().handle(cid, proactive.nudge_text(entry.get("goal", "")))
     acted = result.text.strip() != proactive.IDLE
-    store.reschedule(chat_id)
+    await store.reschedule(chat_id)
     return {"chat_id": chat_id, "acted": acted, "reply": result.text if acted else ""}
 
 
@@ -384,20 +384,20 @@ async def proactive_tick(body: ProactiveChatIn):
 async def proactive_activate(body: ProactiveIn):
     if not body.chat_id:
         raise HTTPException(400, "chat_id is required")
-    entry = proactive.default_store().activate(body.chat_id, body.goal, body.interval_seconds)
+    entry = await proactive.default_store().activate(body.chat_id, body.goal, body.interval_seconds)
     return {"chat_id": body.chat_id, **entry}
 
 
 @app.post("/proactive/pause")
 async def proactive_pause(body: ProactiveChatIn):
-    if not proactive.default_store().pause(body.chat_id):
+    if not await proactive.default_store().pause(body.chat_id):
         raise HTTPException(404, "chat was not proactive-active")
     return {"chat_id": body.chat_id, "active": False}
 
 
 @app.get("/proactive")
 async def proactive_list():
-    return {"chats": proactive.default_store().all()}
+    return {"chats": await proactive.default_store().all()}
 
 
 async def _proactive_sweep() -> None:
@@ -406,7 +406,7 @@ async def _proactive_sweep() -> None:
     while True:
         await asyncio.sleep(interval)
         try:
-            for chat_id in proactive.default_store().due_chats():
+            for chat_id in await proactive.default_store().due_chats():
                 try:
                     outcome = await _run_tick(chat_id)
                     if outcome["acted"]:
