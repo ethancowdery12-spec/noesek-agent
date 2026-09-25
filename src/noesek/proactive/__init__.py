@@ -33,7 +33,7 @@ class ProactiveStore:
         self.path.write_text(json.dumps(data, indent=2) + "\n")
         os.chmod(self.path, 0o600)
 
-    def activate(self, chat_id: str, goal: str = "", interval_seconds: int = DEFAULT_INTERVAL_SECONDS) -> dict:
+    async def activate(self, chat_id: str, goal: str = "", interval_seconds: int = DEFAULT_INTERVAL_SECONDS) -> dict:
         data = self._load()
         entry = {
             "active": True,
@@ -45,7 +45,7 @@ class ProactiveStore:
         self._save(data)
         return entry
 
-    def pause(self, chat_id: str) -> bool:
+    async def pause(self, chat_id: str) -> bool:
         data = self._load()
         entry = data.get(chat_id)
         if entry is None:
@@ -54,18 +54,18 @@ class ProactiveStore:
         self._save(data)
         return True
 
-    def get(self, chat_id: str) -> dict | None:
+    async def get(self, chat_id: str) -> dict | None:
         return self._load().get(chat_id)
 
-    def all(self) -> dict:
+    async def all(self) -> dict:
         return self._load()
 
-    def due_chats(self, now: int | None = None) -> list[str]:
+    async def due_chats(self, now: int | None = None) -> list[str]:
         now = now if now is not None else int(time.time())
         return sorted(k for k, v in self._load().items()
                       if v.get("active") and v.get("next_tick_at", 0) <= now)
 
-    def reschedule(self, chat_id: str) -> None:
+    async def reschedule(self, chat_id: str) -> None:
         data = self._load()
         entry = data.get(chat_id)
         if entry is not None:
@@ -80,6 +80,70 @@ def nudge_text(goal: str) -> str:
     return f"{base}\nGoal: {goal}" if goal else base
 
 
-def default_store() -> ProactiveStore:
-    home = Path(os.environ.get("NOESEK_HOME", Path.home() / ".noesek"))
-    return ProactiveStore(home / "proactive.json")
+class DbProactiveStore:
+    """Database-backed proactive store. The 0600 JSON file sat on the host
+    filesystem, which is ephemeral on Render - every redeploy silently wiped
+    each chat's activation, goal, interval and next-tick time. Rows survive
+    deploys. The public async interface matches ProactiveStore exactly so the
+    file store remains a drop-in test double."""
+
+    async def activate(self, chat_id: str, goal: str = "", interval_seconds: int = DEFAULT_INTERVAL_SECONDS) -> dict:
+        from ..db import ProactiveChat, Session
+        entry = {"active": True, "goal": goal,
+                 "interval_seconds": max(60, int(interval_seconds)),
+                 "next_tick_at": int(time.time())}  # first tick immediately
+        async with Session() as s:
+            await s.merge(ProactiveChat(chat_id=chat_id, **entry))
+            await s.commit()
+        return entry
+
+    async def pause(self, chat_id: str) -> bool:
+        from ..db import ProactiveChat, Session
+        async with Session() as s:
+            row = await s.get(ProactiveChat, chat_id)
+            if row is None:
+                return False
+            row.active = False
+            await s.commit()
+        return True
+
+    async def get(self, chat_id: str) -> dict | None:
+        from ..db import ProactiveChat, Session
+        async with Session() as s:
+            row = await s.get(ProactiveChat, chat_id)
+        if row is None:
+            return None
+        return {"active": row.active, "goal": row.goal,
+                "interval_seconds": row.interval_seconds,
+                "next_tick_at": row.next_tick_at}
+
+    async def all(self) -> dict:
+        from sqlalchemy import select
+        from ..db import ProactiveChat, Session
+        async with Session() as s:
+            rows = (await s.execute(select(ProactiveChat))).scalars().all()
+        return {r.chat_id: {"active": r.active, "goal": r.goal,
+                            "interval_seconds": r.interval_seconds,
+                            "next_tick_at": r.next_tick_at} for r in rows}
+
+    async def due_chats(self, now: int | None = None) -> list[str]:
+        from sqlalchemy import select
+        from ..db import ProactiveChat, Session
+        now = now if now is not None else int(time.time())
+        async with Session() as s:
+            rows = (await s.execute(select(ProactiveChat.chat_id).where(
+                ProactiveChat.active.is_(True),
+                ProactiveChat.next_tick_at <= now))).scalars().all()
+        return sorted(rows)
+
+    async def reschedule(self, chat_id: str) -> None:
+        from ..db import ProactiveChat, Session
+        async with Session() as s:
+            row = await s.get(ProactiveChat, chat_id)
+            if row is not None:
+                row.next_tick_at = int(time.time()) + (row.interval_seconds or DEFAULT_INTERVAL_SECONDS)
+                await s.commit()
+
+
+def default_store() -> DbProactiveStore:
+    return DbProactiveStore()
