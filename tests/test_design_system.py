@@ -1,7 +1,8 @@
 """Tests for the design_system tool (roadmap item 54)."""
 import pytest
 
-from noesek.tools.design_system import THEMES, DesignInput, design_system
+from noesek.tools.design_system import (CHECKLISTS, THEMES, DesignInput,
+                                        design_system)
 
 
 @pytest.fixture(autouse=True)
@@ -44,3 +45,23 @@ def test_tokens_are_schema_complete():
     for name, t in THEMES.items():
         assert set(t["colors"]) == {"bg", "surface", "ink", "muted", "accent"}, name
         assert set(t["scale"]) == {"h1", "h2", "body"}, name
+
+def test_checklist_action_lists_and_loads():
+    # roadmap item 96 (ibelick/ui-skills, MIT; own-words condensations).
+    out = design_system(DesignInput(action="checklist"))
+    assert set(out["checklists"]) == {"baseline_ui", "accessibility"}
+    cl = design_system(DesignInput(action="checklist", checklist="baseline_ui"))
+    assert cl["checklist"] == "baseline_ui" and len(cl["rules"]) > 400
+    assert "error" in design_system(DesignInput(action="checklist", checklist="nope"))
+
+
+def test_checklists_carry_the_load_bearing_rules():
+    b = CHECKLISTS["baseline_ui"]["rules"].lower()
+    assert "200ms" in b and "prefers-reduced-motion" in b
+    assert "aria-label" in b and "skeleton" in b and "gradient" in b
+    a = CHECKLISTS["accessibility"]["rules"].lower()
+    assert "keyboard" in a and "focus" in a and "aria-hidden" in a
+    assert "contrast" in a and "live regions" in a
+    # own-words guard: zero phrasing lifted from the upstream skill files
+    for name, cl in CHECKLISTS.items():
+        assert "how to use" not in cl["rules"].lower(), name
