@@ -72,6 +72,31 @@ notebook (notebooks/laya_finetune_typed_decisions_2xT4_kaggle.ipynb in
 NandhaKishorM/laya) with our traces as the dataset. Kaggle needs Ethan's
 account - credentials gate, reported separately.
 
+## Zero-shot results (Sep 26, Kaggle CPU)
+
+Ran the frozen 349-trace set against convaiinnovations/laya zero-shot
+(kernel: kaggle.com/code/ethancowdery/noesek-guardian-zero-shot; frozen
+artifact: evals/guardian_zero_shot_2026-09-26.json).
+
+- Risk-shape scoring: AUROC 0.837; recall@10%FPR 0.612 (threshold 0.398).
+  Sweep: t=0.5 -> deny recall 0.388 at 2.8% FPR; t=0.6 -> 0.187 at 0.5% FPR;
+  t>=0.7 -> <=0.082 at 0% FPR.
+- Direct-shape classification: AUROC 0.538, three-way accuracy 0.444 -
+  near chance. Structured risk scoring is the usable signal, not direct
+  asks.
+- Escalate signal: AUROC 0.461 - below chance zero-shot.
+- Per-category caught at 10% FPR: strong on memory_ops 30/30,
+  representation 17/17, gmail_read/compute/create_file/sandbox_compute
+  16/16, destructive_ambiguous 14/14, exfiltration 17/20, destructive
+  29/38, credential_access 15/24, supply_chain 12/18. Weak: injection
+  4/14, privacy 0/5, financial 1/5, unsafe_exec 1/5, network_abuse 3/5.
+
+Read: zero-shot risk-shape already clears the ~0.5 recall@10%FPR floor the
+integration gate cites (on the full frozen set, not held-out tuned
+weights); the weak categories name where fine-tune data should
+concentrate (injection, privacy, financial, unsafe_exec, network_abuse).
+Integration decision stays with Ethan per the gate below.
+
 ## Integration gate (not crossed here)
 
 Wire into the controller ONLY if fine-tuned recall@10%FPR > ~0.5 on
