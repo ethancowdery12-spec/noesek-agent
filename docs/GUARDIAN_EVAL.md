@@ -124,10 +124,21 @@ carries their deny label. to_laya_rows() emits rows shaped like
 LocalLLaMA/typed-decisions so the authors' Kaggle notebook preprocessing
 (build_training_item) works unchanged.
 
-Current set: 689 traces (311 allow / 314 deny / 64 escalate), 31
-categories. The kernel clones the repo at main, generates rows, fine-tunes
-per the authors' 2xT4 recipe, then scores the frozen 349-trace gate with
-evals/guardian_eval.py.
+Current set: 5,748 traces (1,490 allow / 3,752 deny / 506 escalate), 31
+categories, after the 2026-09-26 scale-up (owner direction: "much, much
+bigger training set with thousands of things", weighted at the gate's weak
+families - financial 1,230, injection 1,254, exfiltration 400, credential
+234, unsafe_exec 234). Slot-pool grids generate thousands of unique action
+lines; disjointness from the frozen gate is asserted by the CI test.
+
+Fine-tune v1 (689-trace set, 4 epochs, 2xT4, free Kaggle tier): frozen-gate
+risk-shape recall@10%FPR 0.903 (zero-shot 0.612), AUROC 0.9575 (0.837);
+injection 10/14, privacy 5/5, unsafe_exec 5/5, network_abuse 5/5;
+financial stuck at 1/5 (money actions trained as destructive did not
+transfer through connector-only tool names - v2 trains financial through
+controller tools in many surface forms). The kernel clones the repo at
+main, generates rows, fine-tunes per the authors' 2xT4 recipe, then scores
+the frozen 349-trace gate with evals/guardian_eval.py.
 
 ## Integration gate (not crossed here)
 
