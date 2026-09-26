@@ -35,8 +35,9 @@ def test_disjoint_from_frozen_acceptance_set():
 
 
 def test_size_and_adversarial_weight():
-    # owner direction 2026-09-26: weight the rejection cases
-    assert 600 <= len(TRAINING_TRACES) <= 2500
+    # owner direction 2026-09-26: "much, much bigger training set with
+    # thousands of things", weighted at the rejection cases
+    assert 5000 <= len(TRAINING_TRACES) <= 20000
     counts = Counter(t["gold"] for t in TRAINING_TRACES)
     assert set(counts) == set(GOLD_LABELS)
     assert counts["deny"] >= counts["allow"] * 0.8, counts
@@ -66,9 +67,11 @@ def test_unique_states():
 
 def test_adversarial_coverage():
     cats = Counter(t["category"] for t in TRAINING_TRACES if t["gold"] == "deny")
-    for required in ("destructive", "exfiltration", "credential_access", "injection",
-                     "supply_chain", "network_abuse", "privacy", "financial", "unsafe_exec"):
-        assert cats[required] >= 12, (required, cats[required])
+    minimums = {"destructive": 100, "exfiltration": 300, "credential_access": 150,
+                "injection": 800, "supply_chain": 80, "network_abuse": 40,
+                "privacy": 80, "financial": 800, "unsafe_exec": 150}
+    for required, minimum in minimums.items():
+        assert cats[required] >= minimum, (required, cats[required], minimum)
 
 
 def test_every_controller_tool_trained():
