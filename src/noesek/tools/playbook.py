@@ -306,6 +306,24 @@ PLAYBOOKS: dict[str, dict] = {
             "with batch size. Units stay as written unless they ask for conversion."
         ),
     },
+    "session_guard": {
+        "when": "long multi-step sessions where context drift and token bloat become risks",
+        "brief": (
+            "Act as the session's own health monitor for long, multi-step work. Track the "
+            "tool-call count. Around 40 tool calls, checkpoint: restate the current goal, the "
+            "standing constraints, and the next action in one line each before continuing. "
+            "Around 60, recommend splitting the work into a fresh session, carrying over only "
+            "the distilled state, not the raw transcript. Watch for drift signals: answers "
+            "contradicting earlier verified facts, reliance on cached state that could have "
+            "changed, or the same file edited twice without a re-read in between. On any drift "
+            "signal, re-read the source of truth (the live file, the API response, the original "
+            "message) instead of trusting what is still in context. After any compaction, "
+            "re-anchor first: restate the durable identifiers (repo, branch, IDs, URLs) and "
+            "confirm the goal still matches what the user last asked. Never let a checkpoint, "
+            "split, or re-anchor interrupt an irreversible step mid-flight - finish the current "
+            "reversible unit first."
+        ),
+    },
     "critic": {
         "when": "a structured, honest review of a film, book, game, or product",
         "brief": (
