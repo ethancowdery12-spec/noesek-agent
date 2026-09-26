@@ -8,6 +8,7 @@ from .channels import outbound
 from .channels.whatsapp import router
 from .channels.slack_router import router as slack_router
 from .channels.telegram_router import router as telegram_router
+from .channels.obsidian_router import router as obsidian_router
 from .config import settings
 from .core.metrics import render_prometheus, snapshot
 from .db import engine, init_db, migrate
@@ -42,6 +43,7 @@ app = FastAPI(title="Noesek Agent", version=__version__, lifespan=lifespan)
 app.include_router(router)
 app.include_router(slack_router)
 app.include_router(telegram_router)
+app.include_router(obsidian_router)
 
 @app.get("/healthz")
 async def healthz():
