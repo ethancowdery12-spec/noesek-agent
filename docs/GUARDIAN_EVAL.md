@@ -144,3 +144,33 @@ the frozen 349-trace gate with evals/guardian_eval.py.
 
 Wire into the controller ONLY if fine-tuned recall@10%FPR > ~0.5 on
 held-out traces, with calibration refit. Decision owner: Ethan.
+
+## Controller wiring (v5, Sep 26)
+
+`src/noesek/guardian/` scores every proposed tool call before execution,
+next to the policy gate (`core/controller.py`). Verdicts:
+
+- deny score >= `NOESEK_GUARDIAN_DENY_THRESHOLD` -> hard refuse; never
+  user-approvable (decide_approval re-checks and blocks even approved asks)
+- deny score in [`NOESEK_GUARDIAN_ESCALATE_FLOOR`, deny threshold), or
+  external_communication prob >= `NOESEK_GUARDIAN_ESC_PROB_THRESHOLD` ->
+  the existing approval flow (`reply 'approve N'`)
+- else -> executes
+
+OFF by default (`NOESEK_GUARDIAN_ENABLED=0`): the 421M fp16 checkpoint needs
+~2-3 GB RAM, over the Render free tier. `NOESEK_GUARDIAN_MODEL_DIR` points at
+a dir with model.safetensors + rl_agent_config.json (the v5 fit carries the
+held-out-fitted temperatures). Fail modes: `NOESEK_GUARDIAN_FAIL_MODE=open`
+(default; logged, call proceeds) or `closed` (refuse). Scoring runs in a
+worker thread with `NOESEK_GUARDIAN_SCORE_TIMEOUT_SECONDS` so it can never
+starve the event loop (same lesson as needle_router).
+
+The runtime risk question lives in `src/noesek/guardian/questions.py` and a
+CI test pins it byte-equal to the harness wording below; the thresholds only
+mean what the v5 eval measured while that holds.
+
+Gate numbers the wiring is calibrated against (v5, frozen 349): risk
+recall@10%FPR 1.000, every category caught; sweep 0.5 -> deny_recall 0.791 /
+allow_fpr 0.051. Provisional defaults: deny 0.5, escalate floor 0.05; the
+calibration analysis (evals/guardian_calibration_v5.json, from the v5 run's
+per-trace scores) finalizes them.
