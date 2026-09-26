@@ -1,4 +1,5 @@
-from noesek.core.context import rank_memories, trim_to_budget, assemble
+from noesek.core.context import (OBSIDIAN_EDIT_HINT, assemble,
+                                 rank_memories, trim_to_budget)
 from noesek.db import Conversation, Memory, Message, Session
 
 def _mem(mid, content, ts):
@@ -31,3 +32,20 @@ async def test_assemble_includes_ranked_memory_and_omission_note(db):
     assert "favorite color is blue" in msgs[0]["content"]
     assert "older messages omitted" in msgs[0]["content"]
     assert sum(len(m["content"]) for m in msgs[1:]) <= 400
+
+async def test_obsidian_channel_carries_edit_hint(db):
+    # obsidian v1 completion: the channel's edit-proposal contract rides in
+    # the assembled system prompt for obsidian conversations only.
+    async with Session() as s:
+        obs = Conversation(channel="obsidian", external_user_id="dev1"); s.add(obs)
+        cli = Conversation(channel="cli", external_user_id="u2"); s.add(cli)
+        await s.commit()
+        msgs_obs = await assemble(s, obs.id, query="")
+        msgs_cli = await assemble(s, cli.id, query="")
+    assert "noesek-edit" in msgs_obs[0]["content"]
+    assert '"find"' in msgs_obs[0]["content"] and '"replace"' in msgs_obs[0]["content"]
+    assert "noesek-edit" not in msgs_cli[0]["content"]
+    # SYSTEM head stays byte-identical for prefix caching: the hint is a tail section
+    from noesek.core.context import SYSTEM
+    assert msgs_obs[0]["content"].startswith(SYSTEM)
+    assert msgs_obs[0]["content"].endswith(OBSIDIAN_EDIT_HINT)
