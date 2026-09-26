@@ -2,7 +2,8 @@
 own-words)."""
 from sqlalchemy import select
 
-from noesek.core.condenser import mask_tool_results, update_condensation
+from noesek.core.condenser import (dedupe_repeated_tool_calls,
+                                   mask_tool_results, update_condensation)
 from noesek.core.context import assemble
 from noesek.core.memory_v2 import record_compaction
 from noesek.db import Conversation, Memory, Message, Session
@@ -112,3 +113,45 @@ async def test_condensation_pinned_in_context(db):
     system = out[0]["content"]
     assert "the user is mid-launch with pricing done" in system
     assert "rolling condensation" in system
+
+def _acall(cid, name, args):
+    return {"role": "assistant", "content": "",
+            "tool_calls": [{"id": cid, "type": "function",
+                            "function": {"name": name, "arguments": args}}]}
+
+
+def _tres(cid, content):
+    return {"role": "tool", "tool_call_id": cid, "content": content}
+
+
+def test_dedupe_masks_repeated_calls_keeps_latest():
+    # roadmap item 97 (G10DC/chisel idea, own words): identical call repeated
+    # across turns -> earlier results masked, the most recent stays verbatim.
+    msgs = [_acall("c1", "search", '{"q":"a"}'), _tres("c1", "result one"),
+            {"role": "user", "content": "again"},
+            _acall("c2", "search", '{"q":"a"}'), _tres("c2", "result two")]
+    out = dedupe_repeated_tool_calls(msgs)
+    assert out[1]["content"].startswith("[duplicate tool call omitted")
+    assert "search" in out[1]["content"] and "10 chars" in out[1]["content"]
+    assert out[4]["content"] == "result two"
+    assert msgs[1]["content"] == "result one"  # caller's dicts untouched
+    assert dedupe_repeated_tool_calls(out) == out  # idempotent
+
+
+def test_dedupe_distinct_calls_untouched():
+    msgs = [_acall("c1", "search", '{"q":"a"}'), _tres("c1", "r1"),
+            _acall("c2", "search", '{"q":"b"}'), _tres("c2", "r2"),
+            _acall("c3", "lookup", '{"q":"a"}'), _tres("c3", "r3")]
+    assert dedupe_repeated_tool_calls(msgs) is msgs
+
+
+def test_dedupe_never_transforms_code_wholesale_mask_only():
+    # chisel constraint: code/regex/literals are never re-compressed - a
+    # duplicate result is masked whole or left verbatim, nothing in between.
+    code = "```python\nprint(1)\n```"
+    msgs = [_acall("c1", "run", "{}"), _tres("c1", code),
+            _acall("c2", "run", "{}"), _tres("c2", code)]
+    out = dedupe_repeated_tool_calls(msgs)
+    assert out[1]["content"].startswith("[duplicate tool call omitted")
+    assert code not in out[1]["content"]
+    assert out[3]["content"] == code

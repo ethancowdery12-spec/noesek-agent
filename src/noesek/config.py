@@ -89,6 +89,7 @@ class Settings(BaseSettings):
     core_memory_max_chars: int = 2000
     condenser_enabled: bool = True
     condenser_keep_full_tool_results: int = 6
+    condenser_dedupe_enabled: bool = True
     long_reminder_enabled: bool = True
     long_reminder_min_messages: int = 30
     memory_limit: int = 12

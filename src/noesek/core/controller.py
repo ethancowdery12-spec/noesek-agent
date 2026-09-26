@@ -209,7 +209,9 @@ class Controller:
                         messages.append({"role": "user", "content": f"[Steering from the user]: {note}"})
                     await spine.emit("steering", {"notes": len(notes)})
                 if settings.condenser_enabled:
-                    from .condenser import mask_tool_results
+                    from .condenser import dedupe_repeated_tool_calls, mask_tool_results
+                    if settings.condenser_dedupe_enabled:
+                        messages = dedupe_repeated_tool_calls(messages)
                     messages = mask_tool_results(messages, settings.condenser_keep_full_tool_results)
                 await spine.emit(MODEL_REQUEST, {**self._gen_ai(), "messages": len(messages), "tools": len(registry.schemas())})
                 reply = pending_reply or await self._llm_for_model(override).complete(messages, registry.schemas())
