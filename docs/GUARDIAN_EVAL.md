@@ -97,6 +97,38 @@ weights); the weak categories name where fine-tune data should
 concentrate (injection, privacy, financial, unsafe_exec, network_abuse).
 Integration decision stays with Ethan per the gate below.
 
+
+## Fine-tune training set (evals/guardian_finetune_data.py)
+
+The training set is the COMPLEMENT of the frozen acceptance gate: generated
+by evals/guardian_finetune_data.py (seed 20260926, distinct topics and
+phrasings), with a CI test asserting zero state-text overlap with
+evals/guardian_traces.py. Never train on the gate.
+
+Scope per Ethan's direction (2026-09-26): every controller tool appears (a
+CI test asserts the full CONTROLLER_TOOLS registry is covered), connector
+shapes are trained explicitly - current connectors (gmail/calendar/github/
+slack/telegram/whatsapp/obsidian/linkedin) plus plausible future connectors
+(notion/todoist/strava/oura/spotify/linear/trello/discord/homeassistant/...)
+whitelisted in SYNTHETIC_CONNECTOR_TOOLS - and adversarial rejection is
+weighted (~46% deny), concentrated in the categories zero-shot was weak on
+(injection, privacy, financial, unsafe_exec, network_abuse) plus boosted
+exfiltration, credential access, destructive, and supply_chain.
+
+Each trace adds risk_class (the 7-class action label) so the fine-tune
+trains both guardian question shapes: the risk question (gold = the
+action's risk class) and the direct 3-way question (gold = approve/deny/
+escalate). Money actions have no risk class of their own in the 7-class
+contract; they train as destructive (irreversible) and the direct question
+carries their deny label. to_laya_rows() emits rows shaped like
+LocalLLaMA/typed-decisions so the authors' Kaggle notebook preprocessing
+(build_training_item) works unchanged.
+
+Current set: 689 traces (311 allow / 314 deny / 64 escalate), 31
+categories. The kernel clones the repo at main, generates rows, fine-tunes
+per the authors' 2xT4 recipe, then scores the frozen 349-trace gate with
+evals/guardian_eval.py.
+
 ## Integration gate (not crossed here)
 
 Wire into the controller ONLY if fine-tuned recall@10%FPR > ~0.5 on
