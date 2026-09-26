@@ -121,6 +121,22 @@ class Settings(BaseSettings):
     needle_auto_execute: bool = False
     needle_timeout_seconds: float = 20.0  # wall-clock guard around one route()
 
+    # Guardian gate (roadmap item 91 wiring; docs/GUARDIAN_EVAL.md). Scores each
+    # proposed tool call with the fine-tuned Laya checkpoint BEFORE execution:
+    # risk score >= deny threshold -> hard refuse (never user-approvable);
+    # inside the escalate band -> existing approval flow; else proceeds.
+    # OFF by default: the 421M checkpoint needs ~2-3 GB RAM, over the Render
+    # free tier. laya is loaded lazily and is never a repo dependency.
+    # Threshold defaults are provisional until the v5 calibration analysis
+    # lands (evals/guardian_calibration_v5.json).
+    guardian_enabled: bool = False
+    guardian_model_dir: str = ""  # dir with model.safetensors + rl_agent_config.json
+    guardian_deny_threshold: float = 0.5
+    guardian_escalate_floor: float = 0.05  # risk-score band bottom; top = deny threshold
+    guardian_esc_prob_threshold: float = 0.5  # external_communication prob that also escalates
+    guardian_score_timeout_seconds: float = 15.0
+    guardian_fail_mode: str = "open"  # open = allow with logged event; closed = refuse
+
     # Background worker
     worker_poll_seconds: float = 2.0
     task_max_attempts: int = 3
