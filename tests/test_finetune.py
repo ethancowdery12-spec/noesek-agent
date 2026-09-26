@@ -10,7 +10,7 @@ from finetune.acceptance import verdict
 def test_dump_matches_production_registry():
     specs = production_specs()
     names = [s.name for s in specs]
-    assert len(specs) == 48, names
+    assert len(specs) == 49, names
     for expected in ("gmail_send", "recall", "geo_audit", "switch_model"):
         assert expected in names
     tools = to_needle_tools(specs)
