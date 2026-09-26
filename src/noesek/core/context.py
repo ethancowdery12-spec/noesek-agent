@@ -2,7 +2,7 @@ import json
 import re
 from sqlalchemy import func, select
 from ..config import settings
-from ..db import Approval, Memory, Message
+from ..db import Approval, Conversation, Memory, Message
 
 SYSTEM = """You are Noesek Agent, a practical self-hosted assistant. Be concise and honest.
 
@@ -34,6 +34,14 @@ Web UI knowledge (adopted Sep 21, all MIT - anime.js, Motion a.k.a. Framer Motio
 LONG_REMINDER = """<session-reminder>
 This note is from the Noesek runtime, not the user. This conversation has grown long, so before answering: re-read the user's latest message and answer that, not an older request; keep any requirements, decisions, and style you established earlier in this chat; do not claim an action happened unless a tool result in this conversation confirms it; if earlier messages were omitted to fit the context budget and you need them, say what you are missing instead of guessing.
 </session-reminder>"""
+
+# Obsidian channel hint (v1 completion, docs/OBSIDIAN_PLUGIN.md build order 4):
+# the plugin parses fenced noesek-edit blocks out of replies and previews them
+# as diffs - the model only emits the format reliably when told the contract.
+OBSIDIAN_EDIT_HINT = """Channel note (Obsidian): this user is writing from the Obsidian plugin. When they ask you to change a note, propose each edit as a fenced noesek-edit code block whose body is one JSON object:
+- targeted edit: {"path": "<vault-relative path>", "find": "<exact text to find>", "replace": "<replacement text>"}
+- full-file rewrite: {"path": "<vault-relative path>", "content": "<complete new file>"}
+One block per edit; keep prose outside the blocks. The plugin shows a diff preview and the user accepts or rejects each edit - nothing is applied automatically, so present edits as proposals, never as done."""
 
 _TOKEN_RE = re.compile(r"[a-z0-9]{3,}")
 
@@ -152,6 +160,12 @@ async def assemble(session, conversation_id: int, query: str = "", limit: int | 
     if condensation:
         system += ("\nEarlier conversation (rolling condensation - authoritative for omitted "
                    "messages; say what you are missing instead of guessing):\n" + condensation.content)
+    # Channel hints are variable tail sections (same prefix-caching rule as
+    # memory/condensation): obsidian conversations learn the noesek-edit
+    # proposal contract; every other channel is untouched.
+    conv = await session.get(Conversation, conversation_id)
+    if conv is not None and conv.channel == "obsidian":
+        system += "\n" + OBSIDIAN_EDIT_HINT
     # AST code intelligence (item 89, Ethan's graphify directive): symbol-level
     # code retrieval appended as the LAST authored system section. The SYSTEM
     # constant head stays byte-identical (DeepSeek prefix caching) - variable
