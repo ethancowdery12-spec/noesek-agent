@@ -39,6 +39,7 @@ from .. import proactive
 from .. import vault
 from .. import filestore
 from .. import voice
+from . import screen_bridge, screen_lease, screen_runtime
 
 log = logging.getLogger("noesek.computer")
 
@@ -48,6 +49,12 @@ DISPLAY = os.environ.get("NOESEK_COMPUTER_DISPLAY", ":99")
 def _ensure_display() -> None:
     if os.environ.get("DISPLAY"):
         return
+    if os.environ.get("NOESEK_SCREEN") == "1" and screen_runtime.installed():
+        try:
+            screen_runtime.start()
+            return
+        except RuntimeError:
+            log.exception("screen start failed; falling back to Xvfb")
     if not shutil.which("Xvfb"):
         log.warning("Xvfb not installed; computer tools limited")
         return
@@ -65,6 +72,7 @@ app = FastAPI(title="Noesek Computer", version=__version__)
 app.include_router(whatsapp_router)
 app.include_router(slack_router)
 app.include_router(telegram_router)
+app.include_router(screen_bridge.router)
 
 
 @app.on_event("startup")
@@ -140,6 +148,8 @@ async def chat(body: ChatIn):
 @app.get("/computer/screenshot")
 async def screenshot():
     """PNG of the machine's display. The computer is a tool."""
+    if screen_lease.human_holds():
+        raise HTTPException(409, "human_has_control")
     if not os.environ.get("DISPLAY") or not shutil.which("scrot"):
         raise HTTPException(503, "no display or scrot unavailable")
     fd, path = tempfile.mkstemp(suffix=".png")  # mkstemp: no mktemp race (security_audit insecure-temp)
@@ -501,6 +511,8 @@ _INPUT_ACTIONS = {"click", "type", "key", "move"}
 @app.post("/computer/input")
 async def computer_input(body: InputIn):
     """Touch the machine: mouse/keyboard on the virtual display via xdotool."""
+    if screen_lease.human_holds():
+        raise HTTPException(409, "human_has_control")
     if body.action not in _INPUT_ACTIONS:
         raise HTTPException(400, f"action must be one of {sorted(_INPUT_ACTIONS)}")
     if not os.environ.get("DISPLAY") or not shutil.which("xdotool"):

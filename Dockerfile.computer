@@ -10,6 +10,18 @@ RUN apt-get update -qq \
     tesseract-ocr \
  && rm -rf /var/lib/apt/lists/*
 
+# Opt-in computer screen (docs/BOT_SCREEN.md): TigerVNC + minimal Xfce + noVNC
+# viewer assets. Off by default so a plain build stays lean; enable with
+# --build-arg NOESEK_SCREEN=1 (and set NOESEK_SCREEN=1 + NOESEK_SCREEN_TOKEN in
+# the service env). Nothing starts at boot until a screen is requested.
+ARG NOESEK_SCREEN=0
+RUN if [ "$NOESEK_SCREEN" = "1" ]; then \
+      apt-get update -qq && apt-get install -y -qq --no-install-recommends \
+        tigervnc-standalone-server xfce4-panel xfwm4 xfdesktop4 xfce4-settings \
+        dbus-x11 x11-xserver-utils x11-utils xauth fonts-dejavu-core novnc \
+      && rm -rf /var/lib/apt/lists/*; \
+    fi
+
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src ./src
