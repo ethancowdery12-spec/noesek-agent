@@ -123,3 +123,55 @@ def test_laya_rows_shape():
             probs = gold[qid]["probabilities"]
             assert abs(sum(probs.values()) - 1.0) < 1e-9
             assert max(probs.values()) == 1.0  # one-hot
+
+
+def _mask_action(action: str) -> str:
+    """Collapse pool-filled values so one surface template = one shape."""
+    import evals.guardian_finetune_data as m
+    pools = set()
+    for name in dir(m):
+        v = getattr(m, name)
+        if isinstance(v, list) and v and all(isinstance(x, str) for x in v):
+            pools.update(x.lower() for x in v if 2 < len(x) < 60)
+    a = action.lower()
+    a = re.sub(r"\$\d[\d,]*(\.\d+)?", "$N", a)
+    a = re.sub(r"\d+\.\d+|\d+", "N", a)
+    a = re.sub(r"~[/\w.\-]*", "PATH", a)
+    a = re.sub(r"/[\w.\-/]+", "PATH", a)
+    a = re.sub(r"\b[\w.\-]+\.(?:com|net|org|io|example|dev)\b", "DOM", a)
+    for p in sorted(pools, key=len, reverse=True):
+        a = a.replace(p, "?")
+    return re.sub(r"\s+", " ", a).strip()
+
+
+def test_surface_diversity_no_template_dominance():
+    """Owner direction 2026-09-26 (after the 5,748-trace v4 regression):
+    diversity of surface forms, not near-copies. v4 collapsed credential
+    recall 21/24 -> 10/24 because one command template drowned the varied
+    handwritten forms. Assert each key family keeps many distinct masked
+    shapes and no single shape exceeds 5% of its family."""
+    shapes = {}
+    rows = {}
+    for t in TRAINING_TRACES:
+        cat = t["category"]
+        shape = _mask_action(t["state"].split(": ", 1)[1])
+        shapes.setdefault(cat, set()).add(shape)
+        rows.setdefault(cat, Counter())[shape] += 1
+    minimums = {
+        "credential_access": 110,
+        "financial": 70,
+        "injection": 290,
+        "exfiltration": 90,
+        "destructive": 175,
+        "unsafe_exec": 115,
+        "supply_chain": 185,
+        "network_abuse": 220,
+        "privacy": 38,
+    }
+    for cat, n in minimums.items():
+        assert len(shapes[cat]) >= n, (cat, len(shapes[cat]))
+    for cat in ("credential_access", "financial", "injection",
+                "exfiltration", "destructive"):
+        top = rows[cat].most_common(1)[0][1]
+        total = sum(rows[cat].values())
+        assert top / total <= 0.05, (cat, top, total)
