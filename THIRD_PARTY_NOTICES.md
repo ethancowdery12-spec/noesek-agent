@@ -183,3 +183,12 @@ table and the takeover-lease semantics are carried over from upstream; the
 state layout, token gate and single-profile lifecycle are noesek-authored.
 Adapted files carry provenance headers; the upstream license text ships at
 src/noesek/vendor/hermes/LICENSE.hermes.
+
+## ibelick/ui-skills (MIT)
+
+The design_system review checklists (src/noesek/tools/design_system.py,
+CHECKLISTS - baseline_ui de-slop rules and the accessibility audit rules)
+are own-words condensations of the baseline-ui and fixing-accessibility
+skills from ibelick/ui-skills; no upstream text is copied. MIT license
+verified against the on-disk LICENSE, Sep 26 2026. Copyright Julien Thibeaut.
+https://github.com/ibelick/ui-skills/blob/main/LICENSE
