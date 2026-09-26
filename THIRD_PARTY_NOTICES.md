@@ -161,6 +161,16 @@ patterns (long-session health zones, rule recitation, compaction anchoring)
 come from the wshobson/agents plugin marketplace, MIT license verified
 on-disk Sep 25 2026. Copyright Seth Hobson.
 https://github.com/wshobson/agents/blob/main/LICENSE
+
+## G10DC/chisel (MIT)
+
+The duplicate-tool-call suppression in the conversation condenser
+(src/noesek/core/condenser.py, dedupe_repeated_tool_calls - repeated
+identical calls masked, latest result verbatim, code/regex/literals never
+re-compressed) is an own-words implementation of the chisel duplicate
+detection idea; no upstream code is copied. MIT license verified against
+the on-disk LICENSE, Sep 26 2026. Copyright Chisel contributors.
+https://github.com/G10DC/chisel/blob/main/LICENSE
 ## Hermes Agent Bot Desktop (adapted implementation, computer screen)
 
 The noesek computer screen (src/noesek/computer/screen_lease.py,
