@@ -7,7 +7,7 @@ def test_list_and_load():
     assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
                                     "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner",
                                     "birthdays", "split_expenses", "journal", "gtd_tasks",
-                                    "tax_prep", "recipe_import"}
+                                    "tax_prep", "recipe_import", "session_guard"}
     loaded = playbook(PlaybookInput(action="load", name="debate"))
     assert loaded["loaded"] == "debate" and len(loaded["brief"]) > 100
 
@@ -99,3 +99,12 @@ def test_tranche6_briefs_carry_guardrails():
     b = PLAYBOOKS["recipe_import"]["brief"].lower()
     assert "blocks fetching" in b and "paste" in b  # scraper graceful-failure
     assert "kind='recipe'" in b
+
+def test_session_guard_brief_carries_health_zones():
+    # item 100: session-guard playbook (wshobson/agents deep study, own words).
+    b = PLAYBOOKS["session_guard"]["brief"].lower()
+    assert "40" in b and "60" in b and "checkpoint" in b
+    assert "source of truth" in b
+    assert "compaction" in b and "re-anchor" in b
+    # irreversible work is never interrupted mid-flight
+    assert "irreversible" in b and "reversible unit" in b
