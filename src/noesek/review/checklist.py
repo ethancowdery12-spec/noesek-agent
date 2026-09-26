@@ -5,6 +5,11 @@ security, performance, maintainability, tests, plus language-specific
 traps for Python. The precision-over-recall stance is deliberate: report
 only what you can stand behind; a false alarm costs more trust than a
 missed nit.
+
+The diff-discipline section is adapted (own wording) from the kill-slop
+skill in iCodeCraft/anti-slop (MIT, see THIRD_PARTY_NOTICES.md): the
+defects machine-written diffs keep shipping - scope creep, drive-by
+refactors, restating comments, single-use abstraction.
 """
 from __future__ import annotations
 
@@ -44,7 +49,18 @@ AI-generation debt (patterns machine-written code gets wrong)
   cleanup on expiry.
 Tests
 - Does new behavior come with coverage? Do the tests exercise the boundary
-  cases, not just the happy path?"""
+  cases, not just the happy path?
+Diff discipline
+- Scope: every changed file serves the stated change? Flag new files whose
+  content belongs in an existing module, and new dependencies nothing asked
+  for.
+- Drive-bys: unrelated refactors, renames, or reformats riding inside the
+  diff? A reviewable diff is the smallest one that makes the change.
+- Restating comments: comments that paraphrase the next line instead of
+  saying why; docstrings on trivial getters.
+- Abstraction cosplay: interfaces, factories, or layered folder schemes
+  (domain/application/infrastructure) introduced for a single call site?
+  Inline until the second use exists."""
 
 PYTHON_CHECKLIST = """\
 Python traps
