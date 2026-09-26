@@ -132,6 +132,25 @@ and contributors) and grammar packages tree-sitter-python, -javascript,
 (all MIT). Licenses verified against the on-disk LICENSE file shipped in each
 wheel, Sep 24 2026. Used by core/code_intel.py for AST symbol/call indexing.
 
+## alibaba/open-code-review (Apache-2.0)
+
+The code_review chat tool's pipeline architecture (group changed files, plan
+risk points, review each group with a bounded context-tool loop, then a
+fact-check filter that drops only comments the diff proves wrong) is adapted
+from Open Code Review and re-implemented in Python in src/noesek/review/ -
+no upstream Go code is copied or invoked. License verified against the
+on-disk LICENSE, Sep 25 2026. Copyright Alibaba Group.
+https://github.com/alibaba/open-code-review/blob/main/LICENSE
+
+## wshobson/agents (MIT)
+
+The AI-generation-debt section of the code_review checklist (failure modes,
+orphaned resources, hallucinated dependencies, architectural drift - adapted
+own-words from the ai-debt-detector skill) and the session-guard playbook
+patterns (long-session health zones, rule recitation, compaction anchoring)
+come from the wshobson/agents plugin marketplace, MIT license verified
+on-disk Sep 25 2026. Copyright Seth Hobson.
+https://github.com/wshobson/agents/blob/main/LICENSE
 ## Hermes Agent Bot Desktop (adapted implementation, computer screen)
 
 The noesek computer screen (src/noesek/computer/screen_lease.py,

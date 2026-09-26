@@ -35,6 +35,8 @@ TEST_CASES = [
     _c("Do I have any meetings this week?", ["calendar_read"], "positive"),
     _c("Cancel background task 42", ["cancel_task"], "positive"),
     _c("Kill that reminder task, the id is 7", ["cancel_task"], "positive"),
+    _c("Review my uncommitted changes for bugs", ["code_review"], "positive"),
+    _c("Do a code review of this branch before I merge it", ["code_review"], "positive"),
     _c("Find where authenticate is defined in this repo", ["code_graph"], "positive"),
     _c("Map the call graph around the router module", ["code_graph"], "positive"),
     _c("Show me the source of the function that imports OFX bank statements", ["code_intel"], "positive"),
