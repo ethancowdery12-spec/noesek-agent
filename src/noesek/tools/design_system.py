@@ -7,6 +7,13 @@ ships that as agent capability: a small set of own-value themes in token
 schema, and templates that render self-contained HTML deliverables into the
 agent file store (downloadable via /files). The agent answers "make it look
 good" with a real system instead of ad-hoc styling.
+
+Roadmap item 96 adds review checklists (action="checklist"), own-words
+condensations of two ibelick/ui-skills rulesets (MIT, see
+THIRD_PARTY_NOTICES.md): baseline_ui is the de-slop pass (spacing,
+hierarchy, typography, interaction, animation); accessibility is the
+WCAG audit pass (names, keyboard, focus, semantics, forms). The agent
+reviews UI code against these instead of relying on taste alone.
 """
 from __future__ import annotations
 
@@ -48,6 +55,45 @@ THEMES: dict[str, dict] = {
     },
 }
 
+CHECKLISTS: dict[str, dict] = {
+    "baseline_ui": {
+        "when": "de-slop pass over UI code - spacing, hierarchy, typography, interaction, animation",
+        "rules": (
+            "Spacing and layout: one consistent spacing scale, no arbitrary one-off values; a fixed "
+            "z-index scale; use the dynamic viewport height, never a fixed 100vh; respect safe-area "
+            "insets on fixed elements. Hierarchy and typography: balanced headings, pretty body text, "
+            "tabular numerals in data displays, truncation or line-clamping in dense UI; never touch "
+            "letter-spacing unless asked. Color: no gradients unless explicitly requested, and never "
+            "purple or multicolor gradients. Interaction: accessible component primitives for anything "
+            "with keyboard or focus behavior, never hand-rolled; every icon-only button gets an "
+            "aria-label; destructive actions go through a confirmation dialog; loading states use "
+            "structural skeletons; errors render next to the action that failed; paste is never "
+            "blocked in inputs. Animation: only when explicitly requested; animate transform and "
+            "opacity only, never layout properties; interaction feedback under 200ms; ease-out on "
+            "entrances; pause looping animations off-screen; respect prefers-reduced-motion."
+        ),
+    },
+    "accessibility": {
+        "when": "WCAG audit of interactive UI - controls, forms, dialogs, focus and keyboard paths",
+        "rules": (
+            "Accessible names (critical): every interactive control has an accessible name; icon-only "
+            "buttons carry aria-label or aria-labelledby; every input, select and textarea is labeled; "
+            "link text is meaningful; decorative icons are aria-hidden. Keyboard access (critical): "
+            "every interactive element is reachable and operable by keyboard alone; a div is never a "
+            "button without full keyboard support; focus is always visible. Focus and dialogs "
+            "(critical): focus moves into a dialog on open, is trapped while open, and returns to the "
+            "trigger on close; Escape closes. Semantics (high): native elements before ARIA; one h1 "
+            "per page; lists marked up as lists; buttons for actions, links for navigation. Forms and "
+            "errors (high): errors are announced and programmatically tied to their field; helper text "
+            "is associated with its input; required fields are marked in more than color. "
+            "Announcements: dynamic content changes surface through live regions. Contrast and states: "
+            "text meets WCAG contrast; state is never conveyed by color alone. Media and motion: alt "
+            "text and captions present; reduced-motion preferences honored. Fixes stay minimal and "
+            "targeted - never rewrite the UI to make it compliant."
+        ),
+    },
+}
+
 _PAGE = """<!doctype html>
 <html><head><meta charset="utf-8"><title>{title}</title><style>
 :root {{ --bg: {bg}; --surface: {surface}; --ink: {ink}; --muted: {muted}; --accent: {accent}; }}
@@ -66,13 +112,14 @@ footer {{ color: var(--muted); font-size: 14px; margin-top: {page}px; }}
 
 
 class DesignInput(BaseModel):
-    action: str = Field(description="list | get | render")
+    action: str = Field(description="list | get | render | checklist")
     theme: str = Field(default="ink", description=f"one of: {', '.join(THEMES)}")
     title: str = Field(default="Untitled", max_length=120)
     subtitle: str = Field(default="", max_length=200)
     sections: list[str] = Field(default_factory=list, max_length=20,
                                 description="render: 'Heading | body text' entries")
     file_name: str = Field(default="page.html", description="render: output name in the file store")
+    checklist: str = Field(default="", description=f"checklist: one of: {', '.join(CHECKLISTS)}")
 
 
 def _tokens(theme: str) -> dict | None:
@@ -82,7 +129,17 @@ def _tokens(theme: str) -> dict | None:
 def design_system(inp: DesignInput) -> dict:
     action = inp.action.strip().lower()
     if action == "list":
-        return {"themes": {k: v["description"] for k, v in THEMES.items()}}
+        return {"themes": {k: v["description"] for k, v in THEMES.items()},
+                "checklists": {k: v["when"] for k, v in CHECKLISTS.items()}}
+    if action == "checklist":
+        if not inp.checklist.strip():
+            return {"checklists": {k: v["when"] for k, v in CHECKLISTS.items()}}
+        cl = CHECKLISTS.get(inp.checklist.strip().lower())
+        if not cl:
+            return {"error": f"unknown checklist '{inp.checklist}'", "checklists": sorted(CHECKLISTS)}
+        return {"checklist": inp.checklist.strip().lower(),
+                "instruction": "Review the UI code against these rules; report violations with the exact snippet and a concrete fix.",
+                "rules": cl["rules"]}
     t = _tokens(inp.theme)
     if not t:
         return {"error": f"unknown theme '{inp.theme}'", "themes": sorted(THEMES)}
@@ -110,4 +167,4 @@ def design_system(inp: DesignInput) -> dict:
             return {"error": str(exc)}
         return {"rendered": True, "theme": inp.theme.strip().lower(),
                 "download": f"/files/{meta['name']}", "bytes": meta["bytes"]}
-    return {"error": f"unknown action '{inp.action}'", "actions": ["list", "get", "render"]}
+    return {"error": f"unknown action '{inp.action}'", "actions": ["list", "get", "render", "checklist"]}
