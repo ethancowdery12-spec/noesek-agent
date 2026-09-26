@@ -74,6 +74,10 @@ app.include_router(slack_router)
 app.include_router(telegram_router)
 app.include_router(screen_bridge.router)
 
+# Obsidian channel (noesek layer)
+from noesek.channels.obsidian_router import router as obsidian_router
+app.include_router(obsidian_router)
+
 
 @app.on_event("startup")
 async def _startup() -> None:
