@@ -132,6 +132,16 @@ and contributors) and grammar packages tree-sitter-python, -javascript,
 (all MIT). Licenses verified against the on-disk LICENSE file shipped in each
 wheel, Sep 24 2026. Used by core/code_intel.py for AST symbol/call indexing.
 
+## iCodeCraft/anti-slop (MIT)
+
+The diff-discipline section of the code_review checklist (scope creep, new
+files that belong in existing modules, unrequested dependencies, drive-by
+refactors, restating comments, single-use abstraction and invented layered
+folder trees) is adapted own-words from the rule set published by the
+kill-slop skill - no upstream skill files are copied or loaded. License
+verified against the on-disk LICENSE, Sep 26 2026. Copyright iCodeCraft.
+https://github.com/iCodeCraft/anti-slop/blob/main/LICENSE
+
 ## alibaba/open-code-review (Apache-2.0)
 
 The code_review chat tool's pipeline architecture (group changed files, plan

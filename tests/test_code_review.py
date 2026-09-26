@@ -267,3 +267,13 @@ async def test_tool_refuses_escape_and_non_repo(tmp_path, monkeypatch):
     handler = code_review_handler(5, None)
     assert "workspace" in (await handler(CodeReviewInput(path="../x")))["error"]
     assert "no git repo" in (await handler(CodeReviewInput()))["error"]
+
+
+def test_checklist_carries_diff_discipline_section():
+    from noesek.review.checklist import DEFAULT_CHECKLIST, checklist_for
+    assert "Diff discipline" in DEFAULT_CHECKLIST
+    for marker in ("Drive-bys", "Restating comments", "Abstraction cosplay", "Scope"):
+        assert marker in DEFAULT_CHECKLIST
+    # language append still composes on top
+    assert "Diff discipline" in checklist_for(["x.py"])
+    assert "Python traps" in checklist_for(["x.py"])
