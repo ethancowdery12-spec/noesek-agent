@@ -13,6 +13,7 @@ from ..core.types import Risk
 from ..db import Conversation, Session
 from .browser_cookies import BrowserCookiesInput, browser_cookies
 from .code_graph import CodeGraphInput, code_graph
+from .code_review import CodeReviewInput, code_review_handler
 from .design_system import DesignInput, design_system
 from .linkedin import LinkedInInput, linkedin
 from .office_doc import OfficeDocInput, office_doc
@@ -60,6 +61,7 @@ def register_chat_extras(r, conversation_id: int, controller, timeout: float) ->
         async with Session() as s:
             ov = await s.scalar(select(Conversation.model_override).where(Conversation.id == conversation_id))
         return controller._llm_for_model(ov)
+    r.register(ToolSpec("code_review","Structured line-level review of git changes in the conversation code workspace (pipeline adapted from alibaba/open-code-review, Apache-2.0, own words): groups changed files, plans risks, reviews each group with a bounded read/search context loop, verifies each comment against the diff and anchors findings to changed lines. Precision-first: only confident defects are reported, grouped by severity. Use when asked to review code changes, a branch, a commit, or staged work. Defaults to uncommitted changes; pass background for what the change is for.",CodeReviewInput,Risk.READ,code_review_handler(conversation_id,_resolve_llm),timeout_seconds=timeout))
     r.register(ToolSpec("generate_variants","Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",GenerateVariantsInput,Risk.READ,generate_variants_handler(_resolve_llm),timeout_seconds=timeout))
     r.register(ToolSpec("seo_audit","Audit one HTML page for rankability (claude-seo checks, MIT, own-words): title/meta bounds, single h1, heading outline, lang/charset/viewport, canonical, noindex, mixed content, og/twitter cards, JSON-LD validity + deprecated types, content depth, image alt coverage. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Run on any website/landing deliverable before shipping.",SeoAuditInput,Risk.READ,seo_audit,timeout_seconds=timeout))
     r.register(ToolSpec("geo_audit","Audit one HTML page for citability inside AI answers (geo-optimizer-skill method families, MIT, own-words; GEO research line arXiv 2311.09735): outbound source citations, statistics, quotations, answer-ready lead, question-form headings, extractable lists/tables, JSON-LD entity clarity with sameAs, Wikidata entity presence (create/maintain the business's wikidata.org item and link it via sameAs - knowledge-graph presence makes AI assistants surface it), freshness dates, AI-crawler access in robots.txt, llms.txt. Pass the page HTML plus robots_txt/llms_txt when available. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Companion to seo_audit - run both on website/landing deliverables.",GeoAuditInput,Risk.READ,geo_audit,timeout_seconds=timeout))
