@@ -17,6 +17,14 @@ one-shot auto-distill, item 58):
    recent results the model is composing over stay verbatim; bulk from
    early rounds stops compounding. Masking only affects what is sent to
    the model - persisted history is untouched.
+
+3. Duplicate-call suppression (roadmap item 97, G10DC/chisel idea, MIT,
+   own-words): when the assistant issues the exact same tool call - same
+   name and same serialized arguments - more than once in the visible
+   window, every result but the most recent is replaced with a short
+   pointer. Exact-match detection only, and the transform is
+   all-or-nothing: a duplicate result is masked wholesale or left
+   verbatim; code, regex and literal content is never re-compressed.
 """
 from __future__ import annotations
 
@@ -46,6 +54,51 @@ def mask_tool_results(messages: list[dict], keep_full: int = 6) -> list[dict]:
         if content.startswith("[earlier tool result omitted"):
             continue
         out[i] = {**m, "content": _MASK.format(chars=len(content))}
+    return out
+
+
+_DUP_MASK = ("[duplicate tool call omitted by the condenser - identical to "
+             "the later {name} call below ({chars} chars)]")
+
+
+def _call_key(call: dict) -> tuple[str, str] | None:
+    fn = (call or {}).get("function") or {}
+    name, args = fn.get("name"), fn.get("arguments")
+    if not name:
+        return None
+    return (str(name), str(args))
+
+
+def dedupe_repeated_tool_calls(messages: list[dict]) -> list[dict]:
+    """Mask the results of repeated identical tool calls, keeping the most
+    recent result verbatim. Idempotent; never mutates the caller's dicts.
+    A call with no resolvable name/arguments is never treated as a
+    duplicate."""
+    id_to_key: dict[str, tuple[str, str]] = {}
+    order: list[str] = []
+    for m in messages:
+        if m.get("role") != "assistant":
+            continue
+        for call in m.get("tool_calls") or []:
+            key, cid = _call_key(call), call.get("id")
+            if key is not None and cid:
+                id_to_key[cid] = key
+                order.append(cid)
+    last_seen: dict[tuple[str, str], str] = {}
+    for cid in order:
+        last_seen[id_to_key[cid]] = cid
+    # a call whose id is not the last occurrence of its key is a repeat
+    drop_ids = {cid for cid in order if cid != last_seen[id_to_key[cid]]}
+    if not drop_ids:
+        return messages
+    out = list(messages)
+    for i, m in enumerate(out):
+        if m.get("role") == "tool" and m.get("tool_call_id") in drop_ids:
+            content = m.get("content") or ""
+            if content.startswith("[duplicate tool call omitted"):
+                continue
+            out[i] = {**m, "content": _DUP_MASK.format(
+                name=id_to_key[m["tool_call_id"]][0], chars=len(content))}
     return out
 
 
