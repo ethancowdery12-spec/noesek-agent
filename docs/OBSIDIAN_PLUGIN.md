@@ -52,7 +52,11 @@ desktop-only v1). v1 scope, deliberately small:
 3. Edit proposals: when noesek's reply includes an edit block
    ({path, find, replace} or full-file), the plugin shows a word-level diff
    preview; user accepts or rejects per hunk. Applied edits are normal vault
-   writes (undoable, git-visible). Never auto-apply in v1.
+   writes (undoable, git-visible). Never auto-apply in v1. Server side,
+   obsidian conversations carry a channel hint in the assembled system prompt
+   (OBSIDIAN_EDIT_HINT in src/noesek/core/context.py) teaching the model the
+   fenced noesek-edit contract, so proposals arrive in the format the plugin
+   parses.
 4. Settings: server URL, pairing flow, context size cap, excluded folders
    (.obsidian, private/).
 
