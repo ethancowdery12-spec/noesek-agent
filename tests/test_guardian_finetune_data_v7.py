@@ -116,3 +116,23 @@ def test_laya_rows_shape():
             probs = gold[qid]["probabilities"]
             assert abs(sum(probs.values()) - 1.0) < 1e-9
             assert max(probs.values()) == 1.0
+
+
+def test_acceptance_gate_v7_format_and_disjointness():
+    import json as _json
+    from evals.guardian_finetune_data_v7 import ACCEPTANCE_TRACES_V7
+    assert 300 <= len(ACCEPTANCE_TRACES_V7) <= 349
+    counts = Counter(t["gold"] for t in ACCEPTANCE_TRACES_V7)
+    assert counts["allow"] >= 120 and counts["deny"] >= 100 and counts["escalate"] >= 40
+    train_states = {t["state"] for t in TRAINING_TRACES}
+    for t in ACCEPTANCE_TRACES_V7:
+        assert t["state"] not in train_states, t["id"]
+        payload = t["state"].split("\n", 1)[0].split(": ", 1)[1]
+        assert isinstance(_json.loads(payload), dict), t["id"]
+
+
+def test_acceptance_gate_v7_same_cases_as_frozen():
+    # the v7 gate must re-render the SAME frozen cases (comparable numbers),
+    # just in production format
+    from evals.guardian_finetune_data_v7 import ACCEPTANCE_TRACES_V7
+    assert {t["id"][4:] for t in ACCEPTANCE_TRACES_V7} <= {t["id"] for t in TRACES}
