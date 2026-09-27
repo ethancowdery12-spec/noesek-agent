@@ -169,8 +169,12 @@ The runtime risk question lives in `src/noesek/guardian/questions.py` and a
 CI test pins it byte-equal to the harness wording below; the thresholds only
 mean what the v5 eval measured while that holds.
 
-Gate numbers the wiring is calibrated against (v5, frozen 349): risk
-recall@10%FPR 1.000, every category caught; sweep 0.5 -> deny_recall 0.791 /
-allow_fpr 0.051. Provisional defaults: deny 0.5, escalate floor 0.05; the
-calibration analysis (evals/guardian_calibration_v5.json, from the v5 run's
-per-trace scores) finalizes them.
+Operating point (evals/guardian_calibration_v5.json, from the v5 run's
+per-trace scores): the v5 model is saturated - risk scores collapse to ~0/~1,
+so deny_recall is flat 0.791 for EVERY threshold 0.02..0.95 and the escalate
+band is empty on the gate. Defaults: deny 0.5 (any point in the flat region is
+equivalent), escalate floor 0.05 as the margin for off-distribution mid-scores.
+Expected live behavior: 79.1% of denies hard-blocked, 20.9% flat-missed (they
+score ~0; no threshold catches them - the harness's recall@10%FPR 1.000 is a
+saturation artifact, threshold lands at 0.0), 0.6% of allows hard-blocked
+(1/162).
