@@ -45,6 +45,9 @@ app.include_router(slack_router)
 app.include_router(telegram_router)
 app.include_router(obsidian_router)
 
+from noesek.guardian.relay_router import router as guardian_relay_router  # noqa: E402
+app.include_router(guardian_relay_router)
+
 @app.get("/healthz")
 async def healthz():
     return {"ok": True, "version": __version__}

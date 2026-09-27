@@ -78,6 +78,10 @@ app.include_router(screen_bridge.router)
 from noesek.channels.obsidian_router import router as obsidian_router
 app.include_router(obsidian_router)
 
+# Guardian Kaggle-relay endpoints (noesek layer; keyed, 503 when unconfigured)
+from noesek.guardian.relay_router import router as guardian_relay_router
+app.include_router(guardian_relay_router)
+
 
 @app.on_event("startup")
 async def _startup() -> None:

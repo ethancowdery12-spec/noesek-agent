@@ -73,3 +73,30 @@ def _reset_for_tests():
     with _lock:
         _agent = None
         _load_error = None
+
+
+def score_state_via_relay(state: str, timeout_seconds: float) -> dict:
+    """Remote scoring through the Kaggle relay job queue
+    (docs/GUARDIAN_SERVING.md). Same return shape as score_state. Raises
+    TimeoutError when no relay answers in time - the gate's fail-mode
+    handling applies from there."""
+    import time
+
+    from .relay_store import get_store
+
+    store = get_store()
+    job_id = store.enqueue(state)
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        row = store.get(job_id)
+        if row and row["status"] == "done" and row["result"]:
+            import json as _json
+
+            r = _json.loads(row["result"])
+            return {
+                "deny_score": float(r["deny_score"]),
+                "esc_prob": float(r["esc_prob"]),
+                "top_risk": r.get("top_risk"),
+            }
+        time.sleep(0.5)
+    raise TimeoutError(f"guardian relay did not answer within {timeout_seconds:.0f}s")

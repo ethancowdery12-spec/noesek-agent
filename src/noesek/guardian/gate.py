@@ -39,10 +39,16 @@ async def gate_tool_call(tool_name: str, arguments: dict, reasoning: str, contex
     if not settings.guardian_enabled:
         return None
     state = _scorer.build_state(tool_name, arguments, reasoning, context)
+    if settings.guardian_remote:
+        # Kaggle relay path (docs/GUARDIAN_SERVING.md): the internal timeout
+        # sits 1s under the outer wait_for so the relay's own expiry wins.
+        scoring = asyncio.to_thread(
+            _scorer.score_state_via_relay, state,
+            max(1.0, settings.guardian_score_timeout_seconds - 1.0))
+    else:
+        scoring = asyncio.to_thread(_scorer.score_state, settings.guardian_model_dir, state)
     try:
-        s = await asyncio.wait_for(
-            asyncio.to_thread(_scorer.score_state, settings.guardian_model_dir, state),
-            timeout=settings.guardian_score_timeout_seconds)
+        s = await asyncio.wait_for(scoring, timeout=settings.guardian_score_timeout_seconds)
     except Exception as e:  # noqa: BLE001 - any scorer/timeout failure lands here
         log.warning("guardian scoring failed for %s: %s", tool_name, e)
         if settings.guardian_fail_mode == "closed":
