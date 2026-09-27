@@ -14,6 +14,10 @@ Secrets (Kaggle Add-ons > Secrets, attached to this kernel):
   NOESEK_KAGGLE_TOKEN        - KGAT token, only needed for self-relaunch
 Optional secret:
   NOESEK_GUARDIAN_RELAY_BASE - override the base URL (default STAGING)
+Prod-twin overrides (attach ONLY to the prod relay kernel):
+  NOESEK_GUARDIAN_RELAY_KEY_PROD  - prod's relay key (matches prod Render env)
+  NOESEK_GUARDIAN_RELAY_BASE_PROD - https://noesek-computer.onrender.com
+  NOESEK_GUARDIAN_RELAY_SLUG      - noesek-guardian-relay-prod (self-relaunch target)
 """
 
 import json
@@ -64,9 +68,15 @@ def get_secret(name):
         return None
 
 
-RELAY_KEY = os.environ.get("NOESEK_GUARDIAN_RELAY_KEY") or get_secret("NOESEK_GUARDIAN_RELAY_KEY")
+RELAY_KEY = (os.environ.get("NOESEK_GUARDIAN_RELAY_KEY")
+           or get_secret("NOESEK_GUARDIAN_RELAY_KEY_PROD")
+           or get_secret("NOESEK_GUARDIAN_RELAY_KEY"))
 BASE = (os.environ.get("NOESEK_GUARDIAN_RELAY_BASE")
+        or get_secret("NOESEK_GUARDIAN_RELAY_BASE_PROD")
         or get_secret("NOESEK_GUARDIAN_RELAY_BASE") or DEFAULT_BASE).rstrip("/")
+KERNEL_SLUG = (os.environ.get("NOESEK_GUARDIAN_RELAY_SLUG")
+               or get_secret("NOESEK_GUARDIAN_RELAY_SLUG")
+               or KERNEL_SLUG)
 KAGGLE_TOKEN = os.environ.get("NOESEK_KAGGLE_TOKEN") or get_secret("NOESEK_KAGGLE_TOKEN")
 
 if not RELAY_KEY:
