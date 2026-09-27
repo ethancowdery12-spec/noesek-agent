@@ -67,6 +67,7 @@ def build_parser():
     def _extra(name,**kw):
         ep=ex.add_parser(name,**kw);ep.set_defaults(_noesek_extra=name);return ep
     _extra('worker',help='Run only the background task worker')
+    _extra('guardian-setup',help='Owner questionnaire: write the integrity-protected guardian policy file')
     _extra('acp-serve',help='Serve the Noesek ACP agent over stdio')
     _extra('providers',help='List provider protocols and availability')
     mem=_extra('memories',help='Local memory operations (offline)')
@@ -85,6 +86,8 @@ def _extras(args):
     from . import cli_ops
     if cmd=='worker':
         from .cli import _worker;asyncio.run(_worker());return 0
+    if cmd=='guardian-setup':
+        from .guardian.policy_setup import run_questionnaire;return run_questionnaire()
     if cmd=='acp-serve':
         from .compat.acp_server import main as f;f();return 0
     if cmd=='providers':
