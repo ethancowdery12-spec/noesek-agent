@@ -8,6 +8,7 @@ import logging
 from dataclasses import dataclass
 
 from ..config import settings
+from . import policy as _policy
 from . import scorer as _scorer
 
 log = logging.getLogger(__name__)
@@ -55,8 +56,16 @@ async def gate_tool_call(tool_name: str, arguments: dict, reasoning: str, contex
             return GateVerdict("deny", -1.0, -1.0, None, state,
                                error=f"guardian unavailable ({type(e).__name__}) and fail mode is closed")
         return None
-    return GateVerdict(
-        classify(s["deny_score"], s["esc_prob"],
-                 settings.guardian_deny_threshold, settings.guardian_escalate_floor,
-                 settings.guardian_esc_prob_threshold),
-        s["deny_score"], s["esc_prob"], s["top_risk"], state)
+    model_verdict = classify(s["deny_score"], s["esc_prob"],
+                             settings.guardian_deny_threshold, settings.guardian_escalate_floor,
+                             settings.guardian_esc_prob_threshold)
+    try:
+        verdict, rule = _policy.apply(tool_name, s["deny_score"], s["esc_prob"],
+                                      s.get("top_risk"), model_verdict)
+    except _policy.PolicyError as e:
+        log.warning("guardian policy store invalid for %s: %s - failing closed", tool_name, e)
+        return GateVerdict("deny", s["deny_score"], s["esc_prob"], s["top_risk"], state,
+                           error=f"guardian policy store invalid ({e}); failing closed")
+    if rule and rule != "floor":
+        log.info("guardian policy rule %s applied for %s: %s -> %s", rule, tool_name, model_verdict, verdict)
+    return GateVerdict(verdict, s["deny_score"], s["esc_prob"], s["top_risk"], state)

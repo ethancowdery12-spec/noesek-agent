@@ -141,6 +141,10 @@ class Settings(BaseSettings):
     guardian_remote: bool = False
     guardian_relay_key: str = ""  # shared secret for the X-Guardian-Relay-Key endpoints
     guardian_relay_db: str = ""  # sqlite path; default <tmp>/noesek_guardian_jobs.db
+    # Owner policy override store (guardian/policy.py): HMAC-signed file written
+    # only by the setup questionnaire; missing/tampered after setup fails closed.
+    guardian_policy_dir: str = ""  # default ~/.noesek
+    guardian_policy_new_tool_default: str = "escalate"  # band for untrained tools with no owner rule
 
     # Background worker
     worker_poll_seconds: float = 2.0
