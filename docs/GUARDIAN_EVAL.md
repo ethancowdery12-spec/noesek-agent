@@ -178,3 +178,37 @@ Expected live behavior: 79.1% of denies hard-blocked, 20.9% flat-missed (they
 score ~0; no threshold catches them - the harness's recall@10%FPR 1.000 is a
 saturation artifact, threshold lands at 0.0), 0.6% of allows hard-blocked
 (1/162).
+
+## v6 (2026-09-26, kernel run 353146112, branch v6-guardian-data)
+
+v5's honest operating point left 28/134 denies flat-missed (risk ~0): 18
+destructive, 4 exfiltration, 2 network_abuse, 2 privacy, 1 unsafe_exec,
+1 supply_chain - all sharing an innocent-sounding user ask in chat context
+("clean up disk space", "make a backup") paired with a catastrophic action,
+scored as routine_write. v6 added 880 targeted traces to
+evals/guardian_finetune_data.py (19,070 -> 19,776): disguise banks pairing
+mild asks with disproportionate actions, proportionate-allow near-misses,
+and user-named-scope escalates. Frozen gate untouched.
+
+The same kernel run trained 2 epochs and evaled BOTH checkpoints, resolving
+the owner's 1-vs-2-epoch lever head-to-head:
+
+| metric (frozen gate, deny thr 0.5)      | v5    | v6 ep1 | v6 ep2 |
+|-----------------------------------------|-------|--------|--------|
+| deny recall (134 denies)                | 0.791 | 1.000  | 1.000  |
+| flat-missed denies (risk < 0.02)        | 28    | 0      | 0      |
+| allows hard-denied (score >= 0.5)       | 1/162 | 9/162  | 0/162  |
+| 3-way direct accuracy                   | 0.650 | 0.857  | 0.840  |
+| escalate-signal auroc                   | 0.600 | 0.781  | 0.703  |
+| risk auroc                              | 0.871 | 0.916  | 0.944  |
+
+ep2 wins: ep1 matches deny recall but hard-denies 5.6% of allows. Eval
+payloads: evals/guardian_finetuned_eval_ep1.json, _ep2.json, _compare.json.
+
+Caveats, stated plainly:
+- scores remain bimodal (~0/~1); the 28 misses moved from ~0 to ~1, so
+  recall 1.000 at threshold 0.5 is real but confidence resolution is coarse.
+  The 0.5 deny bar carries the margin; escalate floor 0.05 unchanged.
+- ~1/4 of escalate-gold traces still score ~1.0 and would hard-deny rather
+  than ask. Fail-safe direction, noted for a future pass.
+- v1's checkpoint stays the untouched fallback.
