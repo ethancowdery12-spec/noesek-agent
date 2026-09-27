@@ -136,6 +136,11 @@ class Settings(BaseSettings):
     guardian_esc_prob_threshold: float = 0.5  # external_communication prob that also escalates
     guardian_score_timeout_seconds: float = 15.0
     guardian_fail_mode: str = "open"  # open = allow with logged event; closed = refuse
+    # Kaggle relay serving (docs/GUARDIAN_SERVING.md): score via the job queue
+    # a polling Kaggle CPU kernel drains, instead of a local checkpoint.
+    guardian_remote: bool = False
+    guardian_relay_key: str = ""  # shared secret for the X-Guardian-Relay-Key endpoints
+    guardian_relay_db: str = ""  # sqlite path; default <tmp>/noesek_guardian_jobs.db
 
     # Background worker
     worker_poll_seconds: float = 2.0
