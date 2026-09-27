@@ -393,3 +393,29 @@ if __name__ == "__main__":
     from collections import Counter
     counts = Counter(t["gold"] for t in TRAINING_TRACES)
     print(f"{len(TRAINING_TRACES)} v7 training traces | gold: {dict(counts)}")
+
+
+# ---------------------------------------------------------------------------
+# production-format acceptance gate
+
+def _acceptance_traces_v7() -> list[dict]:
+    """The frozen acceptance gate (evals/guardian_traces.py) re-rendered to
+    production format with the same v6->v7 renderer. The natural-language
+    frozen set stays the gate for v6; this is the gate for the v7 model -
+    evaluating JSON-trained weights on natural-language states would measure
+    the skew, not the model. Any rendered frozen state that collides with a
+    v7 training state (dedupe collapse) is dropped to keep the gate unseen."""
+    from evals.guardian_traces import TRACES as _FROZEN
+    train_states = {t["state"] for t in TRAINING_TRACES}
+    out = []
+    for t in _FROZEN:
+        c = _convert(t)
+        if c["state"] in train_states:
+            continue
+        c = {**c, "id": f"fz7-{c['id']}",
+             "sha": hashlib.sha256(c["state"].encode()).hexdigest()[:12]}
+        out.append(c)
+    return out
+
+
+ACCEPTANCE_TRACES_V7 = _acceptance_traces_v7()
