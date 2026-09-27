@@ -108,9 +108,12 @@ def acquire_checkpoint():
     if not KAGGLE_TOKEN:
         return None
     import zipfile
+    # The packager kernel re-emits just the serving files (~850MB). The
+    # finetune kernel's own output zip is >3GB and the download endpoint
+    # drops connections at ~2.75GB, so it is only a last resort.
     url = ("https://www.kaggle.com/api/v1/kernels/output/download/"
-           "ethancowdery/noesek-guardian-finetune")
-    dest = "/kaggle/working/finetune_output.zip"
+           "ethancowdery/noesek-guardian-packager")
+    dest = "/kaggle/working/packager_output.zip"
     out = "/kaggle/working/ckpt"
     # The endpoint has no range/resume support and drops long connections, so
     # retry the whole pull a few times with progress logging.
@@ -143,10 +146,9 @@ def acquire_checkpoint():
         return None
     size_mb = os.path.getsize(dest) / 1e6
     print(f"downloaded {size_mb:.0f} MB; extracting checkpoint subtree", flush=True)
-    prefix = "laya_finetuned_noesek_guardian/"
+    prefix = "serving/"
     with zipfile.ZipFile(dest) as z:
-        names = [n for n in z.namelist()
-                 if n.startswith(prefix) and not n.startswith(prefix + "checkpoint_latest/")]
+        names = [n for n in z.namelist() if n.startswith(prefix)]
         for n in names:
             rel = n[len(prefix):]
             if not rel:
