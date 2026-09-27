@@ -180,7 +180,7 @@ def test_canary_roundtrip(client):
     def complete():
         time.sleep(0.5)
         job = get_store().claim_next()
-        assert job is not None and job["state"].startswith("read_file:")
+        assert job is not None and job["state"].startswith("calendar_read:")
         get_store().complete(
             job["id"], {"deny_score": 0.01, "esc_prob": 0.0, "top_risk": "read_only"})
 
