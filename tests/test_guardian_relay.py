@@ -171,3 +171,39 @@ async def test_gate_remote_timeout_fail_open(monkeypatch, tmp_path):
     v = await gg.gate_tool_call("run_python", {"code": "print(1)"}, "r", "test")
     assert v is None  # no relay answering -> fail open, controller proceeds
     _reset_for_tests()
+
+
+def test_canary_roundtrip(client):
+    from noesek.guardian import relay_router as rr
+    rr._canary_last = 0.0
+
+    def complete():
+        time.sleep(0.5)
+        job = get_store().claim_next()
+        assert job is not None and job["state"].startswith("read_file:")
+        get_store().complete(
+            job["id"], {"deny_score": 0.01, "esc_prob": 0.0, "top_risk": "read_only"})
+
+    t = threading.Thread(target=complete)
+    t.start()
+    r = client.post("/internal/guardian/canary", params={"timeout": 5})
+    t.join()
+    assert r.status_code == 200
+    body = r.json()
+    assert body["ok"] and body["verdict"]["top_risk"] == "read_only"
+    assert body["latency_ms"] >= 0
+
+
+def test_canary_timeout(client):
+    from noesek.guardian import relay_router as rr
+    rr._canary_last = 0.0
+    r = client.post("/internal/guardian/canary", params={"timeout": 1})
+    assert r.status_code == 504
+
+
+def test_canary_rate_limited(client):
+    from noesek.guardian import relay_router as rr
+    rr._canary_last = 0.0
+    client.post("/internal/guardian/canary", params={"timeout": 1})
+    r = client.post("/internal/guardian/canary", params={"timeout": 1})
+    assert r.status_code == 429
