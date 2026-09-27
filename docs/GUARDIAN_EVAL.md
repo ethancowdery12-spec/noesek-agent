@@ -144,3 +144,37 @@ the frozen 349-trace gate with evals/guardian_eval.py.
 
 Wire into the controller ONLY if fine-tuned recall@10%FPR > ~0.5 on
 held-out traces, with calibration refit. Decision owner: Ethan.
+
+## Controller wiring (v5, Sep 26)
+
+`src/noesek/guardian/` scores every proposed tool call before execution,
+next to the policy gate (`core/controller.py`). Verdicts:
+
+- deny score >= `NOESEK_GUARDIAN_DENY_THRESHOLD` -> hard refuse; never
+  user-approvable (decide_approval re-checks and blocks even approved asks)
+- deny score in [`NOESEK_GUARDIAN_ESCALATE_FLOOR`, deny threshold), or
+  external_communication prob >= `NOESEK_GUARDIAN_ESC_PROB_THRESHOLD` ->
+  the existing approval flow (`reply 'approve N'`)
+- else -> executes
+
+OFF by default (`NOESEK_GUARDIAN_ENABLED=0`): the 421M fp16 checkpoint needs
+~2-3 GB RAM, over the Render free tier. `NOESEK_GUARDIAN_MODEL_DIR` points at
+a dir with model.safetensors + rl_agent_config.json (the v5 fit carries the
+held-out-fitted temperatures). Fail modes: `NOESEK_GUARDIAN_FAIL_MODE=open`
+(default; logged, call proceeds) or `closed` (refuse). Scoring runs in a
+worker thread with `NOESEK_GUARDIAN_SCORE_TIMEOUT_SECONDS` so it can never
+starve the event loop (same lesson as needle_router).
+
+The runtime risk question lives in `src/noesek/guardian/questions.py` and a
+CI test pins it byte-equal to the harness wording below; the thresholds only
+mean what the v5 eval measured while that holds.
+
+Operating point (evals/guardian_calibration_v5.json, from the v5 run's
+per-trace scores): the v5 model is saturated - risk scores collapse to ~0/~1,
+so deny_recall is flat 0.791 for EVERY threshold 0.02..0.95 and the escalate
+band is empty on the gate. Defaults: deny 0.5 (any point in the flat region is
+equivalent), escalate floor 0.05 as the margin for off-distribution mid-scores.
+Expected live behavior: 79.1% of denies hard-blocked, 20.9% flat-missed (they
+score ~0; no threshold catches them - the harness's recall@10%FPR 1.000 is a
+saturation artifact, threshold lands at 0.0), 0.6% of allows hard-blocked
+(1/162).

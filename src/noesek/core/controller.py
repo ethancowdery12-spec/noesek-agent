@@ -20,6 +20,7 @@ from .turn_spine import (
 )
 from .types import Risk, TurnResult
 from ..config import settings
+from ..guardian.gate import gate_tool_call
 from ..db import Conversation, Approval, Message, Session, Task, now, record_trace
 from ..tools.research import SearchInput, search_web
 from ..tools.prompt_opt import OptimizePromptInput, optimize_prompt
@@ -55,6 +56,18 @@ def search_tools_handler(registry: ToolRegistry):
         for n in names: registry.activate(n)
         return {"activated": names, "note": "Activated tools are available with full schemas from the next step."}
     return f
+
+class _GuardianEscalation:
+    """Duck-typed PolicyDecision for guardian escalate-band verdicts; routes
+    through the same approval flow as policy ASK decisions."""
+    def __init__(self, g):
+        self.reason = f"guardian escalate band (risk score {g.deny_score:.2f})"
+        self.rule = "guardian:escalate"
+        self.content_flag = f"guardian risk score {g.deny_score:.3f}, top class {g.top_risk}"
+    @property
+    def denied(self): return False
+    @property
+    def needs_approval(self): return True
 
 class Controller:
     def __init__(self, llm=None, registry_factory=None, max_steps: int = MAX_STEPS):
@@ -233,7 +246,10 @@ class Controller:
                 # policy gate, or guard intervention falls back to the
                 # sequential path below with the precomputed guard outcomes.
                 prechecked: dict[int, tuple | None] = {}
-                if len(reply.tool_calls) > 1 and settings.parallel_read_tools_enabled:
+                # Guardian-scored calls take the sequential path below: scoring
+                # is per-call and can end in a refusal or an approval prompt.
+                if (len(reply.tool_calls) > 1 and settings.parallel_read_tools_enabled
+                        and not settings.guardian_enabled):
                     clean = True
                     for call in reply.tool_calls:
                         try: pspec = registry.get(call.name)
@@ -293,6 +309,26 @@ class Controller:
                                 await spine.emit(POLICY_BLOCKED, {"tool": call.name, "call_id": call.id, "reason": decision.reason, "rule": decision.rule})
                                 await spine.emit(TURN_COMPLETED, {"outcome": "policy_blocked"})
                                 return TurnResult(text=refusal, turn_id=spine.turn_id)
+                        g = await gate_tool_call(call.name, call.arguments, reply.content or "",
+                                                 f"live controller turn; conversation {conversation_id}")
+                        if g is not None:
+                            await spine.emit("guardian_scored", {"tool": call.name, "call_id": call.id,
+                                                                 "verdict": g.verdict,
+                                                                 "deny_score": round(g.deny_score, 4),
+                                                                 "top_risk": g.top_risk}, strict=False)
+                        if g is not None and g.verdict == "deny":
+                                inc("noesek_guardian_denied_total")
+                                reason = g.error or (f"risk score {g.deny_score:.2f} >= deny threshold "
+                                                     f"{settings.guardian_deny_threshold:g}")
+                                refusal = (f"Blocked by the guardian: {reason}. This cannot be approved or run "
+                                           "through the agent.")
+                                async with Session() as s: s.add(Message(conversation_id=conversation_id, role="assistant", content=refusal)); await s.commit()
+                                await record_trace(conversation_id, "guardian_denied", {"tool": call.name, "reason": reason})
+                                await spine.emit(TURN_COMPLETED, {"outcome": "guardian_denied"})
+                                return TurnResult(text=refusal, turn_id=spine.turn_id)
+                        if g is not None and g.verdict == "escalate":
+                            inc("noesek_guardian_escalated_total")
+                            decision = _GuardianEscalation(g)
                         if decision.needs_approval:
                             inc("noesek_approvals_total")
                             rationale = f"Requested during conversation turn: {text[:300]} (rule: {decision.rule})"
@@ -387,6 +423,15 @@ class Controller:
                 await record_trace(conversation_id, "approval_blocked", {"approval_id": approval_id, "reason": gate.reason})
                 await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "blocked", "reason": gate.reason})
                 return TurnResult(text=await _persist(f"Approval #{approval_id} cannot run: {gate.reason}. Hardline policy blocks it for everyone."), turn_id=spine.turn_id)
+            g = await gate_tool_call(a.tool_name, a.arguments or {}, "user-approved execution",
+                                     f"approval #{approval_id} guardian re-check")
+            if g is not None and g.verdict == "deny":
+                a.status = "blocked"; a.decided_at = now(); await s.commit()
+                reason = g.error or (f"guardian risk score {g.deny_score:.2f} >= deny threshold "
+                                     f"{settings.guardian_deny_threshold:g}")
+                await record_trace(conversation_id, "approval_blocked", {"approval_id": approval_id, "reason": reason})
+                await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "blocked", "reason": reason})
+                return TurnResult(text=await _persist(f"Approval #{approval_id} cannot run: {reason}. The guardian hard-denies it for everyone."), turn_id=spine.turn_id)
             await spine.emit(APPROVAL_DECIDED, {"approval_id": approval_id, "outcome": "approved", "tool": a.tool_name})
             await spine.emit(TOOL_CALL_REQUESTED, {"tool": a.tool_name, "approval_id": approval_id, "via_approval": True,
                                                    "arguments_json": canonical(a.arguments or {})}, strict=True)
