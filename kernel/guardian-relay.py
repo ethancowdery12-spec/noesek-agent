@@ -112,13 +112,35 @@ def acquire_checkpoint():
            "ethancowdery/noesek-guardian-finetune")
     dest = "/kaggle/working/finetune_output.zip"
     out = "/kaggle/working/ckpt"
-    print("downloading finetune output zip via API...", flush=True)
-    with requests.get(url, headers={"Authorization": f"Bearer {KAGGLE_TOKEN}"},
-                      stream=True, timeout=600) as r:
-        r.raise_for_status()
-        with open(dest, "wb") as f:
-            for chunk in r.iter_content(1 << 20):
-                f.write(chunk)
+    # The endpoint has no range/resume support and drops long connections, so
+    # retry the whole pull a few times with progress logging.
+    for attempt in range(1, 7):
+        try:
+            print(f"download attempt {attempt}/6 ...", flush=True)
+            t0 = time.time()
+            with requests.get(url, headers={"Authorization": f"Bearer {KAGGLE_TOKEN}"},
+                              stream=True, timeout=120) as r:
+                r.raise_for_status()
+                n = 0
+                next_mark = 200 * 1024 * 1024
+                with open(dest, "wb") as f:
+                    for chunk in r.iter_content(1 << 20):
+                        f.write(chunk)
+                        n += len(chunk)
+                        if n >= next_mark:
+                            el = time.time() - t0
+                            print(f"  {n / 1e6:.0f} MB in {el:.0f}s ({n / el / 1e6:.1f} MB/s)",
+                                  flush=True)
+                            next_mark += 200 * 1024 * 1024
+            break
+        except Exception as e:  # noqa: BLE001 - flaky connection, retry whole pull
+            el = time.time() - t0
+            print(f"  attempt {attempt} failed after {el:.0f}s: {type(e).__name__}: {e}",
+                  flush=True)
+            time.sleep(10)
+    else:
+        print("all download attempts failed", flush=True)
+        return None
     size_mb = os.path.getsize(dest) / 1e6
     print(f"downloaded {size_mb:.0f} MB; extracting checkpoint subtree", flush=True)
     prefix = "laya_finetuned_noesek_guardian/"
