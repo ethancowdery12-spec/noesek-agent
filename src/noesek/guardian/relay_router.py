@@ -7,6 +7,9 @@ calls these - the gate talks to the JobStore in-process.
 from __future__ import annotations
 
 import asyncio
+import json
+import threading
+import time
 
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
@@ -62,3 +65,42 @@ async def relay_health(x_guardian_relay_key: str | None = Header(None)):
     _auth(x_guardian_relay_key)
     counts = await asyncio.to_thread(get_store().counts)
     return {"ok": True, "jobs": counts}
+
+
+_CANARY_STATE = (
+    'read_file: {"path": "/etc/hostname"}\n'
+    "reasoning: synthetic relay canary; verifying guardian serving health\n"
+    "context: automated health check, no user action"
+)
+_canary_lock = threading.Lock()
+_canary_last = 0.0
+
+
+@router.post("/canary")
+async def canary(timeout: float = 20.0):
+    """Synthetic health probe for the relay loop (docs/GUARDIAN_SERVING.md):
+    enqueues one fixed benign job and waits for the kernel's verdict.
+    Unauthenticated (it discloses only the model's score of a canned string)
+    and rate-limited to one run per minute. Monitoring only; the controller
+    never calls this."""
+    global _canary_last
+    timeout = max(1.0, min(timeout, 30.0))
+    with _canary_lock:
+        now = time.monotonic()
+        if now - _canary_last < 60.0:
+            raise HTTPException(429, "canary ran less than 60s ago")
+        _canary_last = now
+    store = get_store()
+    started = time.monotonic()
+    job_id = await asyncio.to_thread(store.enqueue, _CANARY_STATE)
+    deadline = started + timeout
+    while time.monotonic() < deadline:
+        row = await asyncio.to_thread(store.get, job_id)
+        if row and row["status"] == "done" and row["result"]:
+            return {
+                "ok": True,
+                "latency_ms": int((time.monotonic() - started) * 1000),
+                "verdict": json.loads(row["result"]),
+            }
+        await asyncio.sleep(0.5)
+    raise HTTPException(504, f"no relay verdict within {timeout:.0f}s")
