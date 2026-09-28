@@ -60,8 +60,8 @@ async def gate_tool_call(tool_name: str, arguments: dict, reasoning: str, contex
                              settings.guardian_deny_threshold, settings.guardian_escalate_floor,
                              settings.guardian_esc_prob_threshold)
     try:
-        verdict, rule = _policy.apply(tool_name, s["deny_score"], s["esc_prob"],
-                                      s.get("top_risk"), model_verdict)
+        verdict, rule = await _policy.apply_async(tool_name, s["deny_score"], s["esc_prob"],
+                                                  s.get("top_risk"), model_verdict)
     except _policy.PolicyError as e:
         log.warning("guardian policy store invalid for %s: %s - failing closed", tool_name, e)
         return GateVerdict("deny", s["deny_score"], s["esc_prob"], s["top_risk"], state,
