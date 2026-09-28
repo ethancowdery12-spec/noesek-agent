@@ -126,6 +126,15 @@ class Approval(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now)
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
+class GuardianPolicyRow(Base):
+    """Guardian owner policy store, DB backend (guardian/policy.py): two rows
+    keyed 'policy' and 'marker', each holding an HMAC-signed {payload,
+    signature} document. Survives stateless deploys, unlike the file store."""
+    __tablename__ = "guardian_policy_store"
+    key: Mapped[str] = mapped_column(String(32), primary_key=True)
+    doc: Mapped[dict] = mapped_column(JSON)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=now, onupdate=now)
+
 class Trace(Base):
     """Append-only per-turn event log: the audit trail of what the agent did and why."""
     __tablename__ = "traces"
