@@ -3,6 +3,9 @@ file. Runs interactively (noesek guardian-setup), collects the owner's band
 choices, and writes the HMAC-signed policy via guardian/policy.write_policy."""
 from __future__ import annotations
 
+import asyncio
+
+from ..config import settings
 from . import policy
 
 
@@ -86,6 +89,10 @@ def run_questionnaire() -> int:
         return 1
 
     known = _live_registry_snapshot()
-    path = policy.write_policy(rules, answers_summary=f"connectors={connectors}", known_tools=known)
-    print(f"wrote {path} (integrity-protected; {len(rules)} rules, {len(known)} known tools snapshotted)")
+    if settings.guardian_policy_key.strip():
+        dest = asyncio.run(policy.awrite_policy(rules, answers_summary=f"connectors={connectors}",
+                                                known_tools=known))
+    else:
+        dest = policy.write_policy(rules, answers_summary=f"connectors={connectors}", known_tools=known)
+    print(f"wrote {dest} (integrity-protected; {len(rules)} rules, {len(known)} known tools snapshotted)")
     return 0
