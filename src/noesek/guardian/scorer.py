@@ -46,7 +46,7 @@ def build_state(tool_name: str, arguments: dict, reasoning: str, context: str) -
     action = json.dumps(arguments or {}, ensure_ascii=False, sort_keys=True)
     if len(action) > MAX_FIELD_CHARS:
         action = action[: MAX_FIELD_CHARS - 3] + "..."
-    reasoning = (reasoning or "").strip() or "no reasoning supplied"
+    reasoning = (reasoning or "").strip() or "User made the request directly; no extra rationale given"
     if len(reasoning) > MAX_FIELD_CHARS:
         reasoning = reasoning[: MAX_FIELD_CHARS - 3] + "..."
     context = (context or "").strip() or "live controller turn"

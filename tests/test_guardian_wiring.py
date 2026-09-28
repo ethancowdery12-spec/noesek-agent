@@ -34,7 +34,7 @@ def test_build_state_action_first_and_truncated():
     long_s = build_state("t", {"x": "y" * 5000}, "", "")
     line1, line2, line3 = long_s.split("\n")
     assert line1.startswith("t: ") and line1.endswith("...")
-    assert line2 == "reasoning: no reasoning supplied"
+    assert line2 == "reasoning: User made the request directly; no extra rationale given"
     assert line3 == "context: live controller turn"
 
 
