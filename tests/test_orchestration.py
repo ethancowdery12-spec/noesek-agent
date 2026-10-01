@@ -27,7 +27,7 @@ class SlowLLM:
         return Reply()
 
 
-def test_controller_registry_has_no_work_tools(db):
+def test_controller_registry_matches_explicit_surface_and_excludes_worker_only_tools(db):
     names = set(Controller(llm=QuietLLM()).registry(1).names())
     assert names <= CONTROLLER_TOOLS
     assert names & WORK_TOOLS == set()
@@ -104,9 +104,13 @@ async def test_running_task_cancellation_propagates_through_queue(db):
 
     class HangLLM:
         async def complete(self, messages, schemas):
-            await aio.sleep(30)
+            try:await aio.sleep(30)
+            except aio.CancelledError:
+                child_cancelled.set()
+                raise
             raise AssertionError("should have been cancelled")
 
+    child_cancelled=aio.Event()
     import noesek.jobs as jobs
     from noesek.workers import runner
     orig = runner.run_worker
@@ -124,7 +128,17 @@ async def test_running_task_cancellation_propagates_through_queue(db):
         # task is now running; cancel through the conversation-facing tool
         out = await cancel_task_handler(1)(type("I", (), {"task_id": tid})())
         assert out == {"cancelled": True, "task_id": tid}
-        await aio.wait_for(run, timeout=10)
+        # asyncio.wait never cancels the job on timeout. A timeout must fail,
+        # rather than drive run_one's CancelledError handler into a false pass.
+        done,_=await aio.wait({run},timeout=2)
+        try:
+            assert run in done, 'owner cancellation did not interrupt in-flight worker'
+            assert child_cancelled.is_set(), 'LLM child was not cancelled'
+            assert await run is True
+        finally:
+            if not run.done():
+                run.cancel()
+                await aio.gather(run,return_exceptions=True)
         async with Session() as s:
             t = await s.get(Task, tid)
         assert t.status == "cancelled"
