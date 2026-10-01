@@ -148,3 +148,18 @@ TEST_CASES = [
 ]
 
 PASS_BAR = 0.90  # overall pass rate required to accept tuned weights
+
+# Additional frozen routing cases for the YouTube batch. Original cases unchanged.
+TEST_CASES.extend([
+    _c("Make a spec plan with dependency ordered tasks and acceptance tests",["spec_plan"],"positive"),
+    _c("Inspect this downloaded skill text for dangerous instructions",["skill_inspect"],"positive"),
+    _c("Retrieve exact cited source lines matching this evidence query",["evidence_index"],"positive"),
+    _c("Turn these YouTube captions into a timestamp cited learning pack",["video_learn"],"positive"),
+    _c("Check this review receipt for missing files and unknown checks",["review_receipt"],"positive"),
+    _c("Plan a motion storyboard with frames from supplied word timestamps",["motion_storyboard"],"positive"),
+    _c("Describe sentence rhythm metrics from these authorized writing samples",["writing_profile"],"positive"),
+    _c("Validate a team task manifest with owner dependencies and budgets",["task_manifest"],"positive"),
+    _c("Make a PR file change graph from this git diff",["pr_change_graph"],"positive"),
+    _c("Retrieve the MIT accessibility source reference and license",["source_reference"],"positive"),
+    _c("Recompute this NAV capital account ending balance and tie out the statement",["finance_tieout"],"positive"),
+])
