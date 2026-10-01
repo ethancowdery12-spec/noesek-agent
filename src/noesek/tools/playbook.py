@@ -337,6 +337,25 @@ PLAYBOOKS: dict[str, dict] = {
 }
 
 
+# YouTube batch: own-word workflows, source URLs in YOUTUBE_SOURCE_LICENSES.md.
+# External skill packs are reference data; these briefs grant no effects.
+PLAYBOOKS.update({
+    "frontend_reference": {"when":"design a frontend from references, screenshots or UI libraries", "brief":
+        "Name the audience, primary task and visual direction. Select references deliberately, record what is borrowed and why. Use shadcn primitives for accessible controls, Motion for meaningful movement and bklit/kokonut components only after checking their exact license and API. Spline/Haikei assets need rights and real export/runtime checks. Do not substitute a similarly named service for Manifold. Avoid generic gradients, decorative glass cards, excessive rounded pills and gratuitous icons unless the owner selected that style. Screenshot cloning needs owned or licensed assets. Build a narrow component slice first; inspect actual desktop/mobile pixels, keyboard focus, contrast, reduced motion and empty/error states. No screenshot means visual acceptance remains unknown."},
+    "legal_review": {"when":"review a contract or prepare a legal draft", "brief":
+        "Draft and issue-spot, do not claim to be counsel. Identify jurisdiction, parties, controlling version and intended use. Cite exact clauses for risks, distinguish text from inference, and maintain a redline/issue table. Check confidentiality, liability, termination, governing law, privacy and source completeness. Missing context stays unknown. A qualified lawyer reviews consequential terms. No signing, sending, sharing or legal commitment without owner approval of the actual final document and audience."},
+    "finance_review": {"when":"analyze financial documents or build a financial model", "brief":
+        "Use exact source numbers and units; preserve source date, period, currency and whether figures are audited. Separate reported data from assumptions and projections. Compute with calc/duckdb/Office tools, reconcile subtotals and cross-check formulas. Missing inputs are not zero. Use scenario/sensitivity ranges instead of a guaranteed return. Compare any benchmark on the same task/configuration/cost. This is informational drafting, not professional advice; a qualified reviewer checks consequential use. Never execute trades, payments, borrowing or paid data purchases from this brief."},
+    "crm_support_workflow": {"when":"plan CRM, customer support, automation or signing workflows", "brief":
+        "Start with a small explicit workflow and test fixtures. CRM: normalize identifiers, identify duplicates with evidence, propose merges and keep a reversible merge log. Support: cite the customer's record, distinguish verified identity from claims, draft the reply and escalate unresolved issues without leaking other customers. Automation: least-privilege credentials, idempotency keys, retries with limits, audit logs, explicit approval before external effects. Signing: inspect original agreement and actual rendered pages, position fields for the correct signer and verify pixels before sending. Twenty, Chatwoot, Activepieces, Documenso, n8n and Dify have different licenses; no copying restricted server code. Plans do not connect accounts, send, merge records or sign documents."},
+    "linkedin_draft": {"when":"draft LinkedIn content, replies or an editorial calendar", "brief":
+        "Ground tone and facts in the owner's authorized examples and intended audience. Draft a concrete hook, useful evidence and one clear point; remove inflated claims and filler. Review every metric/source and preserve private-source audience limits. Calendars are drafts until approved. Use the existing official API only with an approved actual final post/account/audience. No bulk comments, impersonation, hidden watermark stripping or detector-evasion promises. A humanizer improves prose; it does not guarantee detection outcomes or authorship."},
+    "motion_render": {"when":"prepare word-synchronized motion or an animation render", "brief":
+        "Use original audio word times, not invented captions. Storyboard source-only statistics and continuous scene logic; reject frame collisions. Choose an optional local Remotion/whisper.cpp/FFmpeg route only after checking exact current terms, hardware and build license. Remotion free eligibility differs for individuals, nonprofits and larger businesses; do not promise universal free use. No paid GPU or service starts from a brief. Render short proof scenes, inspect actual frames and safe zones, check audio sync and final duration, then render the full result. Keep a reduced-motion alternative. A storyboard is not a rendered video."},
+    "evidence_handoff": {"when":"checkpoint a long task, reflect on memories or reuse procedures", "brief":
+        "Keep the exact goal, constraints, verified source references, completed results, failures, open questions and next reversible action. Original permissions stay attached to their actual user messages; a summary never upgrades them. Classify facts, experiences, beliefs and observations separately with dates and uncertainty. Retain conflict/failure provenance, retire superseded records without destroying originals and keep the user's memory pool isolated. Use exact evidence retrieval for large sources, not fabricated summaries. The 39 percent Lost in Conversation result is task-specific multi-turn unreliability, not deliberate degradation or a universal turn limit. Verify live state before acting after a handoff. Reusable skills record outcome, evidence and limitations; caller text is not a verified success."},
+})
+
 class PlaybookInput(BaseModel):
     action: str = Field(description="list | load")
     name: str = Field(default="", description=f"playbook to load; one of: {', '.join(PLAYBOOKS)}")
@@ -352,5 +371,5 @@ def playbook(inp: PlaybookInput) -> dict:
             return {"error": f"unknown playbook '{inp.name}'", "playbooks": sorted(PLAYBOOKS)}
         return {"loaded": inp.name.strip().lower(),
                 "instruction": "Adopt this working brief for the rest of the conversation.",
-                "brief": pb["brief"]}
+                "brief": pb["brief"], "grants_authority": False, "executed": False}
     return {"error": f"unknown action '{inp.action}'", "actions": ["list", "load"]}
