@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import io
 import os
+import zipfile
 from dataclasses import dataclass, field
 
 MAX_DOC_BYTES = 10_000_000
@@ -79,16 +80,33 @@ def _convert_markitdown(data: bytes, filename: str) -> str:
     return result.text_content or ""
 
 
-def convert_to_markdown(data: bytes, filename: str = "", mime: str = "") -> DocResult:
+def convert_to_markdown(data: bytes, filename: str = "", mime: str = "", *, local_ocr=None) -> DocResult:
     """Convert one document's bytes to Markdown. Never raises on bad input."""
     if not data:
         return DocResult(ok=False, error="empty document")
     if len(data) > MAX_DOC_BYTES:
         return DocResult(ok=False, error=f"document too large ({len(data)} bytes > {MAX_DOC_BYTES})")
+    if zipfile.is_zipfile(io.BytesIO(data)):
+        try:
+            with zipfile.ZipFile(io.BytesIO(data)) as archive:
+                members=archive.infolist()
+                if len(members)>2000 or sum(i.file_size for i in members)>MAX_DOC_BYTES or any(i.file_size>MAX_DOC_BYTES for i in members):
+                    return DocResult(ok=False,error='expanded document exceeds limits')
+                # Read bounded members to validate claimed expansion/CRC before conversion.
+                expanded=0
+                for member in members:
+                    with archive.open(member) as stream:
+                        while chunk:=stream.read(65536):
+                            expanded+=len(chunk)
+                            if expanded>MAX_DOC_BYTES:return DocResult(ok=False,error='expanded document exceeds limits')
+        except Exception as exc:return DocResult(ok=False,error=f'invalid document archive: {type(exc).__name__}')
     if _is_text_like(filename, mime):
-        text = data.decode("utf-8", errors="replace")
-        return DocResult(ok=True, markdown=text[:MAX_MARKDOWN_CHARS], engine="passthrough",
-                         truncated=len(text) > MAX_MARKDOWN_CHARS)
+        try: text=data.decode('utf-8',errors='strict')
+        except UnicodeError:return DocResult(ok=False,engine='passthrough',error='text is not valid UTF-8')
+        return _finish(text,'passthrough')
+    if local_ocr is not None and _ext(filename) in {".png", ".jpg", ".jpeg", ".webp"}:
+        try:return local_ocr.read(data, filename)
+        except Exception as exc:return DocResult(ok=False,engine='unlimited-ocr',error=f'adapter failed: {type(exc).__name__}')
     engine = _engine_choice(filename)
     if engine == "docling-missing":
         return DocResult(ok=False, engine="docling", error="docling requested but not installed (pip install noesek-agent[docling])")
