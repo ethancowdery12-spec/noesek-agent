@@ -28,6 +28,7 @@ class FileDiff:
     path: str
     old_path: str = ""
     status: str = "modified"  # added | modified | deleted | renamed
+    errors: list[str] = field(default_factory=list)
     is_binary: bool = False
     hunks: list[Hunk] = field(default_factory=list)
 
@@ -50,58 +51,78 @@ class FileDiff:
         return sum(1 for h in self.hunks for tag, _ in h.lines if tag in "+-")
 
 
-def _strip_prefix(p: str) -> str:
-    p = p.strip()
-    if p.startswith('"') and p.endswith('"'):
-        p = p[1:-1]
-    for pre in ("a/", "b/"):
-        if p.startswith(pre):
-            return p[2:]
+def _decode_path(p: str) -> str:
+    p=p.strip()
+    if p.startswith('"'):
+        if not p.endswith('"'): raise ValueError('unterminated quoted path')
+        p=p[1:-1]; out=bytearray(); i=0
+        escapes={'n':'\n','r':'\r','t':'\t','b':'\b','f':'\f','v':'\v','a':'\a','"':'"','\\':'\\'}
+        while i<len(p):
+            if p[i]=='\\':
+                i+=1
+                if i>=len(p):raise ValueError('trailing path escape')
+                m=re.match(r'[0-7]{1,3}',p[i:])
+                if m: out.append(int(m.group(),8));i+=len(m.group());continue
+                if p[i] not in escapes:raise ValueError('unknown path escape')
+                out.extend(escapes[p[i]].encode());i+=1
+            else:out.extend(p[i].encode());i+=1
+        p=out.decode('utf-8',errors='strict')
     return p
 
+def _strip_prefix(p: str) -> str:
+    p=_decode_path(p)
+    return p[2:] if p.startswith(('a/','b/')) else p
+
+def _header_paths(raw):
+    tail=raw[len('diff --git '):]
+    # Git's C-quoted paths, or its unquoted a/... b/... form (spaces allowed).
+    if tail.startswith('"'):
+        m=re.fullmatch(r'("(?:[^"\\]|\\.)*") ("(?:[^"\\]|\\.)*"|b/.*)',tail)
+    else:
+        m=re.fullmatch(r'(a/.*?) (b/.*|"(?:[^"\\]|\\.)*")',tail)
+    if not m:raise ValueError('unrecognized git file header')
+    return _strip_prefix(m.group(1)),_strip_prefix(m.group(2))
 
 def parse_unified_diff(text: str) -> list[FileDiff]:
-    files: list[FileDiff] = []
-    cur: FileDiff | None = None
-    hunk: Hunk | None = None
-    for raw in text.splitlines():
-        header = _HEADER_RE.match(raw)
-        if header:
-            cur = FileDiff(path=header.group(2), old_path=header.group(1))
-            files.append(cur)
-            hunk = None
-            continue
-        if cur is None:
-            continue
-        if raw.startswith("new file mode"):
-            cur.status = "added"
-        elif raw.startswith("deleted file mode"):
-            cur.status = "deleted"
-        elif raw.startswith("rename from "):
-            cur.old_path = raw[len("rename from "):].strip()
-            cur.status = "renamed"
-        elif raw.startswith("rename to "):
-            cur.path = raw[len("rename to "):].strip()
-        elif raw.startswith("Binary files ") or raw.startswith("GIT binary patch"):
-            cur.is_binary = True
-        elif raw.startswith("--- "):
-            p = _strip_prefix(raw[4:])
-            if p != "/dev/null":
-                cur.old_path = p
-        elif raw.startswith("+++ "):
-            p = _strip_prefix(raw[4:])
-            if p != "/dev/null":
-                cur.path = p
-        else:
-            m = _HUNK_RE.match(raw)
-            if m:
-                hunk = Hunk(
-                    old_start=int(m.group(1)), old_count=int(m.group(2) or 1),
-                    new_start=int(m.group(3)), new_count=int(m.group(4) or 1))
-                cur.hunks.append(hunk)
-            elif hunk is not None and raw[:1] in ("+", "-", " "):
-                hunk.lines.append((raw[0], raw[1:]))
-    return [f for f in files if f.path]
+    files=[];cur=None;hunk=None;old_used=new_used=0
+    def finish_hunk():
+        if hunk is not None and (old_used!=hunk.old_count or new_used!=hunk.new_count):
+            cur.errors.append('hunk line counts do not match header')
+    for raw in text.split("\n"):
+        raw=raw.removesuffix("\r")
+        if raw.startswith('diff --git '):
+            finish_hunk();hunk=None
+            try:old,path=_header_paths(raw);cur=FileDiff(path=path,old_path=old)
+            except (ValueError,UnicodeError) as exc:cur=FileDiff(path='unparsed-file-'+str(len(files)),errors=[str(exc)])
+            files.append(cur);continue
+        if cur is None:continue
+        if raw.startswith('@@'):
+            finish_hunk();hunk=None
+            m=_HUNK_RE.match(raw)
+            if not m:cur.errors.append('malformed hunk header');continue
+            hunk=Hunk(int(m[1]),int(m[2] or 1),int(m[3]),int(m[4] or 1));cur.hunks.append(hunk)
+            old_used=new_used=0;continue
+        if hunk is not None:
+            if raw.startswith('\\ No newline at end of file'):continue
+            if raw[:1] in ('+','-',' '):
+                hunk.lines.append((raw[0],raw[1:]));old_used+=raw[0] in ('-',' ');new_used+=raw[0] in ('+',' ')
+                if old_used>hunk.old_count or new_used>hunk.new_count:cur.errors.append('hunk exceeds declared line counts')
+                continue
+            finish_hunk();hunk=None
+        try:
+            if raw.startswith('new file mode'):cur.status='added'
+            elif raw.startswith('deleted file mode'):cur.status='deleted'
+            elif raw.startswith('rename from '):cur.old_path=_decode_path(raw[12:]);cur.status='renamed'
+            elif raw.startswith('rename to '):cur.path=_decode_path(raw[10:])
+            elif raw.startswith(('Binary files ','GIT binary patch')):cur.is_binary=True
+            elif raw.startswith(('--- ','+++ ')):
+                p=_strip_prefix(raw[4:])
+                if p!='/dev/null':
+                    if raw.startswith('--- '):cur.old_path=p
+                    else:cur.path=p
+        except (ValueError,UnicodeError) as exc:cur.errors.append(str(exc))
+    finish_hunk()
+    return files
 
 
 def render_file_diff(fd: FileDiff, max_lines: int = 400) -> str:
