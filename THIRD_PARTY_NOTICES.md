@@ -1,6 +1,6 @@
 # Third-party notices
 
-No third-party source code was copied into this repository. It depends on these separately distributed packages under permissive licenses; their own distributions carry authoritative license texts and notices:
+Selected third-party reference assets and the upstream vendor tree are included with their notices below. It depends on these separately distributed packages under permissive licenses; their own distributions carry authoritative license texts and notices:
 
 - FastAPI - MIT - https://github.com/fastapi/fastapi
 - Uvicorn - BSD-3-Clause - https://github.com/encode/uvicorn
@@ -192,3 +192,10 @@ are own-words condensations of the baseline-ui and fixing-accessibility
 skills from ibelick/ui-skills; no upstream text is copied. MIT license
 verified against the on-disk LICENSE, Sep 26 2026. Copyright Julien Thibeaut.
 https://github.com/ibelick/ui-skills/blob/main/LICENSE
+
+## YouTube batch reference assets (inert text, not execution authority)
+
+- ibelick/ui-skills, MIT, Copyright (c) 2026 Julien Thibeaut. fixing-accessibility/SKILL.md copied unchanged from commit ebf5f26cd275b1412be8a2c8784c4f8da628e7c2. Source https://github.com/ibelick/ui-skills . Full original license in src/noesek/data/youtube_refs/fixing-accessibility/LICENSE.
+- wshobson/agents, MIT, Copyright (c) 2024 Seth Hobson. postgresql-table-design SKILL.md and references/details.md copied unchanged from commit 156b7a5e7a8b93642628a339ee4039c925b34c7f. Source https://github.com/wshobson/agents . Full original license in src/noesek/data/youtube_refs/postgresql-table-design/LICENSE.
+
+Hashes and original paths in youtube_refs/manifest.json. These references have not been independently certified or executed and cannot override owner instructions or approvals. No restricted source copied.
