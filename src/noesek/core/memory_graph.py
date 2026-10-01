@@ -125,7 +125,13 @@ async def graph_available() -> bool:
     if _tables_ok is None:
         try:
             async with Session() as s:
-                await s.execute(text(_ENT_DDL)); await s.execute(text(_EDGE_DDL)); await s.commit()
+                await s.execute(text(_ENT_DDL)); await s.execute(text(_EDGE_DDL))
+                # Both undirected joins need indexed endpoints. Without these,
+                # recursive recall scans the whole edge table per reached node.
+                await s.execute(text("CREATE INDEX IF NOT EXISTS graph_edges_src ON graph_edges(src_id)"))
+                await s.execute(text("CREATE INDEX IF NOT EXISTS graph_edges_dst ON graph_edges(dst_id)"))
+                await s.execute(text("CREATE INDEX IF NOT EXISTS graph_entities_name ON graph_entities(name)"))
+                await s.commit()
             _tables_ok = True
         except Exception:
             _tables_ok = False
