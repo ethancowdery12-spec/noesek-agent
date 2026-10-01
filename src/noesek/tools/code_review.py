@@ -77,6 +77,8 @@ def code_review_handler(conversation_id: int, llm_resolver):
         if len(diff) > _DIFF_CAP:
             return {"ok": False, "error": f"diff too large ({len(diff)} bytes); narrow with from_ref/to_ref or a subdirectory"}
         files = parse_unified_diff(diff)
+        if any(f.errors for f in files):
+            return {"ok":False,"review_complete":False,"error":"invalid or incomplete unified diff","parse_errors":[{"path":f.path,"errors":f.errors} for f in files if f.errors]}
         files = [fd for fd in files if not fd.is_binary and fd.status != "deleted" and fd.added_lines]
         if not files:
             return {"ok": True, "markdown": "No reviewable changes (nothing added or modified).",
