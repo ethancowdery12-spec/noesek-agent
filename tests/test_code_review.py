@@ -18,7 +18,7 @@ DIFF = """diff --git a/app/a.py b/app/a.py
 index 1111111..2222222 100644
 --- a/app/a.py
 +++ b/app/a.py
-@@ -1,4 +1,5 @@
+@@ -1,5 +1,6 @@
  import os
 +import sys
  def go(xs):
@@ -75,7 +75,7 @@ def test_parse_rename_and_churn():
 def test_render_roundtrip_truncates():
     fd = parse_unified_diff(DIFF)[0]
     out = render_file_diff(fd, max_lines=2)
-    assert "@@ -1,4 +1,5 @@" in out and "diff truncated" in out
+    assert "@@ -1,5 +1,6 @@" in out and "diff truncated" in out
 
 
 # -------------------------------------------------------------- grouping
