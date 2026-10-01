@@ -81,8 +81,11 @@ def code_review_handler(conversation_id: int, llm_resolver):
         if not files:
             return {"ok": True, "markdown": "No reviewable changes (nothing added or modified).",
                     "files_reviewed": [], "comments": []}
-        omitted = max(0, len(files) - _MAX_FILES)
-        files = files[:_MAX_FILES]
+        if len(files) > _MAX_FILES:
+            return {"ok": False, "review_complete": False,
+                    "error": f"{len(files)} changed files exceed the {_MAX_FILES}-file review budget; split the change before review",
+                    "files_total": len(files), "files_pending": [f.path for f in files],
+                    "files_reviewed": [], "comments": []}
         effort = inp.effort.strip().lower()
         max_rounds = _EFFORT_ROUNDS.get(effort, _EFFORT_ROUNDS["medium"])
         llm = await llm_resolver()
@@ -91,7 +94,5 @@ def code_review_handler(conversation_id: int, llm_resolver):
                                   max_rounds=max_rounds)
         result["ok"] = True
         result["markdown"] = format_markdown(result)
-        if omitted:
-            result["note"] = f"{omitted} changed file(s) over the {_MAX_FILES}-file cap were not reviewed"
         return result
     return f
