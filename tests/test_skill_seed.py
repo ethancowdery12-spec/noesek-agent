@@ -59,3 +59,12 @@ async def test_seed_never_resurrects_retired(db, monkeypatch):
 async def test_seed_flag_off_is_noop(db, monkeypatch):
     monkeypatch.setattr(settings, "kwp_seed_enabled", False)
     assert await seed_kwp_skills() == 0
+
+async def test_seed_is_imported_not_verified(db,monkeypatch):
+    monkeypatch.setattr(settings,'kwp_seed_enabled',True)
+    monkeypatch.setattr(settings,'graph_memory_enabled',False)
+    await seed_kwp_skills()
+    async with Session() as s:
+        rows=(await s.execute(select(Memory).where(Memory.source=='kwp'))).scalars().all()
+    assert all('Verified by: Imported' not in m.content and 'execution unverified' in m.content for m in rows)
+    assert settings.kwp_seed_enabled is True
