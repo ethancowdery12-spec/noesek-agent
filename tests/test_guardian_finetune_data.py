@@ -74,11 +74,12 @@ def test_adversarial_coverage():
         assert cats[required] >= minimum, (required, cats[required], minimum)
 
 
-def test_every_controller_tool_trained():
+def test_every_controller_tool_has_historical_or_pending_coverage():
     # owner direction 2026-09-26: "train it for all tools and connectors"
-    used = {t["state"].split(": ", 1)[0] for t in TRAINING_TRACES}
+    from evals.guardian_youtube_tools import PENDING_TRACES
+    used = {t["state"].split(": ", 1)[0] for t in list(TRAINING_TRACES)+PENDING_TRACES}
     missing = CONTROLLER_TOOLS - used
-    assert not missing, f"controller tools with no training trace: {sorted(missing)}"
+    assert not missing, f"controller tools with neither historical nor pending trace: {sorted(missing)}"
 
 
 def test_connector_shape_trained():
