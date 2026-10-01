@@ -4,7 +4,7 @@ from noesek.tools.playbook import PLAYBOOKS, PlaybookInput, playbook
 
 def test_list_and_load():
     out = playbook(PlaybookInput(action="list"))
-    assert set(out["playbooks"]) == {"interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
+    assert set(out["playbooks"]) == {"frontend_reference", "legal_review", "finance_review", "crm_support_workflow", "linkedin_draft", "motion_render", "evidence_handoff", "interview_coach", "debate", "writing_tutor", "teacher", "critic", "terse", "spec_first", "tdd_flow", "verify_done", "storyscope", "reason_route", "seo_web",
                                     "budget_tracker", "fitness_log", "nutrition_lookup", "meal_planner", "spaced_repetition_tutor", "trip_planner",
                                     "birthdays", "split_expenses", "journal", "gtd_tasks",
                                     "tax_prep", "recipe_import", "session_guard"}
