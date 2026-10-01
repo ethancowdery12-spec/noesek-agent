@@ -12,6 +12,7 @@ from ..core.tools import ToolSpec
 from ..core.types import Risk
 from ..db import Conversation, Session
 from .browser_cookies import BrowserCookiesInput, browser_cookies
+from .spec_plan import SpecPlanInput, spec_plan
 from .code_graph import CodeGraphInput, code_graph
 from .code_review import CodeReviewInput, code_review_handler
 from .design_system import DesignInput, design_system
@@ -41,6 +42,7 @@ from .code_intel import CodeIntelInput, code_intel
 
 
 def register_chat_extras(r, conversation_id: int, controller, timeout: float) -> None:
+    r.register(ToolSpec("spec_plan", "Turn an explicit goal and tasks into a dependency-ordered plan with required acceptance checks. Stages: spec, test first, implement, independent review, verify. Detects cycles and missing dependencies. No execution, model calls, or approval implied.", SpecPlanInput, Risk.READ, spec_plan, timeout_seconds=timeout))
     r.register(ToolSpec("scrub","Clean the user's own text or files of hidden metadata: strips invisible watermark characters from text, and removes EXIF/document-properties metadata from their own images, Office docs, and PDFs (PDF needs optional pypdf). Creates a -clean copy; originals untouched.",ScrubInput,Risk.WRITE,scrub_handler(conversation_id),timeout_seconds=timeout))
     r.register(ToolSpec("rewrite_natural","Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",RewriteNaturalInput,Risk.READ,rewrite_natural,timeout_seconds=timeout))
 
