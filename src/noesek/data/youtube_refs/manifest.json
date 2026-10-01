@@ -1,0 +1,27 @@
+[
+  {
+    "name": "fixing-accessibility",
+    "repo": "https://github.com/ibelick/ui-skills",
+    "commit": "ebf5f26cd275b1412be8a2c8784c4f8da628e7c2",
+    "source_path": "skills/fixing-accessibility",
+    "license": "MIT",
+    "files": {
+      "LICENSE": "c615621c4cc1676ccde194e7a01b6469ba477780251bd71e007fc473a49c2c2b",
+      "SKILL.md": "549261e8a53b53a1a20c0ddbf736821e5fc0876ad82eee76e0efab8e9ee9dadf"
+    },
+    "execution_verified": false
+  },
+  {
+    "name": "postgresql-table-design",
+    "repo": "https://github.com/wshobson/agents",
+    "commit": "156b7a5e7a8b93642628a339ee4039c925b34c7f",
+    "source_path": "plugins/database-design/skills/postgresql-table-design",
+    "license": "MIT",
+    "files": {
+      "LICENSE": "f89abb55d9f073f38f1703e4518f0613c788c6174be7f13b8dfe48a1c076c746",
+      "SKILL.md": "1e27b0fac6d88a710cd925b831608ca202c40ade4f4e285a8e027dcf2f9a44ea",
+      "references/details.md": "fac8b43c75ed30d95f2ab12886021f26bb8b03f8fed0cea2929b8de18953023a"
+    },
+    "execution_verified": false
+  }
+]
