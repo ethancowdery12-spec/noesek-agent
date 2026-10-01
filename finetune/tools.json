@@ -80,6 +80,51 @@
     }
   },
   {
+    "name": "business_services",
+    "description": "Fixed-operation HTTP clients for Firecrawl (scrape), Twenty CRM (people/companies list), Chatwoot (conversations list), Activepieces (flows list) and a signing service (templates list; Documenso candidate, identity unconfirmed). Needs per-service base URL and token in server env; hosted Firecrawl is refused until the owner approves the cost. Read-only except Firecrawl scrape.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "list | call",
+          "title": "Action",
+          "type": "string"
+        },
+        "service": {
+          "default": "",
+          "description": "firecrawl | twenty | chatwoot | activepieces | signing",
+          "title": "Service",
+          "type": "string"
+        },
+        "op": {
+          "default": "",
+          "description": "call: operation name from list",
+          "title": "Op",
+          "type": "string"
+        },
+        "url": {
+          "default": "",
+          "description": "firecrawl scrape: page URL",
+          "maxLength": 2000,
+          "title": "Url",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "list operations: page size",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "BusinessServiceInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "calc",
     "description": "Calculate and compute arithmetic instantly - use for any math question: how much is X times Y, what is N percent of M, tips, interest, square roots, multiply, divide, powers, factorials, compound growth, unit-free numeric answers. Safe expression eval (no code execution): + - * / // % ** parentheses, sqrt log log2 log10 exp sin cos tan asin acos atan floor ceil abs round min max gcd factorial comb perm, constants pi e tau. Write percents as decimals (18% = 0.18). For date arithmetic use date_math; for running user code use code_interpreter.",
     "parameters": {
@@ -485,6 +530,37 @@
         "instruction"
       ],
       "title": "DelegateInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "design_resources",
+    "description": "Verified UI resource registry for building interfaces: shadcn/ui, Motion, Bklit UI charts, Kokonut UI components, Haikei SVG backgrounds, Spline 3D. list/get/recommend returns license facts, exact install commands and honest limits (hosted tools have no verified API).",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "list | get | recommend",
+          "title": "Action",
+          "type": "string"
+        },
+        "resource": {
+          "default": "",
+          "description": "get: resource id",
+          "title": "Resource",
+          "type": "string"
+        },
+        "need": {
+          "default": "",
+          "description": "recommend: what is being built",
+          "maxLength": 300,
+          "title": "Need",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "DesignResourcesInput",
       "type": "object"
     }
   },
@@ -1156,6 +1232,58 @@
     }
   },
   {
+    "name": "linkedin_draft",
+    "description": "LinkedIn draft-first helper, never posts: parse a post URL, lint a post/comment/reply draft against voice rules (length, em-dash density, vocabulary, openers, dead prompts, hashtags, hook length), list hook structures, scaffold a posting week, render a NOT POSTED approval card. Publishing needs the separate approval-gated linkedin tool.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "parse_url | lint | hooks | plan_week | card",
+          "title": "Action",
+          "type": "string"
+        },
+        "kind": {
+          "default": "post",
+          "description": "post | comment | reply",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "maxLength": 6000,
+          "title": "Text",
+          "type": "string"
+        },
+        "url": {
+          "default": "",
+          "description": "parse_url/card: the LinkedIn post URL",
+          "maxLength": 500,
+          "title": "Url",
+          "type": "string"
+        },
+        "founder": {
+          "default": false,
+          "description": "plan_week: use the founder pillar set",
+          "title": "Founder",
+          "type": "boolean"
+        },
+        "topics": {
+          "description": "plan_week: topics to place",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 7,
+          "title": "Topics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "LinkedInDraftInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "list_tasks",
     "description": "List this conversation's background tasks and their status.",
     "parameters": {
@@ -1637,6 +1765,58 @@
         "text"
       ],
       "title": "RewriteNaturalInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "screenshot_to_code",
+    "description": "Turn a screenshot in the file store into 1-3 self-contained HTML candidates (html_css or html_tailwind) through the chat model, validate each, run taste checks, write them to the file store and recommend the best. Needs a vision-capable chat model.",
+    "parameters": {
+      "properties": {
+        "image_file": {
+          "description": "screenshot file name in the agent file store",
+          "title": "Image File",
+          "type": "string"
+        },
+        "stack": {
+          "default": "html_css",
+          "description": "one of: html_css, html_tailwind",
+          "title": "Stack",
+          "type": "string"
+        },
+        "n": {
+          "default": 2,
+          "description": "candidates to generate (1-3)",
+          "maximum": 3,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "instructions": {
+          "default": "",
+          "description": "extra changes to apply",
+          "maxLength": 1500,
+          "title": "Instructions",
+          "type": "string"
+        },
+        "profile": {
+          "default": "neutral",
+          "description": "taste profile: restrained, expressive, neutral",
+          "title": "Profile",
+          "type": "string"
+        },
+        "output_prefix": {
+          "default": "s2c",
+          "maxLength": 40,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Output Prefix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image_file"
+      ],
+      "title": "ScreenshotToCodeInput",
       "type": "object"
     }
   },
@@ -2161,6 +2341,31 @@
         "tasks"
       ],
       "title": "TaskManifestInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "taste_check",
+    "description": "Objective visual-taste and accessibility checks on generated HTML/CSS (contrast, viewport, alt text, icon-button names, 100vh, animated layout, reduced motion, type/spacing scale) with an explicit aesthetic profile: restrained, expressive or neutral.",
+    "parameters": {
+      "properties": {
+        "html": {
+          "maxLength": 400000,
+          "minLength": 1,
+          "title": "Html",
+          "type": "string"
+        },
+        "profile": {
+          "default": "neutral",
+          "description": "one of: restrained, expressive, neutral",
+          "title": "Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "html"
+      ],
+      "title": "TasteInput",
       "type": "object"
     }
   },

@@ -30,7 +30,7 @@ CONTROLLER_TOOLS = frozenset({
     "delegate_task",
     "source_reference", "finance_tieout", "spec_plan", "skill_inspect", "evidence_index", "video_learn", "review_receipt", "motion_storyboard", "writing_profile", "task_manifest", "pr_change_graph",
     "gmail_read", "gmail_send", "calendar_read", "github_notifications",
-    "create_file", "speak", "optimize_prompt", "humanize", "rewrite_natural", "scrub", "generate_variants", "story_critique", "exact_solve", "seo_audit", "geo_audit", "code_graph", "office_doc", "linkedin", "design_system", "playbook", "browser_cookies", "adversarial_review", "security_audit", "literature_search", "duckdb_query", "code_interpreter", "test_verifier", "code_act", "code_review", "skill_library", "ofx_import", "fit_import", "date_math", "calc", "code_intel", "receipt_import", "fitness_query",
+    "create_file", "speak", "optimize_prompt", "humanize", "rewrite_natural", "scrub", "generate_variants", "story_critique", "exact_solve", "seo_audit", "geo_audit", "code_graph", "office_doc", "linkedin", "linkedin_draft", "design_system", "business_services", "design_resources", "screenshot_to_code", "taste_check", "playbook", "browser_cookies", "adversarial_review", "security_audit", "literature_search", "duckdb_query", "code_interpreter", "test_verifier", "code_act", "code_review", "skill_library", "ofx_import", "fit_import", "date_math", "calc", "code_intel", "receipt_import", "fitness_query",
 })
 
 
