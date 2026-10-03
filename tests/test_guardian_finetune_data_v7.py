@@ -89,8 +89,9 @@ def test_adversarial_coverage():
         assert cats[required] >= minimum, (required, cats[required], minimum)
 
 
-def test_every_controller_tool_trained():
-    used = {t["state"].split(": ", 1)[0] for t in TRAINING_TRACES}
+def test_every_controller_tool_has_historical_or_pending_coverage():
+    from evals.guardian_youtube_tools import PENDING_TRACES
+    used = {t["state"].split(": ", 1)[0] for t in list(TRAINING_TRACES)+PENDING_TRACES}
     missing = CONTROLLER_TOOLS - used
     assert not missing, f"controller tools with no v7 trace: {sorted(missing)}"
 

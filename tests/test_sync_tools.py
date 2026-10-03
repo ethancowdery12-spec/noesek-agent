@@ -37,3 +37,30 @@ async def test_playbook_load_spec_first(reg):
 async def test_office_doc_missing_binary_degrades(reg):
     out = await reg.invoke("office_doc", {"action": "create", "file": "demo.pptx"})
     assert "officecli" in str(out).lower()
+
+@pytest.mark.asyncio
+async def test_real_registry_new_tools_and_consent_risk(reg):
+    assert reg.get('writing_profile').risk==Risk.WRITE
+    out=await reg.invoke('video_learn',{'video_url':'https://youtu.be/abcdefghijk','transcript':'hello'})
+    assert out['ok'] and not out['timestamps_available']
+    out=await reg.invoke('task_manifest',{'tasks':[{'id':'a','owner':'me'}]})
+    assert out['ok'] and not out['executed']
+    out=await reg.invoke('writing_profile',{'samples':['hello world'],'user_authorized':True})
+    assert out['ok'] and out['authorization_trust']=='caller_assertion_not_verified'
+
+@pytest.mark.asyncio
+async def test_controller_holds_writing_profile_for_approval(db):
+    from noesek.core.controller import Controller
+    from noesek.testing import ScriptedLLM,tool_reply
+    from noesek.db import Conversation,Session
+    async with Session() as s:
+        c=Conversation(channel='cli',external_user_id='owner');s.add(c);await s.commit();cid=c.id
+    llm=ScriptedLLM([tool_reply('writing_profile',{'samples':['private writing'],'user_authorized':True})])
+    out=await Controller(llm=llm).handle(cid,'describe my writing')
+    assert out.pending_approval_id is not None
+
+@pytest.mark.parametrize('name',['frontend_reference','legal_review','finance_review','crm_support_workflow','linkedin_draft','motion_render','evidence_handoff'])
+@pytest.mark.asyncio
+async def test_batch_workflow_playbooks_are_available_without_actions(reg,name):
+    out=await reg.invoke('playbook',{'action':'load','name':name})
+    assert 'error' not in out and out['grants_authority'] is False

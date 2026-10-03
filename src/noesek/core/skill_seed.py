@@ -24,7 +24,7 @@ SEED_CHANNEL = "system"
 SEED_USER = "kwp-skill-seed"
 
 _FORMAT = ("Skill: {name}\nWhen to use: {when}\nSteps:\n{body}\n"
-           "Verified by: Imported from anthropics/knowledge-work-plugins "
+           "Imported reference, execution unverified: anthropics/knowledge-work-plugins "
            "({path}, Apache-2.0) - curated business backbone, item 86.")
 
 
@@ -41,6 +41,12 @@ async def seed_kwp_skills() -> int:
                 conv = Conversation(title="KWP skill seed", channel=SEED_CHANNEL,
                                     external_user_id=SEED_USER)
                 s.add(conv); await s.commit(); await s.refresh(conv)
+            # Correct the legacy verification claim without reactivating retired rows.
+            old_rows=(await s.execute(select(Memory).where(Memory.kind=='skill',Memory.source=='kwp'))).scalars().all()
+            for row in old_rows:
+                if 'Verified by: Imported from anthropics/knowledge-work-plugins' in row.content:
+                    row.content=row.content.replace('Verified by: Imported from anthropics/knowledge-work-plugins','Imported reference, execution unverified: anthropics/knowledge-work-plugins')
+            await s.commit()
             existing = set((await s.execute(select(Memory.content).where(
                 Memory.kind == "skill", Memory.source == "kwp"))).scalars().all())
             existing_names = {c.splitlines()[0].removeprefix("Skill: ").strip()

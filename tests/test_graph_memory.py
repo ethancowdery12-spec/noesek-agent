@@ -138,3 +138,17 @@ async def test_fusion_uses_graph_boost(db, graph_on, monkeypatch):
         mems = (await s.execute(select(Memory).where(Memory.conversation_id == cid))).scalars().all()
     picked = await rank_memories_async(cid, "what about Postgres", list(mems), 5)
     assert picked[0].id == m1["memory_id"]
+
+async def test_undirected_walk_uses_both_endpoint_indexes(db, graph_on):
+    """Guard against per-node edge-table scans on the default seeded graph."""
+    async with Session() as s:
+        plans = (await s.execute(text(
+            "EXPLAIN QUERY PLAN SELECT id FROM graph_edges "
+            "WHERE src_id = :node OR dst_id = :node"), {"node": 1})).all()
+        detail = " ".join(str(row[-1]) for row in plans)
+        assert "graph_edges_src" in detail
+        assert "graph_edges_dst" in detail
+        seed_plans = (await s.execute(text(
+            "EXPLAIN QUERY PLAN SELECT id FROM graph_entities WHERE name = :name"),
+            {"name": "deploy"})).all()
+        assert any("graph_entities_name" in str(row[-1]) for row in seed_plans)

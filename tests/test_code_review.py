@@ -18,7 +18,7 @@ DIFF = """diff --git a/app/a.py b/app/a.py
 index 1111111..2222222 100644
 --- a/app/a.py
 +++ b/app/a.py
-@@ -1,4 +1,5 @@
+@@ -1,5 +1,6 @@
  import os
 +import sys
  def go(xs):
@@ -75,7 +75,7 @@ def test_parse_rename_and_churn():
 def test_render_roundtrip_truncates():
     fd = parse_unified_diff(DIFF)[0]
     out = render_file_diff(fd, max_lines=2)
-    assert "@@ -1,4 +1,5 @@" in out and "diff truncated" in out
+    assert "@@ -1,5 +1,6 @@" in out and "diff truncated" in out
 
 
 # -------------------------------------------------------------- grouping
@@ -277,3 +277,28 @@ def test_checklist_carries_diff_discipline_section():
     # language append still composes on top
     assert "Diff discipline" in checklist_for(["x.py"])
     assert "Python traps" in checklist_for(["x.py"])
+
+@pytest.mark.asyncio
+async def test_tool_never_silently_drops_changed_files(tmp_path, monkeypatch):
+    """Every changed file is a contract, not a capped best-effort review."""
+    monkeypatch.setenv("NOESEK_INTERPRETER_DIR", str(tmp_path))
+    ws = tmp_path / "92"
+    ws.mkdir()
+    _git(ws, "init", "-q")
+    _git(ws, "config", "user.email", "t@t")
+    _git(ws, "config", "user.name", "t")
+    (ws / "base.py").write_text("x = 1\n")
+    _git(ws, "add", ".")
+    _git(ws, "commit", "-qm", "init")
+    for i in range(26):
+        (ws / f"f{i:02}.py").write_text("x = 1\n")
+    _git(ws, "add", ".")
+    calls = []
+    async def resolver():
+        calls.append(True)
+        raise AssertionError("do not run a partial review")
+    out = await code_review_handler(92, resolver)(CodeReviewInput(staged=True))
+    assert not out["ok"] and out["review_complete"] is False
+    assert out["files_total"] == 26
+    assert len(out["files_pending"]) == 26
+    assert not calls

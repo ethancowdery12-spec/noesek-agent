@@ -59,6 +59,21 @@ def worker_registry(worker_name: str, spawn_grant=None) -> ToolRegistry:
                             _ChildInput, Risk.READ, _spawn))
     return r
 
+async def _cancellable(awaitable, token, remaining):
+    import asyncio
+    work=asyncio.create_task(awaitable)
+    cancelled=asyncio.create_task(token.wait())
+    try:
+        done,_=await asyncio.wait({work,cancelled},timeout=max(0,remaining),return_when=asyncio.FIRST_COMPLETED)
+        if cancelled in done:raise asyncio.CancelledError()
+        if work not in done:raise TimeoutError('worker time budget exceeded')
+        token.raise_if_cancelled()
+        return await work
+    finally:
+        for task in (work,cancelled):
+            if not task.done():task.cancel()
+        await asyncio.gather(work,cancelled,return_exceptions=True)
+
 async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: int = MAX_WORKER_STEPS,
                      budget=None, token=None, spawn_grant=None) -> dict:
     worker = WORKERS.get(worker_name)
@@ -101,8 +116,10 @@ async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: in
             return {"worker": worker_name, "output": "Stopped: worker exceeded its time budget.",
                     "citations": list(dict.fromkeys(citations)), "steps": step, "incomplete": True}
         try:
-            reply = pending_reply or await llm.complete(messages, registry.schemas())
+            reply = pending_reply or await _cancellable(llm.complete(messages, registry.schemas()),token,_deadline-_time.monotonic())
             pending_reply = None
+        except TimeoutError:
+            return {"worker":worker_name,"output":"Stopped: worker exceeded its time budget.","citations":list(dict.fromkeys(citations)),"steps":step,"incomplete":True}
         except Exception as e:
             from ..core.llm import LLMError
             if isinstance(e, LLMError):
@@ -115,7 +132,7 @@ async def run_worker(worker_name: str, instruction: str, llm=None, max_steps: in
         for call in reply.tool_calls:
             token.raise_if_cancelled()
             try:
-                result = await registry.invoke(call.name, call.arguments)
+                result = await _cancellable(registry.invoke(call.name, call.arguments),token,_deadline-_time.monotonic())
             except Exception as e:
                 result = {"error": type(e).__name__, "detail": str(e)[:500]}
             from ..core.output_caps import cap_tool_result

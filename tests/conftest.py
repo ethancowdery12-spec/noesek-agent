@@ -1,4 +1,12 @@
 import sys, pathlib
+# Isolation must precede evals/noesek imports: they construct cached settings.
+import os, tempfile
+_TEST_ROOT = pathlib.Path(tempfile.mkdtemp(prefix="noesek-test-"))
+os.environ.setdefault("NOESEK_DATABASE_URL", "sqlite+aiosqlite:///" + str(_TEST_ROOT / "test.db"))
+os.environ.setdefault("NOESEK_HOME", str(_TEST_ROOT / "home"))
+os.environ.setdefault("HERMES_HOME", str(_TEST_ROOT / "hermes"))
+os.environ.setdefault("NOESEK_CODE_INTEL_DB", str(_TEST_ROOT / "code-intel.db"))
+
 # Full vendored upstream tree (v3): expose its top-level packages (agent,
 # tools, hermes_cli, gateway, cron, plugins, ...) to adopted upstream tests.
 _ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -10,8 +18,6 @@ sys.path.append(str(_ROOT / "vendor/hermes-agent"))
 # vendored evals/ (regular package on the editable .pth path) gets cached first.
 import evals, evals.injection_suite  # noqa: F401,E402
 
-import os, tempfile
-os.environ.setdefault("NOESEK_DATABASE_URL", "sqlite+aiosqlite:///" + os.path.join(tempfile.mkdtemp(prefix="noesek-test-"), "test.db"))
 
 import pytest_asyncio
 

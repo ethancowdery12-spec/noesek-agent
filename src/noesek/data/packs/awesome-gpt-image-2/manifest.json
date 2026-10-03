@@ -1,0 +1,22 @@
+{
+ "name": "awesome-gpt-image-2",
+ "description": "Community GPT Image 2 prompt library (README with prompts)",
+ "repo": "https://github.com/YouMind-OpenLab/awesome-gpt-image-2",
+ "commit": "57d9da560c8bd49cd0391578d2b66279b91233df",
+ "license": "CC-BY-4.0",
+ "license_holder": "YouMind OpenLab",
+ "license_src": "LICENSE",
+ "license_sha256": "cdf642acded97160b992064916cc1c7490ce5a8d8ccc70d8d6456e16976f9bd0",
+ "unchanged_bytes": true,
+ "execution_verified": false,
+ "files": [
+  {
+   "src": "README.md",
+   "dest": "files/README.md",
+   "sha256": "795b3f964c072385a02225e9a6be3ed60e317856169bee838553171db8d9c0c1",
+   "bytes": 326119
+  }
+ ],
+ "attribution_required": true,
+ "attribution": "Prompts from YouMind-OpenLab/awesome-gpt-image-2 (CC BY 4.0, https://creativecommons.org/licenses/by/4.0/). Retrieved unchanged; any adaptation must be marked as changed."
+}

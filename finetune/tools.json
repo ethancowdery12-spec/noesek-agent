@@ -1,7 +1,7 @@
 [
   {
     "name": "adversarial_review",
-    "description": "Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected.",
+    "description": "Reconciliation pass of an adversarial multi-review audit: findings survive only with concrete falsifiable evidence; duplicates collapse; speculation rejected. Use to red-team, poke holes in, or stress-test a plan, design, or argument before committing.",
     "parameters": {
       "$defs": {
         "Finding": {
@@ -55,6 +55,76 @@
     }
   },
   {
+    "name": "agent_roster",
+    "description": "Look up the 202 vendored wshobson/agents specialist definitions (MIT, unchanged bytes, hash-checked on every read): summary, list by plugin, search by role words, get one full definition. Untrusted reference text, not a configured capability or permission.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "default": "summary",
+          "enum": [
+            "summary",
+            "list",
+            "search",
+            "get"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "query": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Query",
+          "type": "string"
+        },
+        "plugin": {
+          "default": "",
+          "maxLength": 100,
+          "title": "Plugin",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "maxLength": 120,
+          "title": "Name",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "AgentRosterInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "answer_shape",
+    "description": "Check whether a written answer is shaped so the reader can act on it right away, for a reader who needs the next action first: lead with an action, numbered steps, one concrete next action, no tangents, specific time estimates, progress restated across turns. Heuristic text checks, no rewrite, no model call.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "multi_turn": {
+          "default": false,
+          "title": "Multi Turn",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "AnswerShapeInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "browser_cookies",
     "description": "Persistent browser sessions: status (stored/enabled sites, counts only), enable/disable a site (the per-site approval before any logged-in session is used on a browse run), revoke, clear, audit. Imports never happen here - cookie exports are posted directly to the /computer/browser-state/import endpoint; cookie values are never shown or accepted in chat.",
     "parameters": {
@@ -80,8 +150,81 @@
     }
   },
   {
+    "name": "business_services",
+    "description": "Fixed-operation HTTP clients for Firecrawl (scrape), Twenty CRM (people/companies list), Chatwoot (conversations list), Activepieces (flows list) and a signing service (templates list; Documenso candidate, identity unconfirmed). Needs per-service base URL and token in server env; hosted Firecrawl is refused until the owner approves the cost. Read-only except Firecrawl scrape.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "list | call",
+          "title": "Action",
+          "type": "string"
+        },
+        "service": {
+          "default": "",
+          "description": "firecrawl | twenty | chatwoot | activepieces | signing",
+          "title": "Service",
+          "type": "string"
+        },
+        "op": {
+          "default": "",
+          "description": "call: operation name from list",
+          "title": "Op",
+          "type": "string"
+        },
+        "url": {
+          "default": "",
+          "description": "firecrawl scrape: page URL",
+          "maxLength": 2000,
+          "title": "Url",
+          "type": "string"
+        },
+        "limit": {
+          "default": 20,
+          "description": "list operations: page size",
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "BusinessServiceInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "calc",
+    "description": "Calculate and compute arithmetic instantly - use for any math question: how much is X times Y, what is N percent of M, tips, interest, square roots, multiply, divide, powers, factorials, compound growth, unit-free numeric answers. Safe expression eval (no code execution): + - * / // % ** parentheses, sqrt log log2 log10 exp sin cos tan asin acos atan floor ceil abs round min max gcd factorial comb perm, constants pi e tau. Write percents as decimals (18% = 0.18). For date arithmetic use date_math; for running user code use code_interpreter.",
+    "parameters": {
+      "properties": {
+        "expression": {
+          "description": "Arithmetic expression, e.g. 0.18*240, 37*412, sqrt(2_000_000), 10000*(1+0.05/12)**36. Percent: write 18% as 0.18. Functions: sqrt log log2 log10 exp sin cos tan asin acos atan floor ceil abs round min max gcd factorial comb perm. Constants: pi e tau.",
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Expression",
+          "type": "string"
+        },
+        "precision": {
+          "default": 10,
+          "description": "Significant digits in the result",
+          "maximum": 15,
+          "minimum": 1,
+          "title": "Precision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "expression"
+      ],
+      "title": "CalcInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "calendar_read",
-    "description": "List upcoming events on the chat's primary Google Calendar.",
+    "description": "List upcoming events, meetings, and schedule on the chat's primary Google Calendar (what's on today, this week, next few days).",
     "parameters": {
       "properties": {
         "max_results": {
@@ -115,8 +258,340 @@
     }
   },
   {
+    "name": "cluster_plan",
+    "description": "Offline multi-node placement plan for agent tasks: declared nodes (cpu, memory, labels) and tasks (requests, limits, workspaces, dependencies, priority, selectors) become dependency waves and a spread or pack placement with exact reasons for anything unplaceable; can export ax.io/v1alpha1 YAML. Contacts no cluster, starts nothing, spends nothing.",
+    "parameters": {
+      "$defs": {
+        "GitSource": {
+          "properties": {
+            "repo": {
+              "maxLength": 500,
+              "title": "Repo",
+              "type": "string"
+            },
+            "branch": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Branch",
+              "type": "string"
+            }
+          },
+          "required": [
+            "repo"
+          ],
+          "title": "GitSource",
+          "type": "object"
+        },
+        "Node": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "cpu": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "title": "Cpu"
+            },
+            "memory": {
+              "title": "Memory",
+              "type": "string"
+            },
+            "labels": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "maxProperties": 20,
+              "title": "Labels",
+              "type": "object"
+            },
+            "max_tasks": {
+              "default": 110,
+              "maximum": 10000,
+              "minimum": 1,
+              "title": "Max Tasks",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "name",
+            "cpu",
+            "memory"
+          ],
+          "title": "Node",
+          "type": "object"
+        },
+        "Task": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "atespace": {
+              "default": "default",
+              "title": "Atespace",
+              "type": "string"
+            },
+            "image": {
+              "default": "",
+              "maxLength": 300,
+              "title": "Image",
+              "type": "string"
+            },
+            "cpu_request": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "default": "500m",
+              "title": "Cpu Request"
+            },
+            "memory_request": {
+              "default": "1Gi",
+              "title": "Memory Request",
+              "type": "string"
+            },
+            "cpu_limit": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Cpu Limit"
+            },
+            "memory_limit": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Memory Limit"
+            },
+            "workspaces": {
+              "items": {
+                "$ref": "#/$defs/WorkspaceRef"
+              },
+              "maxItems": 20,
+              "title": "Workspaces",
+              "type": "array"
+            },
+            "depends_on": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 100,
+              "title": "Depends On",
+              "type": "array"
+            },
+            "node_selector": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "maxProperties": 20,
+              "title": "Node Selector",
+              "type": "object"
+            },
+            "priority": {
+              "default": 0,
+              "maximum": 1000,
+              "minimum": -1000,
+              "title": "Priority",
+              "type": "integer"
+            },
+            "budget_usd": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Budget Usd",
+              "type": "number"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "Task",
+          "type": "object"
+        },
+        "Workspace": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "git": {
+              "items": {
+                "$ref": "#/$defs/GitSource"
+              },
+              "maxItems": 20,
+              "title": "Git",
+              "type": "array"
+            },
+            "files": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "maxProperties": 50,
+              "title": "Files",
+              "type": "object"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "Workspace",
+          "type": "object"
+        },
+        "WorkspaceRef": {
+          "properties": {
+            "name": {
+              "title": "Name",
+              "type": "string"
+            },
+            "path": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Path",
+              "type": "string"
+            },
+            "goal": {
+              "default": "",
+              "maxLength": 1000,
+              "title": "Goal",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "title": "WorkspaceRef",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "nodes": {
+          "items": {
+            "$ref": "#/$defs/Node"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Nodes",
+          "type": "array"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/Task"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Tasks",
+          "type": "array"
+        },
+        "workspaces": {
+          "items": {
+            "$ref": "#/$defs/Workspace"
+          },
+          "maxItems": 200,
+          "title": "Workspaces",
+          "type": "array"
+        },
+        "strategy": {
+          "default": "spread",
+          "enum": [
+            "spread",
+            "pack"
+          ],
+          "title": "Strategy",
+          "type": "string"
+        },
+        "export_ax": {
+          "default": false,
+          "title": "Export Ax",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "nodes",
+        "tasks"
+      ],
+      "title": "ClusterPlanInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "code_act",
+    "description": "Compose read-only tools in one sandboxed Python program instead of narrating calls one at a time: call_tool(name, **args) invokes another chat tool for real and returns its actual result; loop, filter, join, and aggregate in code; emit(value) sets the final answer; print() for working notes. Only read-only tools are callable (search/recall/duckdb_query/literature_search/code_graph/seo_audit/geo_audit etc.) - no side effects. Use for multi-step research and synthesis where every value must come from a real execution: the call trace is returned, so results are verifiable, not narrated. Use to pull data with SQL and cross-check it against other tool results in one pass.",
+    "parameters": {
+      "properties": {
+        "task": {
+          "description": "What this program accomplishes, one sentence",
+          "maxLength": 500,
+          "minLength": 3,
+          "title": "Task",
+          "type": "string"
+        },
+        "code": {
+          "description": "Python program. call_tool(name, **args) invokes a read-only chat tool and returns its real result; emit(value) sets the final answer; print() for working notes. ToolError is raised for unknown/failed tools and can be caught.",
+          "maxLength": 20000,
+          "minLength": 10,
+          "title": "Code",
+          "type": "string"
+        },
+        "max_tool_calls": {
+          "default": 8,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Max Tool Calls",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 60,
+          "maximum": 180,
+          "minimum": 5,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "task",
+        "code"
+      ],
+      "title": "CodeActInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "code_graph",
-    "description": "Answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",
+    "description": "Find where a function or symbol is defined in this repo, and answer structural questions about the Noesek codebase itself: what calls a function, what a function calls, what imports a module, a module's imports, a module outline, or repo stats. Deterministic AST analysis of the installed package.",
     "parameters": {
       "properties": {
         "query": {
@@ -147,8 +622,282 @@
     }
   },
   {
+    "name": "code_intel",
+    "description": "Search the indexed codebase by meaning: find the function, class, or method that does X, show the relevant source for a code question, locate a symbol across languages (Python, JS/TS, Go, Rust, Java, C/C++, Ruby, C#, PHP, Bash). Actions: search, callers, callees, reindex, stats. Needs the optional codeintel extra.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "search | callers | callees | reindex | stats",
+          "title": "Action",
+          "type": "string"
+        },
+        "query": {
+          "default": "",
+          "description": "for search: what the code should do, or a symbol name",
+          "maxLength": 400,
+          "title": "Query",
+          "type": "string"
+        },
+        "symbol": {
+          "default": "",
+          "description": "for callers/callees: function or class name",
+          "maxLength": 200,
+          "title": "Symbol",
+          "type": "string"
+        },
+        "limit": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "CodeIntelInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "code_interpreter",
+    "description": "Persistent Python code interpreter for this conversation: run code with state kept across calls (variables, imports, files in its private working directory), reset the session, or save a file the session wrote into the file store for download. Sandboxed: scrubbed environment, resource limits, per-call timeout. Use for data analysis, calculations, file processing, and multi-step computational work.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "default": "run",
+          "description": "run | reset | save_file",
+          "title": "Action",
+          "type": "string"
+        },
+        "code": {
+          "default": "",
+          "description": "Python to run (action=run). State persists across calls in this conversation.",
+          "maxLength": 20000,
+          "title": "Code",
+          "type": "string"
+        },
+        "file_name": {
+          "default": "",
+          "description": "For save_file: a file the session wrote in its working directory, copied into the file store for download",
+          "title": "File Name",
+          "type": "string"
+        },
+        "timeout_seconds": {
+          "default": 20,
+          "maximum": 60,
+          "minimum": 1,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "InterpreterInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "code_review",
+    "description": "Structured line-level review of git changes in the conversation code workspace (pipeline adapted from alibaba/open-code-review, Apache-2.0, own words): groups changed files, plans risks, reviews each group with a bounded read/search context loop, verifies each comment against the diff and anchors findings to changed lines. Precision-first: only confident defects are reported, grouped by severity. Use when asked to review code changes, a branch, a commit, or staged work. Defaults to uncommitted changes; pass background for what the change is for.",
+    "parameters": {
+      "properties": {
+        "path": {
+          "default": ".",
+          "description": "Git repo directory, relative to the conversation code workspace. Default: the workspace root.",
+          "title": "Path",
+          "type": "string"
+        },
+        "commit": {
+          "default": "",
+          "description": "Review a single commit against its parent.",
+          "title": "Commit",
+          "type": "string"
+        },
+        "from_ref": {
+          "default": "",
+          "description": "Review the diff from this ref...",
+          "title": "From Ref",
+          "type": "string"
+        },
+        "to_ref": {
+          "default": "",
+          "description": "...to this ref (default with from_ref: working tree).",
+          "title": "To Ref",
+          "type": "string"
+        },
+        "staged": {
+          "default": false,
+          "description": "Review only staged changes.",
+          "title": "Staged",
+          "type": "boolean"
+        },
+        "background": {
+          "default": "",
+          "description": "Optional business context: what this change is for. Improves review quality.",
+          "maxLength": 1000,
+          "title": "Background",
+          "type": "string"
+        },
+        "effort": {
+          "default": "medium",
+          "description": "low | medium | high - context-tool rounds per file group.",
+          "title": "Effort",
+          "type": "string"
+        }
+      },
+      "title": "CodeReviewInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "context_budget",
+    "description": "Build a session-continuity brief from supplied events (decisions, tasks, errors, edits, commands) under a hard character budget: open decisions and tasks always kept, the rest ranked by query match, kind and recency. Exact text, omissions listed, nothing stored.",
+    "parameters": {
+      "$defs": {
+        "Event": {
+          "properties": {
+            "id": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "decision",
+                "error",
+                "task",
+                "edit",
+                "command",
+                "note",
+                "output"
+              ],
+              "title": "Kind",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 20000,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "resolved": {
+              "default": false,
+              "title": "Resolved",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "text"
+          ],
+          "title": "Event",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/Event"
+          },
+          "maxItems": 2000,
+          "minItems": 1,
+          "title": "Events",
+          "type": "array"
+        },
+        "query": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Query",
+          "type": "string"
+        },
+        "budget_chars": {
+          "default": 3000,
+          "maximum": 20000,
+          "minimum": 200,
+          "title": "Budget Chars",
+          "type": "integer"
+        },
+        "line_chars": {
+          "default": 300,
+          "maximum": 2000,
+          "minimum": 40,
+          "title": "Line Chars",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "ContextBudgetInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "convo_recap",
+    "description": "Build one recap turn from a long conversation: every requirement the user stated, de-duplicated and in order, so a new turn or chat starts from one complete instruction. Flags answers given before the user finished specifying, very long assistant replies and conflicting numbers. Based on the Laban et al. multi-turn paper; heuristic text analysis, no model call.",
+    "parameters": {
+      "$defs": {
+        "Turn": {
+          "properties": {
+            "role": {
+              "enum": [
+                "user",
+                "assistant"
+              ],
+              "title": "Role",
+              "type": "string"
+            },
+            "text": {
+              "maxLength": 20000,
+              "title": "Text",
+              "type": "string"
+            }
+          },
+          "required": [
+            "role",
+            "text"
+          ],
+          "title": "Turn",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "turns": {
+          "items": {
+            "$ref": "#/$defs/Turn"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Turns",
+          "type": "array"
+        },
+        "max_requirements": {
+          "default": 40,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Max Requirements",
+          "type": "integer"
+        },
+        "long_reply_words": {
+          "default": 350,
+          "maximum": 5000,
+          "minimum": 50,
+          "title": "Long Reply Words",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "turns"
+      ],
+      "title": "ConvoRecapInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "create_file",
-    "description": "Create a file the user can download (notes, reports, code, csv, markdown). Returns a download path.",
+    "description": "Create a file the user can download (notes, reports, code, csv, markdown) or write results into a named file like report.txt. Returns a download path.",
     "parameters": {
       "properties": {
         "name": {
@@ -176,7 +925,7 @@
   },
   {
     "name": "create_task",
-    "description": "Create a durable background task.",
+    "description": "Create a durable background task or reminder ('remind me in 2 hours to call the bank', 'check the site every morning').",
     "parameters": {
       "properties": {
         "title": {
@@ -202,6 +951,48 @@
         "title"
       ],
       "title": "CreateTaskInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "date_math",
+    "description": "Exact calendar arithmetic, no guessing: add/subtract days/weeks/months/years from a date (month-end clamps correctly), days/weeks between two dates, or the weekday of a date. Use for any question about what day a date falls on or how long between dates. Dates only, no timezones.",
+    "parameters": {
+      "properties": {
+        "op": {
+          "description": "add | between | weekday",
+          "title": "Op",
+          "type": "string"
+        },
+        "date": {
+          "default": "today",
+          "description": "Base date as YYYY-MM-DD, or 'today' (default)",
+          "title": "Date",
+          "type": "string"
+        },
+        "amount": {
+          "default": 0,
+          "description": "For add: how many units to move (negative = back)",
+          "title": "Amount",
+          "type": "integer"
+        },
+        "unit": {
+          "default": "days",
+          "description": "For add: days | weeks | months | years",
+          "title": "Unit",
+          "type": "string"
+        },
+        "other_date": {
+          "default": "",
+          "description": "For between: the second date (YYYY-MM-DD or 'today')",
+          "title": "Other Date",
+          "type": "string"
+        }
+      },
+      "required": [
+        "op"
+      ],
+      "title": "DateMathInput",
       "type": "object"
     }
   },
@@ -249,12 +1040,43 @@
     }
   },
   {
-    "name": "design_system",
-    "description": "Design-system skills: list/get schema'd themes (color, type, spacing, radius tokens) and render a self-contained styled HTML deliverable (title, subtitle, sections) into the file store.",
+    "name": "design_resources",
+    "description": "Verified UI resource registry for building interfaces: shadcn/ui, Motion, Bklit UI charts, Kokonut UI components, Haikei SVG backgrounds, Spline 3D. list/get/recommend returns license facts, exact install commands and honest limits (hosted tools have no verified API).",
     "parameters": {
       "properties": {
         "action": {
-          "description": "list | get | render",
+          "description": "list | get | recommend",
+          "title": "Action",
+          "type": "string"
+        },
+        "resource": {
+          "default": "",
+          "description": "get: resource id",
+          "title": "Resource",
+          "type": "string"
+        },
+        "need": {
+          "default": "",
+          "description": "recommend: what is being built",
+          "maxLength": 300,
+          "title": "Need",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "DesignResourcesInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "design_system",
+    "description": "Design-system skills: list/get schema'd themes (color, type, spacing, radius tokens) and render a self-contained styled HTML deliverable (title, subtitle, sections) into the file store. Use for landing pages, websites, slide decks, and presentations.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "list | get | render | checklist",
           "title": "Action",
           "type": "string"
         },
@@ -290,6 +1112,12 @@
           "description": "render: output name in the file store",
           "title": "File Name",
           "type": "string"
+        },
+        "checklist": {
+          "default": "",
+          "description": "checklist: one of: baseline_ui, accessibility",
+          "title": "Checklist",
+          "type": "string"
         }
       },
       "required": [
@@ -300,8 +1128,109 @@
     }
   },
   {
+    "name": "duckdb_query",
+    "description": "Run one read-only SQL statement over files in the agent file store (CSV/TSV/JSON/NDJSON/Parquet become views named by file stem, e.g. sales.csv -> sales) with DuckDB. Read-only gate: SELECT/WITH/EXPLAIN/DESCRIBE/SHOW/SUMMARIZE only; writes, ATTACH, and direct reader functions are refused. Use for sums, joins, filters, and exploration over data files.",
+    "parameters": {
+      "properties": {
+        "query": {
+          "description": "One read-only SQL statement (SELECT/WITH/EXPLAIN/DESCRIBE/SHOW/SUMMARIZE)",
+          "maxLength": 4000,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "files": {
+          "description": "File-store file names to expose as views (csv/tsv/json/ndjson/jsonl/parquet). View name = file stem, e.g. sales.csv -> sales",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Files",
+          "type": "array"
+        },
+        "max_rows": {
+          "default": 50,
+          "maximum": 500,
+          "minimum": 1,
+          "title": "Max Rows",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "DuckdbInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "evidence_index",
+    "description": "Retrieve bounded exact lines from provided source text with source ids, URLs and line numbers. Reduces context bulk without generated summaries; missing evidence and clipped results are explicit.",
+    "parameters": {
+      "$defs": {
+        "EvidenceSource": {
+          "properties": {
+            "id": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "url": {
+              "default": "",
+              "maxLength": 2000,
+              "title": "Url",
+              "type": "string"
+            },
+            "content": {
+              "maxLength": 100000,
+              "title": "Content",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "content"
+          ],
+          "title": "EvidenceSource",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "query": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Query",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/EvidenceSource"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "max_chars": {
+          "default": 8000,
+          "maximum": 20000,
+          "minimum": 100,
+          "title": "Max Chars",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query",
+        "sources"
+      ],
+      "title": "EvidenceIndexInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "exact_solve",
-    "description": "Solve exact-procedure tasks with code instead of in-head simulation (reasoning models collapse on long exact traces - Apple's Illusion of Thinking, arXiv:2506.06941). Use for puzzles, long arithmetic, state tracking, multi-step derivations: pass a small Python solver that computes and self-verifies, prints STATUS + ANSWER; a solver proving infeasibility reports UNSOLVABLE. Returns only the verified result plus a short digest.",
+    "description": "Solve exact-procedure tasks with code instead of in-head simulation (reasoning models collapse on long exact traces - Apple's Illusion of Thinking, arXiv:2506.06941). Use for puzzles, long arithmetic, state tracking, multi-step derivations: pass a small Python solver that computes and self-verifies, prints STATUS + ANSWER; a solver proving infeasibility reports UNSOLVABLE. Returns only the verified result plus a short digest. Also for 'run/execute this code and give me the exact result' requests like computing a checksum.",
     "parameters": {
       "properties": {
         "goal": {
@@ -331,6 +1260,217 @@
         "code"
       ],
       "title": "ExactSolveInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "finance_tieout",
+    "description": "Recompute a capital-account ending balance from exact Decimal NAV inputs, ownership fraction, cash flows and fees. Report tolerance/mismatch and source refs. Arithmetic only, no statement edits, data verification, advice or money moves.",
+    "parameters": {
+      "properties": {
+        "beginning": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Beginning"
+        },
+        "contributions": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Contributions"
+        },
+        "distributions": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Distributions"
+        },
+        "realized_pnl": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Realized Pnl"
+        },
+        "unrealized_pnl": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Unrealized Pnl"
+        },
+        "management_fee": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Management Fee"
+        },
+        "fund_expenses": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Fund Expenses"
+        },
+        "ownership_fraction": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Ownership Fraction"
+        },
+        "carried_interest": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Carried Interest"
+        },
+        "reported_ending": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
+              "type": "string"
+            }
+          ],
+          "title": "Reported Ending"
+        },
+        "source_refs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "beginning",
+        "contributions",
+        "distributions",
+        "realized_pnl",
+        "unrealized_pnl",
+        "management_fee",
+        "fund_expenses",
+        "ownership_fraction",
+        "carried_interest",
+        "reported_ending",
+        "source_refs"
+      ],
+      "title": "FinanceTieoutInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "fit_import",
+    "description": "Import a Garmin/wearable .FIT activity file from the file store into a workout memory (sport, date, duration, distance, calories, heart rate; deduped by file hash). Informational-only health tooling - not medical advice.",
+    "parameters": {
+      "properties": {
+        "file": {
+          "description": "File-store name of the .FIT activity file the user uploaded",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "description": "Optional note to attach to the workout entry",
+          "maxLength": 200,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "FitImportInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "fitness_query",
+    "description": "Answer questions about recent workouts (pace, distance, heart rate) from the chat's connected Strava account; can also log them as workout memories when asked. Informational-only - not medical advice.",
+    "parameters": {
+      "properties": {
+        "days": {
+          "default": 7,
+          "description": "How far back to look (1-30 days, default 7)",
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Days",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 10,
+          "description": "Max activities to return (default 10)",
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "log": {
+          "default": false,
+          "description": "Also save the fetched activities as workout memories (deduped)",
+          "title": "Log",
+          "type": "boolean"
+        }
+      },
+      "title": "FitnessQueryInput",
       "type": "object"
     }
   },
@@ -396,7 +1536,7 @@
   },
   {
     "name": "geo_audit",
-    "description": "Audit one HTML page for citability inside AI answers (geo-optimizer-skill method families, MIT, own-words; GEO research line arXiv 2311.09735): outbound source citations, statistics, quotations, answer-ready lead, question-form headings, extractable lists/tables, JSON-LD entity clarity with sameAs, freshness dates, AI-crawler access in robots.txt, llms.txt. Pass the page HTML plus robots_txt/llms_txt when available. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Companion to seo_audit - run both on website/landing deliverables.",
+    "description": "Audit one HTML page for citability inside AI answers (geo-optimizer-skill method families, MIT, own-words; GEO research line arXiv 2311.09735): outbound source citations, statistics, quotations, answer-ready lead, question-form headings, extractable lists/tables, JSON-LD entity clarity with sameAs, Wikidata entity presence (create/maintain the business's wikidata.org item and link it via sameAs - knowledge-graph presence makes AI assistants surface it), freshness dates, AI-crawler access in robots.txt, llms.txt. Pass the page HTML plus robots_txt/llms_txt when available. Returns 0-100 score with per-check pass/warn/fail, evidence, and fixes. Companion to seo_audit - run both on website/landing deliverables.",
     "parameters": {
       "properties": {
         "html": {
@@ -447,7 +1587,7 @@
   },
   {
     "name": "gmail_read",
-    "description": "Read recent Gmail inbox messages (from, subject, date, snippet) via the chat's connected Google account.",
+    "description": "Read recent Gmail inbox messages and latest emails (from, subject, date, snippet) via the chat's connected Google account.",
     "parameters": {
       "properties": {
         "max_results": {
@@ -532,6 +1672,96 @@
     }
   },
   {
+    "name": "invoice_chase",
+    "description": "Find which customers are overdue: age your open and unpaid invoices into buckets, pick a chase stage for each (friendly reminder, reminder, firm, final notice) and write plain draft wording of what to say to each customer. Totals by bucket and customer. Drafts only: nothing is sent and no accounting system is touched.",
+    "parameters": {
+      "$defs": {
+        "Invoice": {
+          "properties": {
+            "id": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "customer": {
+              "maxLength": 120,
+              "minLength": 1,
+              "title": "Customer",
+              "type": "string"
+            },
+            "amount": {
+              "description": "decimal amount, e.g. 1250.00",
+              "title": "Amount",
+              "type": "string"
+            },
+            "due": {
+              "description": "due date YYYY-MM-DD",
+              "title": "Due",
+              "type": "string"
+            },
+            "paid": {
+              "default": false,
+              "title": "Paid",
+              "type": "boolean"
+            },
+            "chases_sent": {
+              "default": 0,
+              "description": "reminders already sent for this invoice",
+              "maximum": 20,
+              "minimum": 0,
+              "title": "Chases Sent",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "id",
+            "customer",
+            "amount",
+            "due"
+          ],
+          "title": "Invoice",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "invoices": {
+          "items": {
+            "$ref": "#/$defs/Invoice"
+          },
+          "maxItems": 500,
+          "minItems": 1,
+          "title": "Invoices",
+          "type": "array"
+        },
+        "as_of": {
+          "description": "today's date YYYY-MM-DD",
+          "title": "As Of",
+          "type": "string"
+        },
+        "sender": {
+          "default": "",
+          "description": "name to sign drafts with",
+          "maxLength": 80,
+          "title": "Sender",
+          "type": "string"
+        },
+        "currency": {
+          "default": "USD",
+          "maxLength": 3,
+          "title": "Currency",
+          "type": "string"
+        }
+      },
+      "required": [
+        "invoices",
+        "as_of"
+      ],
+      "title": "InvoiceChaseInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "library_docs",
     "description": "Fetch up-to-date, version-specific documentation for a library or framework via Context7 (MCP). Use for API syntax, configuration, or version-migration questions instead of trusting training memory.",
     "parameters": {
@@ -598,6 +1828,58 @@
     }
   },
   {
+    "name": "linkedin_draft",
+    "description": "LinkedIn draft-first helper, never posts: parse a post URL, lint a post/comment/reply draft against voice rules (length, em-dash density, vocabulary, openers, dead prompts, hashtags, hook length), list hook structures, scaffold a posting week, render a NOT POSTED approval card. Publishing needs the separate approval-gated linkedin tool.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "parse_url | lint | hooks | plan_week | card",
+          "title": "Action",
+          "type": "string"
+        },
+        "kind": {
+          "default": "post",
+          "description": "post | comment | reply",
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "maxLength": 6000,
+          "title": "Text",
+          "type": "string"
+        },
+        "url": {
+          "default": "",
+          "description": "parse_url/card: the LinkedIn post URL",
+          "maxLength": 500,
+          "title": "Url",
+          "type": "string"
+        },
+        "founder": {
+          "default": false,
+          "description": "plan_week: use the founder pillar set",
+          "title": "Founder",
+          "type": "boolean"
+        },
+        "topics": {
+          "description": "plan_week: topics to place",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 7,
+          "title": "Topics",
+          "type": "array"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "LinkedInDraftInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "list_tasks",
     "description": "List this conversation's background tasks and their status.",
     "parameters": {
@@ -621,6 +1903,39 @@
     }
   },
   {
+    "name": "literature_search",
+    "description": "Search academic papers across open scholarly APIs (arXiv, Crossref, Semantic Scholar, OpenAlex - free, keyless). Returns deduped results with title, authors, year, abstract snippet, and link. Use for research questions, literature reviews, citations, and finding papers by topic or author.",
+    "parameters": {
+      "properties": {
+        "query": {
+          "description": "Search terms - title words, authors, topic",
+          "maxLength": 500,
+          "minLength": 2,
+          "title": "Query",
+          "type": "string"
+        },
+        "source": {
+          "default": "auto",
+          "description": "auto | arxiv | crossref | semanticscholar | openalex",
+          "title": "Source",
+          "type": "string"
+        },
+        "max_results": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Max Results",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "query"
+      ],
+      "title": "LiteratureInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "memory_get",
     "description": "Fetch the full content of durable memories by id (ids come from recall previews).",
     "parameters": {
@@ -639,6 +1954,229 @@
         "ids"
       ],
       "title": "MemoryGetInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "motion_render",
+    "description": "Render a motion_storyboard plan to a silent H.264 mp4 (own renderer, frames drawn word by word, ffmpeg encode, decoded back to verify frame count) into the file store; bounded to 1800 frames. Requires the ffmpeg binary. No paid generation.",
+    "parameters": {
+      "$defs": {
+        "MotionStoryboardInput": {
+          "properties": {
+            "words": {
+              "items": {
+                "$ref": "#/$defs/WordBeat"
+              },
+              "maxItems": 1000,
+              "minItems": 1,
+              "title": "Words",
+              "type": "array"
+            },
+            "beats": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "title": "Beats",
+              "type": "object"
+            },
+            "fps": {
+              "default": 30,
+              "maximum": 120,
+              "minimum": 1,
+              "title": "Fps",
+              "type": "integer"
+            }
+          },
+          "required": [
+            "words"
+          ],
+          "title": "MotionStoryboardInput",
+          "type": "object"
+        },
+        "WordBeat": {
+          "properties": {
+            "text": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "start": {
+              "maximum": 604800,
+              "minimum": 0,
+              "title": "Start",
+              "type": "number"
+            },
+            "end": {
+              "maximum": 604800,
+              "minimum": 0,
+              "title": "End",
+              "type": "number"
+            }
+          },
+          "required": [
+            "text",
+            "start",
+            "end"
+          ],
+          "title": "WordBeat",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "storyboard": {
+          "$ref": "#/$defs/MotionStoryboardInput"
+        },
+        "width": {
+          "default": 1280,
+          "maximum": 1920,
+          "minimum": 320,
+          "title": "Width",
+          "type": "integer"
+        },
+        "height": {
+          "default": 720,
+          "maximum": 1080,
+          "minimum": 240,
+          "title": "Height",
+          "type": "integer"
+        },
+        "reduced_motion": {
+          "default": false,
+          "title": "Reduced Motion",
+          "type": "boolean"
+        },
+        "background": {
+          "default": "#101418",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Background",
+          "type": "string"
+        },
+        "foreground": {
+          "default": "#F4F1EA",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Foreground",
+          "type": "string"
+        },
+        "accent": {
+          "default": "#F2B84B",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "title": "Accent",
+          "type": "string"
+        },
+        "output_name": {
+          "default": "motion.mp4",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,60}\\.mp4$",
+          "title": "Output Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "storyboard"
+      ],
+      "title": "MotionRenderInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "motion_storyboard",
+    "description": "Plan word-timed motion scenes from supplied audio timestamps and beat descriptions. Returns frame boundaries and visual verification checks; no rendering, paid generation or fabricated statistics.",
+    "parameters": {
+      "$defs": {
+        "WordBeat": {
+          "properties": {
+            "text": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Text",
+              "type": "string"
+            },
+            "start": {
+              "maximum": 604800,
+              "minimum": 0,
+              "title": "Start",
+              "type": "number"
+            },
+            "end": {
+              "maximum": 604800,
+              "minimum": 0,
+              "title": "End",
+              "type": "number"
+            }
+          },
+          "required": [
+            "text",
+            "start",
+            "end"
+          ],
+          "title": "WordBeat",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "words": {
+          "items": {
+            "$ref": "#/$defs/WordBeat"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Words",
+          "type": "array"
+        },
+        "beats": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Beats",
+          "type": "object"
+        },
+        "fps": {
+          "default": 30,
+          "maximum": 120,
+          "minimum": 1,
+          "title": "Fps",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "words"
+      ],
+      "title": "MotionStoryboardInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "nda_triage",
+    "description": "Pre-screen NDA text as GREEN, YELLOW or RED with the exact sentences behind each flag: mutual or one-way, standard carve-outs, term length against your limit, non-compete, non-solicit, residuals, liquidated damages, perpetual terms. Keyword heuristic over the text you provide, not legal advice; nothing is signed or sent.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "description": "the NDA text",
+          "maxLength": 200000,
+          "minLength": 20,
+          "title": "Text",
+          "type": "string"
+        },
+        "we_are": {
+          "default": "either",
+          "description": "either | discloser | recipient: which side the owner is on",
+          "title": "We Are",
+          "type": "string"
+        },
+        "max_term_years": {
+          "default": 5,
+          "description": "longest confidentiality term the owner accepts",
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Max Term Years",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "NdaTriageInput",
       "type": "object"
     }
   },
@@ -689,6 +2227,41 @@
     }
   },
   {
+    "name": "ofx_import",
+    "description": "Import a bank or credit-card OFX/QFX statement from the file store into expense memories (deduped by bank transaction id, re-imports are safe). Informational-only money tooling: reads the uploaded statement and logs it - never moves money, no financial advice.",
+    "parameters": {
+      "properties": {
+        "file": {
+          "description": "File-store name of the OFX/QFX statement the user uploaded",
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "File",
+          "type": "string"
+        },
+        "default_category": {
+          "default": "uncategorized",
+          "description": "Category to stamp on imported rows; the user can re-categorize later",
+          "maxLength": 60,
+          "title": "Default Category",
+          "type": "string"
+        },
+        "limit": {
+          "default": 500,
+          "description": "Max transactions to import in one pass",
+          "maximum": 2000,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file"
+      ],
+      "title": "OfxImportInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "optimize_prompt",
     "description": "Rewrite a rough instruction into a tightened, structured prompt (detects task type, extracts constraints, specifies output format).",
     "parameters": {
@@ -716,6 +2289,201 @@
     }
   },
   {
+    "name": "org_chart",
+    "description": "Validate and query a declared agent org chart: single top agent, reporting cycles, escalation path, delegate a task to the least-loaded report with the needed skill and budget room, goal ancestry for a task, and team budget roll-ups with alert and paused states. Offline planning only: starts nothing, messages nobody, spends nothing.",
+    "parameters": {
+      "$defs": {
+        "Agent": {
+          "properties": {
+            "id": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "role": {
+              "default": "",
+              "maxLength": 120,
+              "title": "Role",
+              "type": "string"
+            },
+            "reports_to": {
+              "default": "",
+              "maxLength": 80,
+              "title": "Reports To",
+              "type": "string"
+            },
+            "skills": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 40,
+              "title": "Skills",
+              "type": "array"
+            },
+            "budget_usd": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Budget Usd",
+              "type": "number"
+            },
+            "spent_usd": {
+              "default": 0,
+              "maximum": 1000000,
+              "minimum": 0,
+              "title": "Spent Usd",
+              "type": "number"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "title": "Agent",
+          "type": "object"
+        },
+        "Goal": {
+          "properties": {
+            "id": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "default": "",
+              "maxLength": 200,
+              "title": "Title",
+              "type": "string"
+            },
+            "parent": {
+              "default": "",
+              "maxLength": 80,
+              "title": "Parent",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "title": "Goal",
+          "type": "object"
+        },
+        "Task": {
+          "properties": {
+            "id": {
+              "maxLength": 80,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "assignee": {
+              "default": "",
+              "maxLength": 80,
+              "title": "Assignee",
+              "type": "string"
+            },
+            "goal": {
+              "default": "",
+              "description": "goal id this task serves",
+              "maxLength": 80,
+              "title": "Goal",
+              "type": "string"
+            },
+            "needs_skill": {
+              "default": "",
+              "maxLength": 80,
+              "title": "Needs Skill",
+              "type": "string"
+            },
+            "status": {
+              "default": "open",
+              "enum": [
+                "open",
+                "in_progress",
+                "done",
+                "blocked"
+              ],
+              "title": "Status",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id"
+          ],
+          "title": "Task",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "action": {
+          "enum": [
+            "validate",
+            "chain",
+            "delegate",
+            "goal_path",
+            "budget"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "agents": {
+          "items": {
+            "$ref": "#/$defs/Agent"
+          },
+          "maxItems": 200,
+          "minItems": 1,
+          "title": "Agents",
+          "type": "array"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/Task"
+          },
+          "maxItems": 500,
+          "title": "Tasks",
+          "type": "array"
+        },
+        "goals": {
+          "items": {
+            "$ref": "#/$defs/Goal"
+          },
+          "maxItems": 200,
+          "title": "Goals",
+          "type": "array"
+        },
+        "agent": {
+          "default": "",
+          "description": "chain/delegate: the agent in question",
+          "maxLength": 80,
+          "title": "Agent",
+          "type": "string"
+        },
+        "task": {
+          "default": "",
+          "description": "delegate/goal_path: task id",
+          "maxLength": 80,
+          "title": "Task",
+          "type": "string"
+        },
+        "alert_at": {
+          "default": 0.8,
+          "description": "budget: fraction that raises an alert",
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Alert At",
+          "type": "number"
+        }
+      },
+      "required": [
+        "action",
+        "agents"
+      ],
+      "title": "OrgChartInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "playbook",
     "description": "Load a working brief for a high-value workflow: mock interview, both-sides debate, writing tutor, step-by-step teacher, structured critic. Use list to see them, load to adopt one for this conversation.",
     "parameters": {
@@ -727,7 +2495,7 @@
         },
         "name": {
           "default": "",
-          "description": "playbook to load; one of: interview_coach, debate, writing_tutor, teacher, terse, spec_first, tdd_flow, verify_done, storyscope, reason_route, seo_web, critic",
+          "description": "playbook to load; one of: interview_coach, debate, writing_tutor, teacher, terse, spec_first, tdd_flow, verify_done, storyscope, reason_route, seo_web, budget_tracker, fitness_log, nutrition_lookup, meal_planner, spaced_repetition_tutor, trip_planner, birthdays, split_expenses, journal, gtd_tasks, tax_prep, recipe_import, session_guard, critic, frontend_reference, legal_review, finance_review, crm_support_workflow, linkedin_draft, motion_render, evidence_handoff",
           "title": "Name",
           "type": "string"
         }
@@ -740,8 +2508,27 @@
     }
   },
   {
+    "name": "pr_change_graph",
+    "description": "Export file-level changed-line/status nodes and a Mermaid diagram from a provided git unified diff. No model-generated dependency edges; narrow diffs over 100 files instead of hiding the tail. Render and verify before delivery.",
+    "parameters": {
+      "properties": {
+        "diff": {
+          "maxLength": 200000,
+          "minLength": 1,
+          "title": "Diff",
+          "type": "string"
+        }
+      },
+      "required": [
+        "diff"
+      ],
+      "title": "PRChangeGraphInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "recall",
-    "description": "Search durable memory for facts relevant to a query. Returns a compact index (id/kind/preview) - call memory_get with ids for full content.",
+    "description": "Search durable memory for facts relevant to a query ('what do you remember about my drinks?'). Returns a compact index (id/kind/preview) - call memory_get with ids for full content.",
     "parameters": {
       "properties": {
         "query": {
@@ -766,8 +2553,59 @@
     }
   },
   {
+    "name": "receipt_import",
+    "description": "Import a receipt from the file store (photo via OCR, or pasted text) into an expense memory (merchant, date, total, currency; deduped by content hash). Informational-only money tooling - not financial advice.",
+    "parameters": {
+      "properties": {
+        "file": {
+          "default": "",
+          "description": "File-store name of the uploaded receipt photo (jpg/png). Omit when pasting text.",
+          "maxLength": 200,
+          "title": "File",
+          "type": "string"
+        },
+        "text": {
+          "default": "",
+          "description": "Pasted receipt text - use when there is no photo or OCR is unavailable.",
+          "maxLength": 8000,
+          "title": "Text",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "description": "Optional note to attach to the expense entry",
+          "maxLength": 200,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "title": "ReceiptImportInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "redact_secrets",
+    "description": "Remove secrets and sensitive IDs from text before sharing it: strips API keys, access tokens, passwords in key=value form, bearer tokens, private key blocks, URL credentials, SSNs and card numbers, leaving [REDACTED] markers. Pattern based and offline; reports counts and never echoes what it removed. Not for watermark or file metadata cleaning, use scrub for that.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "description": "Text to clean of secrets before sharing",
+          "maxLength": 200000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "RedactSecretsInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "remember",
-    "description": "Store a durable user-approved fact or preference.",
+    "description": "Store a durable user-approved fact or preference ('save this: my accountant is Dana', 'remember that I take oat milk').",
     "parameters": {
       "properties": {
         "content": {
@@ -791,6 +2629,94 @@
     }
   },
   {
+    "name": "review_receipt",
+    "description": "Check an evidence receipt for full file coverage, pass/fail/unknown checks and separate builder/reviewer identities. Caller-supplied claims remain unverified; a receipt does not run checks or certify truth.",
+    "parameters": {
+      "$defs": {
+        "CheckEvidence": {
+          "properties": {
+            "name": {
+              "maxLength": 150,
+              "minLength": 1,
+              "title": "Name",
+              "type": "string"
+            },
+            "state": {
+              "enum": [
+                "pass",
+                "fail",
+                "unknown"
+              ],
+              "title": "State",
+              "type": "string"
+            },
+            "evidence": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Evidence",
+              "type": "string"
+            }
+          },
+          "required": [
+            "name",
+            "state",
+            "evidence"
+          ],
+          "title": "CheckEvidence",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "builder": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Builder",
+          "type": "string"
+        },
+        "reviewer": {
+          "maxLength": 100,
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "expected_files": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Expected Files",
+          "type": "array"
+        },
+        "reviewed_files": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Reviewed Files",
+          "type": "array"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CheckEvidence"
+          },
+          "maxItems": 30,
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "builder",
+        "reviewer",
+        "expected_files",
+        "checks"
+      ],
+      "title": "ReviewReceiptInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "rewrite_natural",
     "description": "Rewrite the user's own AI-sounding text so it reads naturally: cuts throat-clearing and hedge stacks, removes formulaic transitions, then applies the humanizer passes; reports rhythm issues. No claim about detectors.",
     "parameters": {
@@ -806,6 +2732,58 @@
         "text"
       ],
       "title": "RewriteNaturalInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "screenshot_to_code",
+    "description": "Turn a screenshot in the file store into 1-3 self-contained HTML candidates (html_css or html_tailwind) through the chat model, validate each, run taste checks, write them to the file store and recommend the best. Needs a vision-capable chat model.",
+    "parameters": {
+      "properties": {
+        "image_file": {
+          "description": "screenshot file name in the agent file store",
+          "title": "Image File",
+          "type": "string"
+        },
+        "stack": {
+          "default": "html_css",
+          "description": "one of: html_css, html_tailwind",
+          "title": "Stack",
+          "type": "string"
+        },
+        "n": {
+          "default": 2,
+          "description": "candidates to generate (1-3)",
+          "maximum": 3,
+          "minimum": 1,
+          "title": "N",
+          "type": "integer"
+        },
+        "instructions": {
+          "default": "",
+          "description": "extra changes to apply",
+          "maxLength": 1500,
+          "title": "Instructions",
+          "type": "string"
+        },
+        "profile": {
+          "default": "neutral",
+          "description": "taste profile: restrained, expressive, neutral",
+          "title": "Profile",
+          "type": "string"
+        },
+        "output_prefix": {
+          "default": "s2c",
+          "maxLength": 40,
+          "pattern": "^[A-Za-z0-9_-]+$",
+          "title": "Output Prefix",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image_file"
+      ],
+      "title": "ScreenshotToCodeInput",
       "type": "object"
     }
   },
@@ -893,8 +2871,201 @@
     }
   },
   {
+    "name": "skill_inspect",
+    "description": "Scan provided skill text for secret access, download-and-run, hidden actions, destructive commands and outbound transfers. Static risk hints, never a safety certificate or installation authority.",
+    "parameters": {
+      "properties": {
+        "content": {
+          "maxLength": 100000,
+          "minLength": 1,
+          "title": "Content",
+          "type": "string"
+        },
+        "source": {
+          "default": "provided text",
+          "maxLength": 500,
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "content"
+      ],
+      "title": "SkillInspectInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "skill_library",
+    "description": "Your self-authored skill library: save a workflow to reuse it next time; save a structured experience with name, when_to_use, steps, outcome, evidence claim, references and limitations, then search/get/list/retire skills on later tasks. Relevant skills surface automatically in context for matching tasks. Saving does not independently verify success; failure/unknown outcomes and provenance remain visible; use search before reinventing a procedure.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "description": "save | search | get | list | retire",
+          "title": "Action",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "description": "Short skill name (save)",
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "when_to_use": {
+          "default": "",
+          "description": "Trigger conditions: the task shapes this skill applies to (save)",
+          "maxLength": 500,
+          "title": "When To Use",
+          "type": "string"
+        },
+        "steps": {
+          "default": "",
+          "description": "The procedure, numbered steps, concrete (save)",
+          "maxLength": 4000,
+          "title": "Steps",
+          "type": "string"
+        },
+        "verification": {
+          "default": "",
+          "description": "What proved this works - the check that passed and when (required for save)",
+          "maxLength": 1000,
+          "title": "Verification",
+          "type": "string"
+        },
+        "outcome": {
+          "default": "unknown",
+          "enum": [
+            "success",
+            "failure",
+            "unknown"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "limitations": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Limitations",
+          "type": "string"
+        },
+        "query": {
+          "default": "",
+          "description": "Search terms (search)",
+          "maxLength": 300,
+          "title": "Query",
+          "type": "string"
+        },
+        "skill_id": {
+          "default": 0,
+          "description": "Skill memory id (get | retire)",
+          "title": "Skill Id",
+          "type": "integer"
+        },
+        "limit": {
+          "default": 5,
+          "maximum": 20,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "SkillInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "skill_pack",
+    "description": "Read vendored reference packs, unchanged and hash-checked: Superpowers engineering skills (MIT, 15 skills), the i-have-adhd answer-shape skill and eval cases (MIT), and the awesome-gpt-image-2 prompt library (CC BY 4.0, attribution returned with every prompt). Actions: packs, files, get, search, image_prompts. Untrusted reference text, never executed.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "default": "packs",
+          "enum": [
+            "packs",
+            "files",
+            "get",
+            "search",
+            "image_prompts"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "pack": {
+          "default": "",
+          "maxLength": 60,
+          "title": "Pack",
+          "type": "string"
+        },
+        "file": {
+          "default": "",
+          "maxLength": 300,
+          "title": "File",
+          "type": "string"
+        },
+        "query": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Query",
+          "type": "string"
+        },
+        "limit": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "SkillPackInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "source_reference",
+    "description": "Retrieve unchanged MIT accessibility and PostgreSQL skill reference text with original source commit, full license and hash-checked files. Untrusted reference data, not a configured capability, instruction or execution certificate.",
+    "parameters": {
+      "properties": {
+        "action": {
+          "default": "list",
+          "enum": [
+            "list",
+            "get"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "name": {
+          "default": "",
+          "maxLength": 100,
+          "title": "Name",
+          "type": "string"
+        },
+        "file": {
+          "default": "SKILL.md",
+          "maxLength": 200,
+          "title": "File",
+          "type": "string"
+        }
+      },
+      "title": "SourceReferenceInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "speak",
-    "description": "Create a voice note (offline text-to-speech) the user can download as a WAV.",
+    "description": "Create a voice note (offline text-to-speech) the user can download as a WAV - read text out loud as audio.",
     "parameters": {
       "properties": {
         "text": {
@@ -919,8 +3090,104 @@
     }
   },
   {
+    "name": "spec_plan",
+    "description": "Turn an explicit goal and tasks into a dependency-ordered plan with required acceptance checks. Stages: spec, test first, implement, independent review, verify. Detects cycles and missing dependencies. No execution, model calls, or approval implied.",
+    "parameters": {
+      "$defs": {
+        "PlanTask": {
+          "properties": {
+            "id": {
+              "maxLength": 80,
+              "minLength": 1,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "acceptance": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 10,
+              "minItems": 1,
+              "title": "Acceptance",
+              "type": "array"
+            },
+            "depends_on": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 30,
+              "title": "Depends On",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "title",
+            "acceptance"
+          ],
+          "title": "PlanTask",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "goal": {
+          "maxLength": 1000,
+          "minLength": 4,
+          "title": "Goal",
+          "type": "string"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/PlanTask"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "title": "Tasks",
+          "type": "array"
+        },
+        "constraints": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Constraints",
+          "type": "array"
+        },
+        "non_goals": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Non Goals",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "goal",
+        "tasks"
+      ],
+      "title": "SpecPlanInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "story_critique",
-    "description": "Critique a fiction draft against the documented AI-narrative defaults (StoryScope, COLM 2026): stated themes, tidy endings, linear time, single-track plots, clean heroes, bodily emotion, vague references, flat escalation, debate dialogue, sealed narration. Returns per-check ai/human/mixed verdicts with evidence and fixes.",
+    "description": "Critique a fiction draft against the documented AI-narrative defaults (StoryScope, COLM 2026): stated themes, tidy endings, linear time, single-track plots, clean heroes, bodily emotion, vague references, flat escalation, debate dialogue, sealed narration. Returns per-check ai/human/mixed verdicts with evidence and fixes. Use when asked for feedback or critique on a story, chapter, or fiction draft.",
     "parameters": {
       "properties": {
         "story": {
@@ -942,6 +3209,68 @@
         "story"
       ],
       "title": "StoryCritiqueInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "style_match",
+    "description": "Compare a built page with a style reference (palette, fonts, corner radii, or a reference HTML/CSS): palette coverage by perceptual colour distance, off-palette colours, missing or extra fonts and radii. Literal values in the markup only; judges no layout or taste, renders nothing.",
+    "parameters": {
+      "properties": {
+        "built_html": {
+          "description": "the page that was built",
+          "maxLength": 400000,
+          "minLength": 1,
+          "title": "Built Html",
+          "type": "string"
+        },
+        "reference_html": {
+          "default": "",
+          "description": "reference page or CSS to match",
+          "maxLength": 400000,
+          "title": "Reference Html",
+          "type": "string"
+        },
+        "palette": {
+          "description": "reference hex colours, e.g. #0a0a0a",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 40,
+          "title": "Palette",
+          "type": "array"
+        },
+        "fonts": {
+          "description": "reference primary font families",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Fonts",
+          "type": "array"
+        },
+        "radii_px": {
+          "description": "reference corner radii in px",
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 10,
+          "title": "Radii Px",
+          "type": "array"
+        },
+        "tolerance": {
+          "default": 12.0,
+          "description": "max Lab distance counted as a match",
+          "exclusiveMinimum": 0,
+          "maximum": 100,
+          "title": "Tolerance",
+          "type": "number"
+        }
+      },
+      "required": [
+        "built_html"
+      ],
+      "title": "StyleMatchInput",
       "type": "object"
     }
   },
@@ -1000,6 +3329,310 @@
         "model"
       ],
       "title": "SwitchModelInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "task_manifest",
+    "description": "Validate a dependency-ordered team/task manifest with owners, output references, pause states and budgets. Offline only; no workers, network or spending launched. Declared state is not verified execution.",
+    "parameters": {
+      "$defs": {
+        "TaskUnit": {
+          "properties": {
+            "id": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "owner": {
+              "maxLength": 100,
+              "minLength": 1,
+              "title": "Owner",
+              "type": "string"
+            },
+            "dependencies": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 100,
+              "title": "Dependencies",
+              "type": "array"
+            },
+            "status": {
+              "default": "planned",
+              "enum": [
+                "planned",
+                "running",
+                "paused",
+                "done",
+                "failed"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "budget_usd": {
+              "default": 0,
+              "maximum": 100000,
+              "minimum": 0,
+              "title": "Budget Usd",
+              "type": "number"
+            },
+            "output_ref": {
+              "default": "",
+              "maxLength": 2000,
+              "title": "Output Ref",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "owner"
+          ],
+          "title": "TaskUnit",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/TaskUnit"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Tasks",
+          "type": "array"
+        },
+        "outbound_network": {
+          "default": "denied",
+          "enum": [
+            "denied",
+            "approval_required"
+          ],
+          "title": "Outbound Network",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tasks"
+      ],
+      "title": "TaskManifestInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "task_next",
+    "description": "Pick the next ready task from a dependency-ordered list (priority, in-progress first, unblocks most), list what is blocked and why, score complexity and suggest which big tasks to split. Offline selection from supplied statuses; runs nothing.",
+    "parameters": {
+      "$defs": {
+        "Item": {
+          "properties": {
+            "id": {
+              "maxLength": 60,
+              "minLength": 1,
+              "title": "Id",
+              "type": "string"
+            },
+            "title": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Title",
+              "type": "string"
+            },
+            "status": {
+              "default": "pending",
+              "enum": [
+                "pending",
+                "in_progress",
+                "done",
+                "blocked",
+                "deferred",
+                "cancelled"
+              ],
+              "title": "Status",
+              "type": "string"
+            },
+            "priority": {
+              "default": "medium",
+              "enum": [
+                "high",
+                "medium",
+                "low"
+              ],
+              "title": "Priority",
+              "type": "string"
+            },
+            "dependencies": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 100,
+              "title": "Dependencies",
+              "type": "array"
+            },
+            "description": {
+              "default": "",
+              "maxLength": 4000,
+              "title": "Description",
+              "type": "string"
+            },
+            "subtasks": {
+              "items": {
+                "type": "string"
+              },
+              "maxItems": 50,
+              "title": "Subtasks",
+              "type": "array"
+            }
+          },
+          "required": [
+            "id",
+            "title"
+          ],
+          "title": "Item",
+          "type": "object"
+        }
+      },
+      "properties": {
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/Item"
+          },
+          "maxItems": 1000,
+          "minItems": 1,
+          "title": "Tasks",
+          "type": "array"
+        },
+        "split_threshold": {
+          "default": 7,
+          "maximum": 10,
+          "minimum": 2,
+          "title": "Split Threshold",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "tasks"
+      ],
+      "title": "TaskNextInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "taste_check",
+    "description": "Objective visual-taste and accessibility checks on generated HTML/CSS (contrast, viewport, alt text, icon-button names, 100vh, animated layout, reduced motion, type/spacing scale) with an explicit aesthetic profile: restrained, expressive or neutral.",
+    "parameters": {
+      "properties": {
+        "html": {
+          "maxLength": 400000,
+          "minLength": 1,
+          "title": "Html",
+          "type": "string"
+        },
+        "profile": {
+          "default": "neutral",
+          "description": "one of: restrained, expressive, neutral",
+          "title": "Profile",
+          "type": "string"
+        }
+      },
+      "required": [
+        "html"
+      ],
+      "title": "TasteInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "test_verifier",
+    "description": "Run pytest with coverage over this conversation's code workspace (the code_interpreter working directory, or a subpath) and return structured results: pass/fail/error counts, failed test names, the failure output tail, and per-file line coverage with a total. The verify step of the write -> test -> fix loop: after writing or changing code in code_interpreter, run this, read the failures, fix, and re-run until green. Extra pytest flags like '-k filter -x' are accepted. Sandboxed: scrubbed environment, resource limits, timeout.",
+    "parameters": {
+      "properties": {
+        "path": {
+          "default": ".",
+          "description": "Directory with tests, relative to the conversation code workspace (created by code_interpreter). Default: the workspace root.",
+          "title": "Path",
+          "type": "string"
+        },
+        "pytest_args": {
+          "default": "",
+          "description": "Extra pytest flags, e.g. '-k login -x'. No file paths - use the path field.",
+          "maxLength": 300,
+          "title": "Pytest Args",
+          "type": "string"
+        },
+        "coverage": {
+          "default": true,
+          "description": "Also compute line coverage (per file + total).",
+          "title": "Coverage",
+          "type": "boolean"
+        },
+        "timeout_seconds": {
+          "default": 120,
+          "maximum": 300,
+          "minimum": 5,
+          "title": "Timeout Seconds",
+          "type": "integer"
+        }
+      },
+      "title": "VerifierInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "video_learn",
+    "description": "Turn an actual YouTube transcript or JSON3 captions into a source-cited learning pack with real timestamps where available, repo links and risk hints. Does not fetch videos or install anything; requires actual transcript input.",
+    "parameters": {
+      "properties": {
+        "video_url": {
+          "maxLength": 2000,
+          "title": "Video Url",
+          "type": "string"
+        },
+        "transcript": {
+          "default": "",
+          "maxLength": 100000,
+          "title": "Transcript",
+          "type": "string"
+        },
+        "caption_json": {
+          "additionalProperties": true,
+          "title": "Caption Json",
+          "type": "object"
+        }
+      },
+      "required": [
+        "video_url"
+      ],
+      "title": "VideoLearnInput",
+      "type": "object"
+    }
+  },
+  {
+    "name": "writing_profile",
+    "description": "Describe sentence/paragraph rhythm and punctuation from exact writing samples authorized by the owner. No persona training, persistence, sample export or inferred identity; returned metrics do not grant permission.",
+    "parameters": {
+      "properties": {
+        "samples": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "minItems": 1,
+          "title": "Samples",
+          "type": "array"
+        },
+        "user_authorized": {
+          "default": false,
+          "description": "Only true when the owner authorized using these exact samples for this purpose",
+          "title": "User Authorized",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "samples"
+      ],
+      "title": "WritingProfileInput",
       "type": "object"
     }
   }

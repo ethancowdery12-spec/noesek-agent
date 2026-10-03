@@ -1,9 +1,11 @@
-"""Thin-controller / scoped-worker orchestration policy.
+"""Controller surface / scoped-worker orchestration policy.
 
 Architecture (owner-approved 2026-09-17):
 - The chat-facing Controller handles conversation, clarification, approvals,
   routing, progress, cancellation, and final delivery. It does NOT register or
-  execute work tools directly; substantive work is delegated to scoped workers.
+  execute worker-only research tools directly; those are delegated to scoped workers.
+  The current registry also exposes approval-gated workspace/integration tools.
+  CONTROLLER_TOOLS is an explicit surface allowlist, not proof of a fully thin controller.
 - Workers cannot spawn child workers by default. The only exception is an
   explicit SpawnGrant issued by the controller's policy.
 - One outcome owner per team run; bounded workers, steps, and wall-clock time;
@@ -17,17 +19,18 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
-# Tools that DO work. Never present in the chat controller's own registry.
+# Worker-only research tools. Never present in the chat controller's own registry.
 WORK_TOOLS = frozenset({"search_web", "fetch_url", "run_python"})
 
-# The thin controller's complete tool surface: conversation state, task
-# coordination, and delegation. Anything else is work and must be delegated.
+# The controller's explicit allowlist (not a thin-controller invariant): task
+# coordination, delegation and explicitly approved workspace/integration tools.
 CONTROLLER_TOOLS = frozenset({
     "remember", "recall", "memory_get", "forget", "supersede_memory", "handoff", "switch_model", "library_docs", "search_tools",
     "create_task", "list_tasks", "cancel_task",
     "delegate_task",
+    "source_reference", "finance_tieout", "spec_plan", "skill_inspect", "evidence_index", "video_learn", "review_receipt", "motion_storyboard", "writing_profile", "task_manifest", "pr_change_graph",
     "gmail_read", "gmail_send", "calendar_read", "github_notifications",
-    "create_file", "speak", "optimize_prompt", "humanize", "rewrite_natural", "scrub", "generate_variants", "story_critique", "exact_solve", "seo_audit", "geo_audit", "code_graph", "office_doc", "linkedin", "design_system", "playbook", "browser_cookies", "adversarial_review", "security_audit", "literature_search", "duckdb_query", "code_interpreter", "test_verifier", "code_act", "code_review", "skill_library", "ofx_import", "fit_import", "date_math", "calc", "code_intel", "receipt_import", "fitness_query",
+    "create_file", "speak", "optimize_prompt", "humanize", "rewrite_natural", "scrub", "generate_variants", "story_critique", "exact_solve", "seo_audit", "geo_audit", "code_graph", "office_doc", "linkedin", "linkedin_draft", "agent_roster", "skill_pack", "answer_shape", "redact_secrets", "task_next", "context_budget", "cluster_plan", "motion_render", "org_chart", "convo_recap", "style_match", "nda_triage", "invoice_chase", "design_system", "business_services", "design_resources", "screenshot_to_code", "taste_check", "playbook", "browser_cookies", "adversarial_review", "security_audit", "literature_search", "duckdb_query", "code_interpreter", "test_verifier", "code_act", "code_review", "skill_library", "ofx_import", "fit_import", "date_math", "calc", "code_intel", "receipt_import", "fitness_query",
 })
 
 
@@ -72,6 +75,9 @@ class CancellationToken:
 
     def cancel(self) -> None:
         self._event.set()
+
+    async def wait(self) -> None:
+        await self._event.wait()
 
     @property
     def cancelled(self) -> bool:

@@ -1,0 +1,32 @@
+{
+ "name": "i-have-adhd",
+ "description": "ADHD-friendly answer shape skill and its eval cases",
+ "repo": "https://github.com/ayghri/i-have-adhd",
+ "commit": "839872f9d1cd634fed642b4589ce7226199cc15f",
+ "license": "MIT",
+ "license_holder": "Ayoub Ghriss",
+ "license_src": "LICENSE",
+ "license_sha256": "8acbb618089b738404f76ac60fca1aaa995d9a87995eddf95f0b777acd7f7d2c",
+ "unchanged_bytes": true,
+ "execution_verified": false,
+ "files": [
+  {
+   "src": "skills/i-have-adhd/SKILL.md",
+   "dest": "files/skills/i-have-adhd/SKILL.md",
+   "sha256": "3170b16ace00aecb0dd7feb54c0b5aa642e7502acda06ecd24fd89a11c7127e9",
+   "bytes": 7207
+  },
+  {
+   "src": "evals/cases.jsonl",
+   "dest": "files/evals/cases.jsonl",
+   "sha256": "05ba81a77bca9165c4a364f7ddb03ddc74dcf76428de3fc87a6e2d649c7d850d",
+   "bytes": 4005
+  },
+  {
+   "src": "evals/rubric.md",
+   "dest": "files/evals/rubric.md",
+   "sha256": "ba3887f8dbb0492cabac58ef07b9be57df71085a2324a97768103efe2676241a",
+   "bytes": 1409
+  }
+ ]
+}

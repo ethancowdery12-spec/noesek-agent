@@ -40,6 +40,10 @@ SKIP_FILES = {
     "src/noesek/data/cli-manifest.json",
     "evals/compat-manifest.json",
     "evals/adapter-results.json",
+    "src/noesek/data/agent_pack/manifest.json",
+    "src/noesek/data/packs/superpowers/manifest.json",
+    "src/noesek/data/packs/i-have-adhd/manifest.json",
+    "src/noesek/data/packs/awesome-gpt-image-2/manifest.json",
 }
 
 

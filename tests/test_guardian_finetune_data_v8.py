@@ -59,14 +59,17 @@ def test_size_and_gold_balance():
     assert counts["escalate"] >= 1000, counts
 
 
-def test_every_live_registry_tool_trained():
+def test_every_live_registry_tool_has_historical_or_pending_coverage():
     # THE v8 invariant: coverage measured against the REAL controller registry,
     # not a hand-maintained list (the stale-list blind spot that hid the skew).
     from finetune.dump_tools import production_specs
     live = {s.name for s in production_specs()}
-    used = {_tool(t) for t in TRAINING_TRACES}
+    # Historical trained set stays frozen. Registry additions require explicit
+    # schema-valid pending fixtures, not a claim the deployed model learned them.
+    from evals.guardian_youtube_tools import PENDING_TRACES
+    used = {_tool(t) for t in list(TRAINING_TRACES) + PENDING_TRACES}
     missing = live - used
-    assert not missing, f"live tools with no v8 trace: {sorted(missing)}"
+    assert not missing, f"live tools with neither historical nor pending trace: {sorted(missing)}"
 
 
 def test_skew_rebalanced():

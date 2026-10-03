@@ -4,14 +4,18 @@ Roadmap item 70 (skills batch 1). Own implementation over public APIs -
 the convenience libraries (arxiv, scholarly, habanero) ship without clear
 licenses, so we call the APIs directly per the research verdict. Zero deps.
 
-Sources (all free, no key):
+Sources (all free; keys optional): Semantic Scholar and OpenAlex use a free key from NOESEK_S2_API_KEY /
+NOESEK_OPENALEX_API_KEY when set, which avoids the shared unauthenticated rate limit.
 - arXiv: export.arxiv.org/api/query (Atom XML)
 - Crossref: api.crossref.org/works (JSON; polite pool via User-Agent)
 - Semantic Scholar: api.semanticscholar.org/graph/v1/paper/search (JSON)
 - OpenAlex: api.openalex.org/works (JSON)
 """
 import json
+import os
 import re
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
@@ -30,10 +34,33 @@ class LiteratureInput(BaseModel):
     max_results: int = Field(default=5, ge=1, le=20)
 
 
+def _keyed(url: str):
+    """Optional free API keys from the environment (never hard-coded, never logged):
+    NOESEK_S2_API_KEY for Semantic Scholar (x-api-key header), NOESEK_OPENALEX_API_KEY for OpenAlex."""
+    headers = dict(_UA)
+    host = urllib.parse.urlparse(url).hostname or ""
+    if host == "api.semanticscholar.org" and os.environ.get("NOESEK_S2_API_KEY"):
+        headers["x-api-key"] = os.environ["NOESEK_S2_API_KEY"]
+    if host == "api.openalex.org" and os.environ.get("NOESEK_OPENALEX_API_KEY") and "api_key=" not in url:
+        url += ("&" if "?" in url else "?") + "api_key=" + urllib.parse.quote(os.environ["NOESEK_OPENALEX_API_KEY"])
+    return url, headers
+
+
 def _get(url: str) -> bytes:
-    req = urllib.request.Request(url, headers=_UA)
-    with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
-        return resp.read(2_000_000)
+    url, headers = _keyed(url)
+    for attempt in (0, 1):
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=_TIMEOUT) as resp:
+                return resp.read(2_000_000)
+        except urllib.error.HTTPError as exc:
+            if exc.code != 429 or attempt:  # one polite retry on a shared-pool rate limit
+                raise
+            try:
+                wait = min(float(exc.headers.get("Retry-After", "1.5")), 5.0)
+            except (TypeError, ValueError):
+                wait = 1.5
+            time.sleep(wait)
 
 
 def _arxiv(query: str, n: int) -> list:

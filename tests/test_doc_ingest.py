@@ -175,3 +175,34 @@ async def _clean_conversations():
             await s.commit()
     except Exception:
         pass
+
+def test_injected_local_ocr_is_a_real_document_route():
+    from noesek.core.local_ocr import LocalOCR,OCRConfig
+    from test_local_ocr import image_bytes,Model
+    r=convert_to_markdown(image_bytes(),'x.png','image/png',local_ocr=LocalOCR(Model(),object(),OCRConfig(enabled=True)))
+    assert r.ok and r.engine=='unlimited-ocr' and r.markdown=='recognized text'
+
+def test_archive_expansion_rejected_before_converter(monkeypatch):
+    import noesek.core.doc_ingest as module
+    buf=io.BytesIO()
+    with zipfile.ZipFile(buf,'w',compression=zipfile.ZIP_DEFLATED) as z:z.writestr('word/document.xml','a'*12000000)
+    monkeypatch.setattr(module,'_convert_markitdown',lambda *a:pytest.fail('converter must not run'))
+    out=convert_to_markdown(buf.getvalue(),'x.docx')
+    assert not out.ok and 'expanded' in out.error
+
+def test_bad_text_and_adapter_exceptions_are_results():
+    for data in [b'  \n',b'\xff\xfe']:
+        assert not convert_to_markdown(data,'x.txt').ok
+    class Broken:
+        def read(self,*a):raise RuntimeError('private')
+    out=convert_to_markdown(b'x','x.png',local_ocr=Broken())
+    assert not out.ok and 'private' not in out.error
+
+@pytest.mark.parametrize('filename,mime',[('x.bin','application/vnd.openxmlformats-officedocument.wordprocessingml.document'),('x.zip','application/zip'),('x.txt','text/plain')])
+def test_archive_guard_sniffs_content_not_extension(filename,mime,monkeypatch):
+    import noesek.core.doc_ingest as module
+    buf=io.BytesIO()
+    with zipfile.ZipFile(buf,'w',compression=zipfile.ZIP_DEFLATED) as z:z.writestr('word/document.xml','a'*40000000)
+    monkeypatch.setattr(module,'_convert_markitdown',lambda *a:pytest.fail('must not convert'))
+    out=convert_to_markdown(buf.getvalue(),filename,mime)
+    assert not out.ok
