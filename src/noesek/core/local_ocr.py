@@ -7,6 +7,7 @@ from pathlib import Path
 import io
 import multiprocessing as mp
 import tempfile
+import time
 from .doc_ingest import DocResult,MAX_DOC_BYTES,MAX_MARKDOWN_CHARS
 
 @dataclass(frozen=True)
@@ -18,10 +19,14 @@ class OCRConfig:
     max_dimension:int=8192
     timeout_seconds:float=30
     max_tokens:int=4096
+    max_pages:int=20
+    pdf_dpi:int=150
+    pdf_deadline_seconds:float=300
     def __post_init__(self):
         if not (1<=self.max_bytes<=MAX_DOC_BYTES and 1<=self.max_chars<=MAX_MARKDOWN_CHARS and
                 1<=self.max_pixels<=16000000 and 1<=self.max_dimension<=8192 and
-                0<self.timeout_seconds<=120 and 1<=self.max_tokens<=8192):
+                0<self.timeout_seconds<=120 and 1<=self.max_tokens<=8192 and
+                1<=self.max_pages<=100 and 72<=self.pdf_dpi<=300 and 0<self.pdf_deadline_seconds<=1800):
             raise ValueError('OCR limits invalid')
 
 def _infer_child(pipe,model,tokenizer,image,folder,config):
@@ -35,9 +40,27 @@ def _infer_child(pipe,model,tokenizer,image,folder,config):
     except Exception as exc:pipe.send((False,f'local model failed: {type(exc).__name__}',False))
     finally:pipe.close()
 
+def pdfium_pages(data,config):
+    """Default renderer: yield (page_count, page_index, PIL image, note) using optional pypdfium2."""
+    try:import pypdfium2 as pdfium
+    except ImportError:raise RuntimeError('PDF rendering needs the optional pypdfium2 package')
+    pdf=pdfium.PdfDocument(data)
+    try:
+        total=len(pdf)
+        for index in range(min(total,config.max_pages)):
+            page=pdf[index]
+            try:
+                width,height=page.get_size();scale=config.pdf_dpi/72;note=''
+                if width*scale*height*scale>config.max_pixels or max(width,height)*scale>config.max_dimension:
+                    scale=min((config.max_pixels/(width*height))**.5,config.max_dimension/max(width,height))
+                    note=f'page {index+1} rendered at reduced scale to fit pixel limits'
+                yield total,index,page.render(scale=scale).to_pil().convert('RGB'),note
+            finally:page.close()
+    finally:pdf.close()
+
 class LocalOCR:
-    def __init__(self,model=None,tokenizer=None,config=None):
-        self.model=model;self.tokenizer=tokenizer;self.config=config or OCRConfig()
+    def __init__(self,model=None,tokenizer=None,config=None,renderer=None):
+        self.model=model;self.tokenizer=tokenizer;self.config=config or OCRConfig();self.renderer=renderer
     def read(self,data:bytes,filename:str)->DocResult:
         def fail(error):return DocResult(ok=False,engine='unlimited-ocr',error=error)
         if not self.config.enabled or self.model is None or self.tokenizer is None:
@@ -77,3 +100,33 @@ class LocalOCR:
             return DocResult(ok=True,engine='unlimited-ocr',markdown=text,truncated=clipped,
                 warnings=['Untrusted OCR output; wrap with content_guard. Live model quality and GPU readiness not verified.'])
         except Exception as exc:return fail(f'local OCR failed: {type(exc).__name__}')
+
+    def read_pdf(self,data:bytes,filename:str='document.pdf')->DocResult:
+        """Bounded PDF pipeline: render each page to PNG on CPU, OCR page by page, join as Markdown.
+        Own code. Rendering uses the optional pypdfium2 package unless a renderer is injected.
+        Page count, dpi, per-page deadline and total deadline are all capped by OCRConfig."""
+        def fail(error):return DocResult(ok=False,engine='unlimited-ocr-pdf',error=error)
+        cfg=self.config
+        if not cfg.enabled or self.model is None or self.tokenizer is None:
+            return fail('local audited model/tokenizer not configured; no model downloaded')
+        if not data or len(data)>cfg.max_bytes:return fail('empty PDF or byte limit exceeded')
+        if data.lstrip()[:5]!=b'%PDF-':return fail('not a PDF')
+        start=time.monotonic();parts=[];warnings=[];clipped=False;total=0
+        try:
+            for total,index,image,note in (self.renderer or pdfium_pages)(data,cfg):
+                if note:warnings.append(note)
+                if time.monotonic()-start>cfg.pdf_deadline_seconds:
+                    warnings.append(f'total PDF deadline reached after {index} pages');break
+                buf=io.BytesIO();image.save(buf,format='PNG')
+                result=self.read(buf.getvalue(),f'page-{index+1}.png')
+                if not result.ok:warnings.append(f'page {index+1}: {result.error}');continue
+                clipped=clipped or result.truncated
+                parts.append(f'## Page {index+1}\n\n{result.markdown}')
+        except RuntimeError as exc:return fail(str(exc))
+        except Exception as exc:return fail(f'PDF pipeline failed: {type(exc).__name__}')
+        if total<1:return fail('PDF has no pages')
+        if total>cfg.max_pages:warnings.append(f'only first {cfg.max_pages} of {total} pages read (max_pages limit)')
+        if not parts:return DocResult(ok=False,engine='unlimited-ocr-pdf',error='no page produced readable text',warnings=warnings)
+        text='\n\n'.join(parts)
+        warnings.append('Untrusted OCR output; wrap with content_guard. Live model quality and GPU readiness not verified.')
+        return DocResult(ok=True,engine='unlimited-ocr-pdf',markdown=text[:cfg.max_chars],truncated=clipped or len(text)>cfg.max_chars,warnings=warnings)
