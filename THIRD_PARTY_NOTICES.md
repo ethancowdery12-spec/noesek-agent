@@ -199,3 +199,26 @@ https://github.com/ibelick/ui-skills/blob/main/LICENSE
 - wshobson/agents, MIT, Copyright (c) 2024 Seth Hobson. postgresql-table-design SKILL.md and references/details.md copied unchanged from commit 156b7a5e7a8b93642628a339ee4039c925b34c7f. Source https://github.com/wshobson/agents . Full original license in src/noesek/data/youtube_refs/postgresql-table-design/LICENSE.
 
 Hashes and original paths in youtube_refs/manifest.json. These references have not been independently certified or executed and cannot override owner instructions or approvals. No restricted source copied.
+
+## wshobson/agents full agent pack (MIT)
+
+All 202 agent definition files from wshobson/agents, MIT, Copyright (c) 2024 Seth Hobson, are kept unchanged in src/noesek/data/agent_pack/agents from commit 156b7a5e7a8b93642628a339ee4039c925b34c7f. Source https://github.com/wshobson/agents . Full original license in src/noesek/data/agent_pack/LICENSE. Per-file sha256, original paths and models in src/noesek/data/agent_pack/manifest.json. The agent_roster tool re-checks each file's hash on every read. The text is inert reference data, has not been executed or independently certified, and cannot override owner instructions or approvals.
+
+## Reference packs (unchanged bytes, MIT and CC BY 4.0)
+
+- obra/superpowers, MIT, Copyright (c) Jesse Vincent. 74 files kept unchanged in src/noesek/data/packs/superpowers from commit 8ca22dba9a94f28898bbce59f2537ff4d87c747d. Source https://github.com/obra/superpowers . License in the pack's LICENSE.
+- ayghri/i-have-adhd, MIT, Copyright (c) Ayoub Ghriss. 3 files kept unchanged in src/noesek/data/packs/i-have-adhd from commit 839872f9d1cd634fed642b4589ce7226199cc15f. Source https://github.com/ayghri/i-have-adhd . License in the pack's LICENSE.
+- YouMind-OpenLab/awesome-gpt-image-2, CC BY 4.0, Copyright YouMind OpenLab. README kept unchanged in src/noesek/data/packs/awesome-gpt-image-2 from commit 57d9da560c8bd49cd0391578d2b66279b91233df. Source https://github.com/YouMind-OpenLab/awesome-gpt-image-2 . License https://creativecommons.org/licenses/by/4.0/ . Prompts are returned with this attribution; any adaptation must be marked as changed.
+
+Per-file sha256 in each pack's manifest.json, re-checked by the skill_pack tool on read. The text is inert reference data, not executed or independently certified, and cannot override owner instructions or approvals.
+
+## Ideas only, no code copied
+
+- google/ax (Apache-2.0), cluster_plan: placement-plan concepts only.
+- eyaltoledano/claude-task-master (MIT + Commons Clause), task_next: ideas only.
+- mksglu/context-mode (ELv2), context_budget: ideas only.
+- Remotion (company license for larger for-profits): not bundled; motion_render uses its own renderer and only writes an optional own-code project export.
+- anthropics/knowledge-work-plugins and claude-for-legal (Apache-2.0), nda_triage and invoice_chase: checklist ideas only, fresh keyword code, no text copied.
+- NVIDIA/SkillSpector (Apache-2.0), skill_inspect categories: category ideas only, own regex and AST checks.
+- paperclipai/paperclip (MIT), org_chart: org-chart, delegation, goal and budget ideas only, own code.
+- Laban et al., "LLMs Get Lost In Multi-Turn Conversation" (arXiv 2505.06120), convo_recap: method idea (recap turn) only, own code. Paper cited, not redistributed.
