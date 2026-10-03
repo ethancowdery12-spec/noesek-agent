@@ -61,3 +61,55 @@ def test_all_sources_down_returns_zero_not_crash(monkeypatch):
     monkeypatch.setattr(lit, "_get", _fake_get({}))
     out = literature_search(LiteratureInput(query="xy"))
     assert out["count"] == 0 and len(out["source_errors"]) == 4
+
+
+class _Resp:
+    def __init__(self, body): self.body = body
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+    def read(self, n=-1): return self.body
+
+
+def test_429_gets_one_retry_then_succeeds(monkeypatch):
+    import urllib.error
+    calls = []
+    def urlopen(req, timeout=0):
+        calls.append(req.full_url)
+        if len(calls) == 1:
+            raise urllib.error.HTTPError(req.full_url, 429, "slow down", {"Retry-After": "0"}, None)
+        return _Resp(b"ok")
+    monkeypatch.setattr(lit.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(lit.time, "sleep", lambda s: None)
+    assert lit._get("https://api.semanticscholar.org/graph/v1/paper/search?query=x") == b"ok" and len(calls) == 2
+
+
+def test_second_429_is_raised_not_looped(monkeypatch):
+    import urllib.error
+    n = []
+    def urlopen(req, timeout=0):
+        n.append(1)
+        raise urllib.error.HTTPError(req.full_url, 429, "slow", {}, None)
+    monkeypatch.setattr(lit.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(lit.time, "sleep", lambda s: None)
+    try:
+        lit._get("https://api.semanticscholar.org/x")
+        assert False
+    except urllib.error.HTTPError as exc:
+        assert exc.code == 429 and len(n) == 2
+
+
+def test_optional_keys_only_for_their_host_and_off_by_default(monkeypatch):
+    for k in ("NOESEK_S2_API_KEY", "NOESEK_OPENALEX_API_KEY"):
+        monkeypatch.delenv(k, raising=False)
+    u, h = lit._keyed("https://api.openalex.org/works?search=x")
+    assert "api_key" not in u and "x-api-key" not in h
+    monkeypatch.setenv("NOESEK_S2_API_KEY", "s2-test-value")  # pragma: allowlist secret
+    monkeypatch.setenv("NOESEK_OPENALEX_API_KEY", "oa-test-value")  # pragma: allowlist secret
+    _, h = lit._keyed("https://api.semanticscholar.org/graph/v1/paper/search?query=x")
+    assert h["x-api-key"] == "s2-test-value"
+    _, h = lit._keyed("https://export.arxiv.org/api/query?x=1")
+    assert "x-api-key" not in h
+    u, _ = lit._keyed("https://api.openalex.org/works?search=x")
+    assert u.endswith("&api_key=oa-test-value")
+    u, _ = lit._keyed("https://api.crossref.org/works?query=x")
+    assert "api_key" not in u
