@@ -2584,6 +2584,26 @@
     }
   },
   {
+    "name": "redact_secrets",
+    "description": "Remove secrets and sensitive IDs from text before sharing it: strips API keys, access tokens, passwords in key=value form, bearer tokens, private key blocks, URL credentials, SSNs and card numbers, leaving [REDACTED] markers. Pattern based and offline; reports counts and never echoes what it removed. Not for watermark or file metadata cleaning, use scrub for that.",
+    "parameters": {
+      "properties": {
+        "text": {
+          "description": "Text to clean of secrets before sharing",
+          "maxLength": 200000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "RedactSecretsInput",
+      "type": "object"
+    }
+  },
+  {
     "name": "remember",
     "description": "Store a durable user-approved fact or preference ('save this: my accountant is Dana', 'remember that I take oat milk').",
     "parameters": {
