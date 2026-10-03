@@ -107,6 +107,12 @@ def convert_to_markdown(data: bytes, filename: str = "", mime: str = "", *, loca
     if local_ocr is not None and _ext(filename) in {".png", ".jpg", ".jpeg", ".webp"}:
         try:return local_ocr.read(data, filename)
         except Exception as exc:return DocResult(ok=False,engine='unlimited-ocr',error=f'adapter failed: {type(exc).__name__}')
+    if local_ocr is not None and _ext(filename)=='.pdf' and hasattr(local_ocr,'read_pdf'):
+        # Scanned PDFs have no text layer: try the normal engine first, OCR only when it finds nothing.
+        first=_convert_pdf_text(data,filename)
+        if first is not None:return first
+        try:return local_ocr.read_pdf(data,filename)
+        except Exception as exc:return DocResult(ok=False,engine='unlimited-ocr-pdf',error=f'adapter failed: {type(exc).__name__}')
     engine = _engine_choice(filename)
     if engine == "docling-missing":
         return DocResult(ok=False, engine="docling", error="docling requested but not installed (pip install noesek-agent[docling])")
@@ -125,6 +131,14 @@ def convert_to_markdown(data: bytes, filename: str = "", mime: str = "", *, loca
         return _finish(text, engine)
     except Exception as e:
         return DocResult(ok=False, engine=engine, error=f"conversion failed: {type(e).__name__}: {str(e)[:200]}")
+
+
+def _convert_pdf_text(data: bytes, filename: str):
+    """Text-layer PDF result, or None when the PDF has no readable text (scanned) so OCR can run."""
+    try:text=_convert_markitdown(data,filename)
+    except Exception:return None
+    if len((text or '').strip())<20:return None
+    return _finish(text,'markitdown')
 
 
 def _finish(text: str, engine: str, warning: str | None = None) -> DocResult:
