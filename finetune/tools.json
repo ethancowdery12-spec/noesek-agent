@@ -102,7 +102,7 @@
   },
   {
     "name": "answer_shape",
-    "description": "Check a written answer for a reader who needs the next action first: lead with an action, numbered steps, one concrete next action, no tangents, specific time estimates, progress restated across turns. Heuristic text checks, no rewrite, no model call.",
+    "description": "Check whether a written answer is shaped so the reader can act on it right away, for a reader who needs the next action first: lead with an action, numbered steps, one concrete next action, no tangents, specific time estimates, progress restated across turns. Heuristic text checks, no rewrite, no model call.",
     "parameters": {
       "properties": {
         "text": {
@@ -1673,7 +1673,7 @@
   },
   {
     "name": "invoice_chase",
-    "description": "Age your open invoices into buckets, pick a chase stage for each (friendly reminder, reminder, firm, final notice) and write plain draft wording. Totals by bucket and customer. Drafts only: nothing is sent and no accounting system is touched.",
+    "description": "Find which customers are overdue: age your open and unpaid invoices into buckets, pick a chase stage for each (friendly reminder, reminder, firm, final notice) and write plain draft wording of what to say to each customer. Totals by bucket and customer. Drafts only: nothing is sent and no accounting system is touched.",
     "parameters": {
       "$defs": {
         "Invoice": {
