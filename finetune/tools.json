@@ -1310,7 +1310,7 @@
               "type": "number"
             },
             {
-              "pattern": "^(?!^[-+.]*$)[+-]?0
+              "pattern": "^(?!^[-+.]*$)[+-]?0*\\d*\\.?\\d*$",
               "type": "string"
             }
           ],
@@ -1494,8 +1494,7 @@
   },
   {
     "name": "generate_variants",
-    "description": "Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",
-    "parameters": {
+    "description": "Generate N distinct candidate versions of a creative output in parallel (names, taglines, subject lines, drafts), then pick the best with a judge pass and show the rest. Use for creative asks where one shot is a lottery.",    "parameters": {
       "properties": {
         "task": {
           "description": "What to create, e.g. 'three tagline options for a dog-sitting app called Biscuit'",
