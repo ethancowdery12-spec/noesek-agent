@@ -23,6 +23,7 @@ CASES={
  'taste_check':{'html':'<html lang="en"><body>x</body></html>','profile':'neutral'},
  'agent_roster':{'action':'summary'},
  'skill_pack':{'action':'packs'},
+ 'redact_secrets':{'text':'password=example-value-123'},
  'answer_shape':{'text':'Run the tests.\nNext: run the tests.'},
  'task_next':{'tasks':[{'id':'a','title':'x'}]},
  'context_budget':{'events':[{'id':'1','kind':'note','text':'x'}]},
